@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAS Safeguard - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Loading State -->
+        <div id="loading" class="loading-overlay">
+            <div class="loader"></div>
+            <p>Loading ZAS Safeguard...</p>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="authScreen" class="screen" style="display: none;">
+            <div class="auth-container">
+                <div class="logo">🛡️</div>
+                <h1>ZAS Safeguard</h1>
+                <p class="tagline">Your Digital Guardian</p>
+
+                <div class="auth-tabs">
+                    <button class="tab active" data-tab="login">Sign In</button>
+                    <button class="tab" data-tab="register">Sign Up</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                    <button type="button" class="btn btn-google" id="googleSignIn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        Sign in with Google
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form" style="display: none;">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="registerName" required placeholder="Your Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" required placeholder="Min 8 characters">
+                    </div>
+                    <div class="form-group">
+                        <label>Mode</label>
+                        <select id="registerMode">
+                            <option value="owner">Owner Mode (For myself - Ultra-strict)</option>
+                            <option value="family">Family Mode (Parental controls)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboardScreen" class="screen" style="display: none;">
+            <!-- Sidebar -->
+            <nav class="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo-small">🛡️</div>
+                    <span>ZAS Safeguard</span>
+                </div>
+                <ul class="nav-links">
+                    <li class="active" data-section="overview">
+                        <span class="icon">📊</span> Overview
+                    </li>
+                    <li data-section="devices">
+                        <span class="icon">💻</span> Devices
+                    </li>
+                    <li data-section="blocklist">
+                        <span class="icon">🚫</span> Blocklist
+                    </li>
+                    <li data-section="activity">
+                        <span class="icon">📋</span> Activity
+                    </li>
+                    <li data-section="children" id="childrenNav" style="display: none;">
+                        <span class="icon">👨‍👩‍👧</span> Children
+                    </li>
+                    <li data-section="settings">
+                        <span class="icon">⚙️</span> Settings
+                    </li>
+                </ul>
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <img id="userAvatar" src="" alt="User" class="avatar">
+                        <span id="userName">User</span>
+                    </div>
+                    <button id="logoutBtn" class="btn-logout">Logout</button>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Overview Section -->
+                <section id="overviewSection" class="section">
+                    <h2>Dashboard Overview</h2>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🛡️</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statStatus">Active</span>
+                                <span class="stat-label">Protection Status</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🚫</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statBlockedToday">0</span>
+                                <span class="stat-label">Blocked Today</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💻</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statDevices">0</span>
+                                <span class="stat-label">Connected Devices</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statSubscription">Free</span>
+                                <span class="stat-label">Subscription</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mode-banner" id="modeBanner">
+                        <span class="mode-icon">🔒</span>
+                        <div class="mode-info">
+                            <h3 id="modeTitle">Owner Mode</h3>
+                            <p id="modeDescription">Ultra-strict protection enabled. Adult content is permanently
+                                blocked.</p>
+                        </div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <h3>Recent Blocks</h3>
+                        <ul id="recentBlocks">
+                            <li class="empty">No recent blocks</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Devices Section -->
+                <section id="devicesSection" class="section" style="display: none;">
+                    <h2>Connected Devices</h2>
+                    <div id="devicesList" class="devices-grid">
+                        <div class="device-card add-device">
+                            <span class="icon">➕</span>
+                            <p>Add Device</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Blocklist Section -->
+                <section id="blocklistSection" class="section" style="display: none;">
+                    <h2>Blocklist Management</h2>
+
+                    <div class="categories-grid">
+                        <div class="category-card" data-category="porn">
+                            <div class="category-header">
+                                <span class="category-icon">🔞</span>
+                                <h3>Adult Content</h3>
+                            </div>
+                            <p>Pornography and explicit material</p>
+                            <div class="category-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" checked disabled>
+                                    <span class="slider locked"></span>
+                                </label>
+                                <span class="lock-badge">🔒 Locked ON</span>
+                            </div>
+                        </div>
+
+                        <div class="category-card" data-category="gambling">
+                            <div class="category-header">
+                                <span class="category-icon">🎰</span>
+                                <h3>Gambling</h3>
+                            </div>
+                            <p>Betting and casino sites</p>
+                            <div class="category-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggleGambling">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="category-card" data-category="social">
+                            <div class="category-header">
+                                <span class="category-icon">📱</span>
+                                <h3>Social Media</h3>
+                            </div>
+                            <p>Facebook, Instagram, TikTok, etc.</p>
+                            <div class="category-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggleSocial">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="category-card" data-category="gaming">
+                            <div class="category-header">
+                                <span class="category-icon">🎮</span>
+                                <h3>Gaming</h3>
+                            </div>
+                            <p>Online games and gaming platforms</p>
+                            <div class="category-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggleGaming">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="custom-blocklist">
+                        <h3>Custom Blocklist</h3>
+                        <div class="add-domain">
+                            <input type="text" id="customDomain" placeholder="example.com">
+                            <button class="btn btn-primary" id="addDomainBtn">Add Domain</button>
+                        </div>
+                        <ul id="customDomainsList"></ul>
+                    </div>
+                </section>
+
+                <!-- Activity Section -->
+                <section id="activitySection" class="section" style="display: none;">
+                    <h2>Activity Log</h2>
+                    <div class="activity-filters">
+                        <select id="activityFilter">
+                            <option value="all">All Activity</option>
+                            <option value="blocks">Blocks Only</option>
+                            <option value="unlocks">Unlock Attempts</option>
+                        </select>
+                        <input type="date" id="activityDate">
+                    </div>
+                    <div id="activityLog" class="activity-list">
+                        <div class="empty-state">No activity recorded yet</div>
+                    </div>
+                </section>
+
+                <!-- Children Section (Family Mode) -->
+                <section id="childrenSection" class="section" style="display: none;">
+                    <h2>Children Profiles</h2>
+                    <button class="btn btn-primary" id="addChildBtn">+ Add Child</button>
+                    <div id="childrenList" class="children-grid"></div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settingsSection" class="section" style="display: none;">
+                    <h2>Settings</h2>
+
+                    <div class="settings-group">
+                        <h3>Account</h3>
+                        <div class="setting-item">
+                            <label>Email</label>
+                            <input type="email" id="settingsEmail" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <label>Display Name</label>
+                            <input type="text" id="settingsName">
+                            <button class="btn btn-secondary">Update</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-group" id="ownerSettings">
+                        <h3>Owner Mode Settings</h3>
+                        <div class="setting-item">
+                            <label>Master Key</label>
+                            <p class="setting-description">Your 60+ character key for emergency unlock</p>
+                            <textarea id="masterKeyInput" rows="3"
+                                placeholder="Enter a long, memorable phrase..."></textarea>
+                            <button class="btn btn-danger" id="setMasterKeyBtn">Set Master Key</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Subscription</h3>
+                        <div id="subscriptionInfo">
+                            <p>Current Plan: <strong id="currentPlan">Free Trial</strong></p>
+                            <button class="btn btn-primary" id="upgradeBtn">Upgrade to Premium</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-group danger-zone">
+                        <h3>Danger Zone</h3>
+                        <button class="btn btn-danger" id="deleteAccountBtn">Delete Account</button>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
