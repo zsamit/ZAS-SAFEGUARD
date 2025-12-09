@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZAS Safeguard</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">🛡️</div>
+      <h1>ZAS Safeguard</h1>
+      <p class="tagline">Your Digital Guardian</p>
+    </div>
+
+    <!-- Status Section -->
+    <div class="status-section">
+      <div class="status-indicator active" id="statusIndicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Protection Active</span>
+      </div>
+      <div class="sync-info" id="syncInfo">
+        Last synced: <span id="lastSync">Never</span>
+      </div>
+    </div>
+
+    <!-- Login Section (shown when not authenticated) -->
+    <div class="login-section" id="loginSection" style="display: none;">
+      <p>Sign in to sync your protection across devices</p>
+      <button class="btn btn-primary" id="loginBtn">
+        Sign In with Google
+      </button>
+    </div>
+
+    <!-- User Section (shown when authenticated) -->
+    <div class="user-section" id="userSection" style="display: none;">
+      <div class="user-info">
+        <img id="userAvatar" class="avatar" src="" alt="User">
+        <div class="user-details">
+          <span class="user-name" id="userName">User</span>
+          <span class="user-mode" id="userMode">Family Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+      <div class="stat">
+        <span class="stat-value" id="blockedToday">0</span>
+        <span class="stat-label">Blocked Today</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="blockedTotal">0</span>
+        <span class="stat-label">Total Blocked</span>
+      </div>
+    </div>
+
+    <!-- Mode Indicator -->
+    <div class="mode-section" id="modeSection">
+      <div class="mode-badge" id="modeBadge">
+        <span class="mode-icon">👨‍👩‍👧</span>
+        <span class="mode-name">Family Mode</span>
+      </div>
+    </div>
+
+    <!-- Owner Mode Unlock Section -->
+    <div class="unlock-section" id="unlockSection" style="display: none;">
+      <div class="unlock-status" id="unlockStatus">
+        <div class="cooldown-timer" id="cooldownTimer" style="display: none;">
+          <span class="timer-value" id="timerValue">30:00</span>
+          <span class="timer-label">Cooldown Remaining</span>
+        </div>
+        <div class="anti-temptation" id="antiTemptation" style="display: none;">
+          <p id="temptationMessage"></p>
+        </div>
+      </div>
+      <button class="btn btn-danger" id="unlockBtn">
+        Request Temporary Unlock
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-section">
+      <button class="btn btn-secondary" id="syncBtn">
+        🔄 Sync Now
+      </button>
+      <button class="btn btn-secondary" id="settingsBtn">
+        ⚙️ Settings
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span class="device-id">Device: <span id="deviceId">Loading...</span></span>
+      <span class="version">v1.0.0</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

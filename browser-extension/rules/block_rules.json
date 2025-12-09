@@ -1,0 +1,87 @@
+[
+    {
+        "id": 1,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked/blocked.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "*://*.pornhub.com/*",
+            "resourceTypes": [
+                "main_frame",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 2,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked/blocked.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "*://*.xvideos.com/*",
+            "resourceTypes": [
+                "main_frame",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 3,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked/blocked.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "*://*.xnxx.com/*",
+            "resourceTypes": [
+                "main_frame",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 4,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked/blocked.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "*://*.xhamster.com/*",
+            "resourceTypes": [
+                "main_frame",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 5,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked/blocked.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "*://*.redtube.com/*",
+            "resourceTypes": [
+                "main_frame",
+                "sub_frame"
+            ]
+        }
+    }
+]
