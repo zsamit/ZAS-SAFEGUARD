@@ -173,10 +173,12 @@ async function handleLogout() {
 
 // User Profile
 async function createUserProfile(user, data) {
+    const mode = data.mode || 'family';
+
     const profile = {
         email: user.email,
         displayName: data.name || user.displayName || 'User',
-        mode: data.mode || 'owner',
+        mode: mode,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         subscription: {
             status: 'trial',
@@ -185,20 +187,21 @@ async function createUserProfile(user, data) {
         },
         settings: {
             categories: {
-                porn: { enabled: true, locked: true },
+                porn: { enabled: true, locked: mode === 'owner' },
                 gambling: { enabled: true, locked: false },
                 social_media: { enabled: false, locked: false },
                 gaming: { enabled: false, locked: false }
             },
             customBlocklist: [],
-            customAllowlist: []
+            customAllowlist: [],
+            blockedCreators: []
         }
     };
 
     await db.collection('users').doc(user.uid).set(profile);
 
-    // Create owner or family profile
-    if (data.mode === 'owner') {
+    // Create mode-specific profile
+    if (mode === 'owner') {
         await db.collection('owner_profiles').doc(user.uid).set({
             uid: user.uid,
             ultraStrict: true,
@@ -206,10 +209,16 @@ async function createUserProfile(user, data) {
             unlockCount: 0,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-    } else {
+    } else if (mode === 'family') {
         await db.collection('family_profiles').doc(user.uid).set({
             uid: user.uid,
             children: [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } else if (mode === 'student') {
+        await db.collection('student_profiles').doc(user.uid).set({
+            uid: user.uid,
+            studySessions: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
     }
@@ -292,14 +301,33 @@ function showDashboard() {
         document.getElementById('userAvatar').src = currentUser.photoURL;
     }
 
-    // Show/hide children nav based on mode
-    if (userProfile?.mode === 'family') {
+    const mode = userProfile?.mode;
+    const modeBanner = document.getElementById('modeBanner');
+    const modeTitle = document.getElementById('modeTitle');
+    const modeDescription = document.getElementById('modeDescription');
+    const modeIcon = document.querySelector('.mode-icon');
+
+    // Show/hide nav items and update banner based on mode
+    if (mode === 'family') {
         document.getElementById('childrenNav').style.display = 'block';
-        document.getElementById('modeBanner').classList.add('family');
-        document.getElementById('modeTitle').textContent = 'Family Mode';
-        document.getElementById('modeDescription').textContent =
-            'Parental controls active. Manage your children\'s online safety.';
-        document.querySelector('.mode-icon').textContent = '👨‍👩‍👧';
+        modeBanner.classList.add('family');
+        modeBanner.classList.remove('student');
+        modeTitle.textContent = 'Family Mode';
+        modeDescription.textContent = 'Parental controls active. Manage your children\'s online safety.';
+        modeIcon.textContent = '👨‍👩‍👧';
+    } else if (mode === 'student') {
+        document.getElementById('childrenNav').style.display = 'none';
+        modeBanner.classList.add('student');
+        modeBanner.classList.remove('family');
+        modeTitle.textContent = 'Student Mode';
+        modeDescription.textContent = 'Focus mode for studying. Use Study Mode to lock distractions during exams!';
+        modeIcon.textContent = '🎓';
+    } else if (mode === 'owner') {
+        document.getElementById('childrenNav').style.display = 'none';
+        modeBanner.classList.remove('family', 'student');
+        modeTitle.textContent = 'Owner Mode';
+        modeDescription.textContent = 'Ultra-strict protection enabled. Adult content is permanently blocked.';
+        modeIcon.textContent = '🔒';
     }
 
     // Load initial data

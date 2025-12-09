@@ -367,6 +367,15 @@ body {
     color: var(--secondary);
 }
 
+.mode-banner.student {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.05));
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.mode-banner.student h3 {
+    color: var(--success);
+}
+
 /* Categories Grid */
 .categories-grid {
     display: grid;
