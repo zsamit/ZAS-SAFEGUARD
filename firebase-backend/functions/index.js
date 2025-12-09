@@ -17,6 +17,24 @@ const blocking = require('./blocking');
 const override = require('./override');
 const fraud = require('./fraud');
 const ai = require('./ai');
+const version = require('./version');
+const cleanup = require('./cleanup');
+
+// ============================================
+// VERSION FUNCTIONS
+// ============================================
+exports.getVersion = version.getVersion;
+exports.incrementVersion = version.incrementVersion;
+exports.checkVersion = version.checkVersion;
+exports.versionCheck = version.versionCheck;
+
+// ============================================
+// CLEANUP & RATE LIMITING FUNCTIONS
+// ============================================
+exports.cleanupOldLogsV2 = cleanup.cleanupOldLogs;
+exports.checkRateLimit = cleanup.checkRateLimit;
+exports.logErrors = cleanup.logErrors;
+exports.archiveUserData = cleanup.archiveUserData;
 
 // ============================================
 // AUTH FUNCTIONS

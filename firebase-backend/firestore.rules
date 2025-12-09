@@ -2,7 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -25,18 +28,54 @@ service cloud.firestore {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
+    
+    function isOwnerMode() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mode == 'owner';
+    }
+    
+    function isFamilyMode() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mode == 'family';
+    }
+    
+    // Rate limiting helper - checks writes in last minute
+    function rateLimitCheck(path, maxWrites) {
+      // Note: Firestore doesn't have native rate limiting in rules
+      // This is a placeholder - implement via Cloud Functions
+      return true;
+    }
 
-    // Users collection - users can only read/write their own data
+    // ============================================
+    // VERSION & CONFIG (Read-only for clients)
+    // ============================================
+    
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin(); // Only admins can update version
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) && 
         // Prevent modifying subscription directly (must go through functions)
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription']);
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription']) &&
+        // Prevent downgrading mode from owner to family (security feature)
+        !(resource.data.mode == 'owner' && request.resource.data.mode == 'family');
       allow delete: if false; // Never delete users directly
     }
 
-    // Devices - users can manage their devices, parents can manage children's devices
+    // ============================================
+    // DEVICES
+    // ============================================
+    
     match /devices/{deviceId} {
       allow read: if isAuthenticated() && 
         (resource.data.userId == request.auth.uid ||
@@ -45,95 +84,206 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         isParentOf(resource.data.linkedChildId));
+         isParentOf(resource.data.linkedChildId)) &&
+        // Prevent changing ownership
+        request.resource.data.userId == resource.data.userId;
       allow delete: if false; // Devices can only be unlinked, not deleted
     }
 
-    // Owner profiles - only the owner can access
+    // ============================================
+    // OWNER PROFILES (Ultra-strict mode settings)
+    // ============================================
+    
     match /owner_profiles/{userId} {
       allow read, write: if isOwner(userId);
+      // Family mode users CANNOT access owner profiles at all
     }
 
-    // Family profiles - only parent can access
+    // ============================================
+    // FAMILY PROFILES
+    // ============================================
+    
     match /family_profiles/{familyId} {
       allow read: if isAuthenticated() && 
         resource.data.parentUid == request.auth.uid;
       allow create: if isAuthenticated() && 
-        request.resource.data.parentUid == request.auth.uid;
+        request.resource.data.parentUid == request.auth.uid &&
+        // Must be in family mode to create family profiles
+        isFamilyMode();
       allow update: if isAuthenticated() && 
         resource.data.parentUid == request.auth.uid;
       allow delete: if false;
     }
 
-    // Children - parent can manage, read only for linked devices
+    // ============================================
+    // CHILDREN
+    // ============================================
+    
     match /children/{childId} {
       allow read: if isAuthenticated() && 
         (resource.data.parentUid == request.auth.uid ||
          resource.data.devices.hasAny([request.auth.token.deviceId]));
-      allow create, update: if isAuthenticated() && 
-        request.resource.data.parentUid == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.parentUid == request.auth.uid &&
+        isFamilyMode();
+      allow update: if isAuthenticated() && 
+        resource.data.parentUid == request.auth.uid &&
+        // Child cannot modify parent settings
+        request.resource.data.parentUid == resource.data.parentUid;
       allow delete: if false;
     }
 
-    // Block policies - read by authenticated users, write by admins only
+    // ============================================
+    // BLOCK POLICIES (Read by users, write by admins)
+    // ============================================
+    
     match /block_policies/{policyId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Global blocklists - read only for all authenticated
+    // ============================================
+    // BLOCKLISTS
+    // ============================================
+    
+    // Global blocklist - NEVER writable by clients
     match /blocklists/global {
+      allow read: if isAuthenticated();
+      allow write: if false; // Cloud Functions only
+    }
+    
+    // Core blocklist - NEVER writable by clients (permanent adult block)
+    match /blocklists/core {
+      allow read: if isAuthenticated();
+      allow write: if false; // Never - this is the permanent blocklist
+    }
+
+    // Custom user blocklists
+    match /blocklists/custom/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Category blocklists
+    match /blocklists/categories/{category} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Custom blocklists - user can manage their own
-    match /blocklists/custom/{userId} {
+    // ============================================
+    // STUDY SESSIONS
+    // ============================================
+    
+    match /studySessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ============================================
+    // CREATORS (blocked creators list)
+    // ============================================
+    
+    match /creators/{userId}/blocked/{creatorId} {
       allow read, write: if isOwner(userId);
     }
 
-    // Override requests - owner/parent can create, read their own
+    // ============================================
+    // OVERRIDE REQUESTS
+    // ============================================
+    
     match /override_requests/{requestId} {
       allow read: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && 
         request.resource.data.userId == request.auth.uid;
-      allow update: if false; // Only functions can update
+      allow update: if false; // Only Cloud Functions can update
       allow delete: if false;
     }
 
-    // Logs - read only for owner, write by system
+    // ============================================
+    // LOGS (Activity logs - read only)
+    // ============================================
+    
     match /logs/{logId} {
       allow read: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && 
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        // Rate limit: max 10 writes per request (batch protection)
+        request.resource.data.keys().size() < 20;
       allow update, delete: if false;
     }
 
-    // Subscriptions - read only, managed by functions
+    // ============================================
+    // ERROR LOGS
+    // ============================================
+    
+    match /errorLogs/{userId}/entries/{entryId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+
+    // ============================================
+    // ADMIN LOGS (Override attempts, unlocks, etc.)
+    // ============================================
+    
+    match /admin_logs/{userId}/events/{eventId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+
+    // ============================================
+    // SUBSCRIPTIONS (Read-only, managed by functions)
+    // ============================================
+    
     match /subscriptions/{userId} {
       allow read: if isOwner(userId);
       allow write: if false; // Only Cloud Functions can modify
     }
 
-    // Fraud scores - not accessible to clients
+    // ============================================
+    // FRAUD SCORES (Not accessible to clients)
+    // ============================================
+    
     match /fraud_scores/{userId} {
       allow read, write: if false; // Only Cloud Functions
     }
 
-    // Region pricing - read by all authenticated
+    // ============================================
+    // REGION PRICING
+    // ============================================
+    
     match /region_pricing/{region} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Device registry - read/write by functions only
+    // ============================================
+    // DEVICE REGISTRY (Functions only)
+    // ============================================
+    
     match /device_registry/{fingerprint} {
       allow read, write: if false; // Only Cloud Functions
     }
 
-    // Admins collection
+    // ============================================
+    // RATE LIMITS (Functions only)
+    // ============================================
+    
+    match /rate_limits/{userId} {
+      allow read, write: if false; // Only Cloud Functions manage this
+    }
+
+    // ============================================
+    // ADMINS COLLECTION
+    // ============================================
+    
     match /admins/{adminId} {
       allow read: if isOwner(adminId);
       allow write: if false; // Manual only

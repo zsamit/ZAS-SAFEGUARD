@@ -1,6 +1,10 @@
 /**
  * ZAS Safeguard - Web Dashboard Application
+ * Version: 1.0.0
  */
+
+// Dashboard Version
+const DASHBOARD_VERSION = '1.0.0';
 
 // Firebase Configuration
 const firebaseConfig = {

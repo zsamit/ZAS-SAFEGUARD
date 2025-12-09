@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - ZAS Safeguard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: #f8f9fa;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            color: #1a237e;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        h2 {
+            color: #1a237e;
+            font-size: 1.4rem;
+            margin-top: 35px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        ul {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        .highlight {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #1a237e;
+        }
+
+        .contact {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+
+        a {
+            color: #1a237e;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🛡️ Privacy Policy</h1>
+        <p class="last-updated">Last Updated: December 9, 2024</p>
+
+        <p>ZAS Global LLC ("we", "our", or "us") operates the ZAS Safeguard browser extension and associated web
+            dashboard. This Privacy Policy explains how we collect, use, and protect your information.</p>
+
+        <div class="highlight">
+            <strong>Our Commitment:</strong> We collect only the minimum data necessary to provide content blocking and
+            cross-device sync functionality. We do not sell your data to third parties.
+        </div>
+
+        <h2>1. Information We Collect</h2>
+
+        <p><strong>Account Information:</strong></p>
+        <ul>
+            <li>Email address (for authentication)</li>
+            <li>Display name (optional)</li>
+            <li>Hashed master key (SHA-256, never stored in plain text)</li>
+        </ul>
+
+        <p><strong>Device Information:</strong></p>
+        <ul>
+            <li>Anonymous device identifier (randomly generated)</li>
+            <li>Device type (browser, OS - for display purposes)</li>
+            <li>Last active timestamp</li>
+        </ul>
+
+        <p><strong>Blocking Activity:</strong></p>
+        <ul>
+            <li>Domains added to your personal blocklist</li>
+            <li>Category preferences (which categories are blocked)</li>
+            <li>Blocked attempt logs (domain and timestamp only)</li>
+            <li>Study mode session history</li>
+        </ul>
+
+        <h2>2. Information We Do NOT Collect</h2>
+        <ul>
+            <li>Full browsing history</li>
+            <li>Page content or what you view</li>
+            <li>Personal files or downloads</li>
+            <li>Passwords (except hashed master key)</li>
+            <li>Financial information (handled by Stripe)</li>
+            <li>Location data</li>
+        </ul>
+
+        <h2>3. How We Use Your Information</h2>
+        <ul>
+            <li>Sync your blocklist across all your devices</li>
+            <li>Display activity logs in your dashboard</li>
+            <li>Verify master key for unlock requests</li>
+            <li>Send security alerts (tamper attempts)</li>
+            <li>Improve our service and fix bugs</li>
+        </ul>
+
+        <h2>4. Data Storage & Security</h2>
+        <p>Your data is stored securely in Google Firebase/Firestore with:</p>
+        <ul>
+            <li>Encryption at rest and in transit</li>
+            <li>Strict Firestore security rules (users can only access their own data)</li>
+            <li>Master keys stored as SHA-256 hashes only</li>
+            <li>Regular security audits</li>
+        </ul>
+
+        <h2>5. Third-Party Services</h2>
+        <p>We use the following third-party services:</p>
+        <ul>
+            <li><strong>Google Firebase:</strong> Authentication and database (see <a
+                    href="https://firebase.google.com/support/privacy" target="_blank">Firebase Privacy Policy</a>)</li>
+            <li><strong>Stripe:</strong> Payment processing (see <a href="https://stripe.com/privacy"
+                    target="_blank">Stripe Privacy Policy</a>)</li>
+        </ul>
+        <p>We do not share your personal data with any other third parties.</p>
+
+        <h2>6. Data Retention</h2>
+        <ul>
+            <li>Account data: Retained until you delete your account</li>
+            <li>Activity logs: Automatically deleted after 90 days</li>
+            <li>Study mode history: Retained for 1 year</li>
+        </ul>
+
+        <h2>7. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li>Access your data via the dashboard</li>
+            <li>Export your data (contact us)</li>
+            <li>Delete your account and all associated data</li>
+            <li>Opt out of non-essential communications</li>
+        </ul>
+
+        <h2>8. Children's Privacy</h2>
+        <p>ZAS Safeguard is designed to help protect children online. Child profiles are managed by parent accounts. We
+            do not knowingly collect personal information directly from children under 13. All child data is controlled
+            by the parent account holder.</p>
+
+        <h2>9. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. We will notify you of significant changes via email or
+            in-app notification. Continued use of ZAS Safeguard after changes constitutes acceptance of the updated
+            policy.</p>
+
+        <div class="contact">
+            <h2>10. Contact Us</h2>
+            <p>If you have questions about this Privacy Policy or your data, please contact us:</p>
+            <p>
+                <strong>ZAS Global LLC</strong><br>
+                Email: <a href="mailto:privacy@zasglobal.com">privacy@zasglobal.com</a><br>
+                Website: <a href="https://zasgloballlc.com/safeguard">zasgloballlc.com/safeguard</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

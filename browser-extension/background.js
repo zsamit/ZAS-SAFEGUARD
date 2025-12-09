@@ -7,20 +7,29 @@
  * - Tamper/uninstall detection
  * - Device ID management
  * - Offline fallback blocking
+ * - Version management
  */
 
 // ============================================
 // CONFIGURATION
 // ============================================
 const CONFIG = {
-    FIREBASE_API_ENDPOINT: 'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net',
+    FIREBASE_API_ENDPOINT: 'https://us-central1-zas-safeguard.cloudfunctions.net',
     SYNC_INTERVAL_MINUTES: 15,
     OFFLINE_BLOCKLIST_KEY: 'offline_blocklist',
     DEVICE_ID_KEY: 'device_id',
     USER_TOKEN_KEY: 'user_token',
     POLICY_KEY: 'block_policy',
     LAST_SYNC_KEY: 'last_sync',
+    VERSION_KEY: 'extension_version',
+    CACHE_EXPIRY_HOURS: 24,
+    ERROR_LOG_KEY: 'error_logs',
+    MAX_RETRIES: 3,
+    TIMEOUT_MS: 10000,
 };
+
+// Current extension version
+const EXTENSION_VERSION = '1.0.0';
 
 // Default porn blocklist for offline/initial use
 const DEFAULT_BLOCKLIST = [
