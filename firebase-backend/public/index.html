@@ -90,6 +90,12 @@
                     <li data-section="blocklist">
                         <span class="icon">🚫</span> Blocklist
                     </li>
+                    <li data-section="studymode">
+                        <span class="icon">📚</span> Study Mode
+                    </li>
+                    <li data-section="creators">
+                        <span class="icon">🎯</span> Block Creators
+                    </li>
                     <li data-section="activity">
                         <span class="icon">📋</span> Activity
                     </li>
@@ -261,6 +267,158 @@
                     <div id="activityLog" class="activity-list">
                         <div class="empty-state">No activity recorded yet</div>
                     </div>
+                </section>
+
+                <!-- Study Mode Section -->
+                <section id="studymodeSection" class="section" style="display: none;">
+                    <h2>📚 Study Mode</h2>
+                    <p class="section-description">Lock social media until your exam is done. Once activated, it cannot
+                        be disabled early!</p>
+
+                    <!-- Active Study Session -->
+                    <div id="activeStudySession" class="study-active-banner" style="display: none;">
+                        <div class="study-icon">🎓</div>
+                        <div class="study-info">
+                            <h3>Study Mode Active!</h3>
+                            <p id="studySessionName">Final Exams</p>
+                            <div class="countdown-timer">
+                                <div class="countdown-item">
+                                    <span class="countdown-value" id="countdownDays">0</span>
+                                    <span class="countdown-label">Days</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" id="countdownHours">0</span>
+                                    <span class="countdown-label">Hours</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" id="countdownMinutes">0</span>
+                                    <span class="countdown-label">Minutes</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" id="countdownSeconds">0</span>
+                                    <span class="countdown-label">Seconds</span>
+                                </div>
+                            </div>
+                            <p class="study-end-date">Ends: <span id="studyEndDate"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Create New Study Session -->
+                    <div id="createStudySession" class="settings-group">
+                        <h3>🚀 Start New Study Session</h3>
+                        <div class="setting-item">
+                            <label>Session Name (e.g., "Final Exams", "SAT Prep")</label>
+                            <input type="text" id="studySessionNameInput" placeholder="My Study Session">
+                        </div>
+                        <div class="setting-item">
+                            <label>End Date & Time</label>
+                            <input type="datetime-local" id="studyEndDateTime">
+                        </div>
+                        <div class="setting-item">
+                            <label>Block the following during study:</label>
+                            <div class="study-block-options">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="studyBlockSocial" checked>
+                                    <span>📱 Social Media (Instagram, TikTok, Twitter, Facebook)</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="studyBlockGaming">
+                                    <span>🎮 Gaming (Steam, Epic, gaming sites)</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="studyBlockYouTube">
+                                    <span>📺 YouTube & Streaming</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="studyBlockReddit">
+                                    <span>💬 Reddit & Forums</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <span class="warning-icon">⚠️</span>
+                            <p><strong>Warning:</strong> Once activated, Study Mode CANNOT be cancelled until the
+                                countdown ends. Make sure you set the correct date!</p>
+                        </div>
+
+                        <button class="btn btn-primary btn-large" id="startStudyModeBtn">
+                            🎓 Activate Study Mode
+                        </button>
+                    </div>
+
+                    <!-- Past Study Sessions -->
+                    <div class="settings-group">
+                        <h3>📊 Study History</h3>
+                        <div id="studyHistory" class="study-history-list">
+                            <div class="empty-state">No completed study sessions yet. Start your first one above!</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Creator Block Section -->
+                <section id="creatorsSection" class="section" style="display: none;">
+                    <h2>🎯 Block Specific Creators</h2>
+                    <p class="section-description">Block specific content creators instead of entire platforms. Perfect
+                        for avoiding specific channels while keeping access to educational content.</p>
+
+                    <div class="settings-group">
+                        <h3>Add Creator to Block</h3>
+                        <div class="creator-add-form">
+                            <div class="setting-item">
+                                <label>Platform</label>
+                                <select id="creatorPlatform">
+                                    <option value="youtube">📺 YouTube</option>
+                                    <option value="tiktok">🎵 TikTok</option>
+                                    <option value="instagram">📸 Instagram</option>
+                                    <option value="twitter">🐦 Twitter/X</option>
+                                    <option value="twitch">🎮 Twitch</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>Creator Username or Channel URL</label>
+                                <input type="text" id="creatorUsername" placeholder="@username or channel URL">
+                            </div>
+                            <div class="setting-item">
+                                <label>Reason (optional)</label>
+                                <input type="text" id="creatorReason" placeholder="Why are you blocking this creator?">
+                            </div>
+                            <button class="btn btn-primary" id="addCreatorBtn">Block Creator</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Blocked Creators</h3>
+                        <div id="blockedCreatorsList" class="creators-list">
+                            <div class="empty-state">No creators blocked yet. Use the form above to block specific
+                                creators.</div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <span class="info-icon">💡</span>
+                        <div>
+                            <h4>How Creator Blocking Works</h4>
+                            <ul>
+                                <li>Content from blocked creators will be hidden when you visit the platform</li>
+                                <li>Videos, posts, and recommendations from these creators won't appear</li>
+                                <li>You can still access the rest of the platform normally</li>
+                                <li>Works on both web and apps (with extension/app installed)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                <div class="activity-filters">
+                    <select id="activityFilter">
+                        <option value="all">All Activity</option>
+                        <option value="blocks">Blocks Only</option>
+                        <option value="unlocks">Unlock Attempts</option>
+                    </select>
+                    <input type="date" id="activityDate">
+                </div>
+                <div id="activityLog" class="activity-list">
+                    <div class="empty-state">No activity recorded yet</div>
+                </div>
                 </section>
 
                 <!-- Children Section (Family Mode) -->

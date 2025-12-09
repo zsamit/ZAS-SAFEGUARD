@@ -258,6 +258,12 @@ function navigateTo(section) {
         case 'blocklist':
             loadBlocklistSettings();
             break;
+        case 'studymode':
+            loadStudyMode();
+            break;
+        case 'creators':
+            loadCreators();
+            break;
         case 'activity':
             loadActivityLog();
             break;
@@ -633,3 +639,308 @@ function editChild(childId) {
 window.removeDomain = removeDomain;
 window.showAddDevice = showAddDevice;
 window.editChild = editChild;
+window.removeCreator = removeCreator;
+
+// ===== STUDY MODE FUNCTIONS =====
+
+let studyModeInterval = null;
+
+async function loadStudyMode() {
+    if (!currentUser) return;
+
+    try {
+        // Check for active study session
+        const activeDoc = await db.collection('study_sessions')
+            .where('userId', '==', currentUser.uid)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+
+        const activeBanner = document.getElementById('activeStudySession');
+        const createSection = document.getElementById('createStudySession');
+
+        if (!activeDoc.empty) {
+            const session = activeDoc.docs[0].data();
+            const endTime = session.endTime.toDate();
+
+            // Show active session
+            activeBanner.style.display = 'flex';
+            createSection.style.display = 'none';
+            document.getElementById('studySessionName').textContent = session.name;
+            document.getElementById('studyEndDate').textContent = endTime.toLocaleString();
+
+            // Start countdown
+            startCountdown(endTime, activeDoc.docs[0].id);
+        } else {
+            activeBanner.style.display = 'none';
+            createSection.style.display = 'block';
+
+            // Set min date to now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 30); // Minimum 30 minutes
+            document.getElementById('studyEndDateTime').min = now.toISOString().slice(0, 16);
+        }
+
+        // Load study history
+        await loadStudyHistory();
+
+    } catch (error) {
+        console.error('Error loading study mode:', error);
+    }
+
+    // Setup event listener for start button
+    document.getElementById('startStudyModeBtn')?.removeEventListener('click', handleStartStudyMode);
+    document.getElementById('startStudyModeBtn')?.addEventListener('click', handleStartStudyMode);
+}
+
+function startCountdown(endTime, sessionId) {
+    if (studyModeInterval) clearInterval(studyModeInterval);
+
+    function updateCountdown() {
+        const now = new Date();
+        const diff = endTime - now;
+
+        if (diff <= 0) {
+            // Study session ended
+            clearInterval(studyModeInterval);
+            endStudySession(sessionId);
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById('countdownDays').textContent = days;
+        document.getElementById('countdownHours').textContent = hours;
+        document.getElementById('countdownMinutes').textContent = minutes;
+        document.getElementById('countdownSeconds').textContent = seconds;
+    }
+
+    updateCountdown();
+    studyModeInterval = setInterval(updateCountdown, 1000);
+}
+
+async function endStudySession(sessionId) {
+    try {
+        await db.collection('study_sessions').doc(sessionId).update({
+            status: 'completed',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        loadStudyMode();
+        alert('🎉 Congratulations! Your study session is complete. Good luck on your exam!');
+    } catch (error) {
+        console.error('Error ending study session:', error);
+    }
+}
+
+async function handleStartStudyMode() {
+    const name = document.getElementById('studySessionNameInput').value.trim();
+    const endDateTime = document.getElementById('studyEndDateTime').value;
+
+    if (!name) {
+        alert('Please enter a session name');
+        return;
+    }
+
+    if (!endDateTime) {
+        alert('Please select an end date and time');
+        return;
+    }
+
+    const endTime = new Date(endDateTime);
+    const now = new Date();
+
+    if (endTime <= now) {
+        alert('End time must be in the future');
+        return;
+    }
+
+    // Gather block options
+    const blockCategories = [];
+    if (document.getElementById('studyBlockSocial').checked) blockCategories.push('social_media');
+    if (document.getElementById('studyBlockGaming').checked) blockCategories.push('gaming');
+    if (document.getElementById('studyBlockYouTube').checked) blockCategories.push('youtube');
+    if (document.getElementById('studyBlockReddit').checked) blockCategories.push('reddit');
+
+    if (blockCategories.length === 0) {
+        alert('Please select at least one category to block');
+        return;
+    }
+
+    // Confirm
+    const daysUntilEnd = Math.ceil((endTime - now) / (1000 * 60 * 60 * 24));
+    if (!confirm(`Are you sure you want to start Study Mode?\n\n📚 Session: ${name}\n⏰ Duration: ${daysUntilEnd} day(s)\n🚫 Blocked: ${blockCategories.join(', ')}\n\n⚠️ This CANNOT be cancelled once started!`)) {
+        return;
+    }
+
+    try {
+        await db.collection('study_sessions').add({
+            userId: currentUser.uid,
+            name: name,
+            status: 'active',
+            startTime: firebase.firestore.FieldValue.serverTimestamp(),
+            endTime: firebase.firestore.Timestamp.fromDate(endTime),
+            blockCategories: blockCategories,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Enable blocking for selected categories
+        const updates = {};
+        blockCategories.forEach(cat => {
+            updates[`settings.categories.${cat}.enabled`] = true;
+            updates[`settings.categories.${cat}.studyLocked`] = true;
+        });
+        await db.collection('users').doc(currentUser.uid).update(updates);
+
+        alert('🎓 Study Mode activated! Stay focused and good luck! 📚');
+        loadStudyMode();
+
+    } catch (error) {
+        alert('Failed to start study mode: ' + error.message);
+    }
+}
+
+async function loadStudyHistory() {
+    try {
+        const query = await db.collection('study_sessions')
+            .where('userId', '==', currentUser.uid)
+            .where('status', '==', 'completed')
+            .orderBy('endTime', 'desc')
+            .limit(10)
+            .get();
+
+        const historyList = document.getElementById('studyHistory');
+
+        if (query.empty) {
+            historyList.innerHTML = '<div class="empty-state">No completed study sessions yet. Start your first one above!</div>';
+            return;
+        }
+
+        let html = '';
+        query.forEach(doc => {
+            const session = doc.data();
+            const startDate = session.startTime?.toDate()?.toLocaleDateString() || 'N/A';
+            const endDate = session.endTime?.toDate()?.toLocaleDateString() || 'N/A';
+
+            html += `
+                <div class="history-item">
+                    <div>
+                        <div class="session-name">${session.name}</div>
+                        <div class="session-dates">${startDate} - ${endDate}</div>
+                    </div>
+                    <span class="session-status completed">✓ Completed</span>
+                </div>
+            `;
+        });
+
+        historyList.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error loading study history:', error);
+    }
+}
+
+// ===== CREATOR BLOCK FUNCTIONS =====
+
+async function loadCreators() {
+    if (!currentUser) return;
+
+    try {
+        const query = await db.collection('blocked_creators')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const creatorsList = document.getElementById('blockedCreatorsList');
+
+        if (query.empty) {
+            creatorsList.innerHTML = '<div class="empty-state">No creators blocked yet. Use the form above to block specific creators.</div>';
+        } else {
+            let html = '';
+            query.forEach(doc => {
+                const creator = doc.data();
+                const platformIcon = getPlatformIcon(creator.platform);
+
+                html += `
+                    <div class="creator-item">
+                        <div class="creator-info">
+                            <span class="platform-icon">${platformIcon}</span>
+                            <div>
+                                <div class="creator-name">@${creator.username}</div>
+                                <div class="creator-reason">${creator.reason || 'No reason specified'}</div>
+                            </div>
+                        </div>
+                        <button class="btn-remove" onclick="removeCreator('${doc.id}')">Remove</button>
+                    </div>
+                `;
+            });
+            creatorsList.innerHTML = html;
+        }
+
+    } catch (error) {
+        console.error('Error loading creators:', error);
+    }
+
+    // Setup event listener
+    document.getElementById('addCreatorBtn')?.removeEventListener('click', handleAddCreator);
+    document.getElementById('addCreatorBtn')?.addEventListener('click', handleAddCreator);
+}
+
+function getPlatformIcon(platform) {
+    const icons = {
+        youtube: '📺',
+        tiktok: '🎵',
+        instagram: '📸',
+        twitter: '🐦',
+        twitch: '🎮'
+    };
+    return icons[platform] || '🌐';
+}
+
+async function handleAddCreator() {
+    const platform = document.getElementById('creatorPlatform').value;
+    let username = document.getElementById('creatorUsername').value.trim();
+    const reason = document.getElementById('creatorReason').value.trim();
+
+    if (!username) {
+        alert('Please enter a creator username or URL');
+        return;
+    }
+
+    // Clean up username
+    username = username.replace(/^@/, '').replace(/https?:\/\/[^\/]+\//, '').replace(/\/$/, '');
+
+    try {
+        await db.collection('blocked_creators').add({
+            userId: currentUser.uid,
+            platform: platform,
+            username: username,
+            reason: reason,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Clear form
+        document.getElementById('creatorUsername').value = '';
+        document.getElementById('creatorReason').value = '';
+
+        alert(`✓ @${username} has been blocked on ${platform}`);
+        loadCreators();
+
+    } catch (error) {
+        alert('Failed to block creator: ' + error.message);
+    }
+}
+
+async function removeCreator(creatorId) {
+    if (!confirm('Remove this creator from your block list?')) return;
+
+    try {
+        await db.collection('blocked_creators').doc(creatorId).delete();
+        loadCreators();
+    } catch (error) {
+        alert('Failed to remove creator: ' + error.message);
+    }
+}
+
