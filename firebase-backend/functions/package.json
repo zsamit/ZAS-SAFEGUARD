@@ -4,7 +4,7 @@
     "description": "Cloud Functions for ZAS Safeguard",
     "main": "index.js",
     "engines": {
-        "node": "18"
+        "node": "20"
     },
     "scripts": {
         "lint": "eslint .",

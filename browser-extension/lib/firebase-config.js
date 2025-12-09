@@ -1,18 +1,17 @@
 /**
  * ZAS Safeguard - Firebase Configuration
- * 
- * Replace these values with your actual Firebase project settings
  */
 
 const FIREBASE_CONFIG = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCp48nYcR_QFoxfACqCP13ML7TeICiC6t0",
+    authDomain: "zas-safeguard.firebaseapp.com",
+    projectId: "zas-safeguard",
+    storageBucket: "zas-safeguard.firebasestorage.app",
+    messagingSenderId: "559930411646",
+    appId: "1:559930411646:web:0377d31d2b8b0d3500a62f",
+    measurementId: "G-QV8VR5B66T"
 };
 
-const FUNCTIONS_URL = "https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net";
+const FUNCTIONS_URL = "https://us-central1-zas-safeguard.cloudfunctions.net";
 
 export { FIREBASE_CONFIG, FUNCTIONS_URL };
