@@ -85,6 +85,10 @@ graph TB
 | `blocked_creators/{creatorId}` | Blocked creators | Permanent |
 | `errorLogs/{userId}/entries` | Client errors | 7 days |
 | `admin_logs/{userId}/events` | Security events | 90 days |
+| `security_events/{userId}/{deviceId}` | Extension security events | 30 days |
+| `alerts/{userId}` | Parent alerts | 90 days |
+| `alert_settings/{userId}` | Alert thresholds | Permanent |
+| `mail/{mailId}` | Email queue (Firebase Email Extension) | Auto-deleted |
 
 ### System Collections
 
@@ -115,6 +119,14 @@ graph TB
 - `syncBlocklist` - Sync blocklist to device
 - `logBlockEvent` - Log blocked URL
 - `updateCustomBlocklist` - Update user blocklist
+
+### Alert Functions (Parent Notifications)
+- `onSecurityEvent` - Firestore trigger for security events
+- `checkHeartbeats` - Scheduled (every 5 min) heartbeat check
+- `logSecurityEvent` - Log security event from extension
+- `getAlerts` - Get user's alert history
+- `updateAlertSettings` - Update alert thresholds
+- `markAlertRead` - Mark alert as read
 
 ### Override Functions
 - `requestUnlock` - Start unlock process

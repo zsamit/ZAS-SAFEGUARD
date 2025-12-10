@@ -288,5 +288,47 @@ service cloud.firestore {
       allow read: if isOwner(adminId);
       allow write: if false; // Manual only
     }
+
+    // ============================================
+    // SECURITY EVENTS (Parent alert system)
+    // ============================================
+    
+    match /security_events/{userId}/{deviceId}/{eventId} {
+      // Users can only read their own security events
+      allow read: if isOwner(userId);
+      // Only authenticated users can write via extension
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if false; // Events are immutable
+    }
+
+    // ============================================
+    // ALERTS (Parent notifications)
+    // ============================================
+    
+    match /alerts/{userId}/{alertId} {
+      allow read: if isOwner(userId);
+      allow create: if false; // Only Cloud Functions
+      allow update: if isOwner(userId) && 
+        // Only allow marking as read
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      allow delete: if false;
+    }
+
+    // ============================================
+    // ALERT SETTINGS
+    // ============================================
+    
+    match /alert_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ============================================
+    // MAIL (Firebase Email Extension)
+    // ============================================
+    
+    match /mail/{mailId} {
+      // Only Cloud Functions can write emails
+      allow read, write: if false;
+    }
   }
 }

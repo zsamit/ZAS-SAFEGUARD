@@ -128,23 +128,5 @@ exports.checkExpiringTrials = functions.pubsub
         return null;
     });
 
-// Clean up old logs monthly
-exports.cleanupOldLogs = functions.pubsub
-    .schedule('every 30 days')
-    .onRun(async (context) => {
-        const db = admin.firestore();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const oldLogs = await db.collection('logs')
-            .where('timestamp', '<', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
-            .limit(500)
-            .get();
-
-        const batch = db.batch();
-        oldLogs.docs.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-
-        console.log(`Cleaned up ${oldLogs.size} old log entries`);
-        return null;
-    });
+// Note: cleanupOldLogs is exported from cleanup.js as cleanupOldLogsV2
+// It runs daily at 3 AM UTC and cleans up logs older than 30 days

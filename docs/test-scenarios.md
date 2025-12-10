@@ -118,6 +118,33 @@
 
 ---
 
+## Parent Alert Tests
+
+### Test: Multiple Blocked Attempts Alert
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Login as parent on dashboard | Family mode active |
+| 2 | On child device, visit 2+ blocked sites in 1 min | Blocked attempts logged |
+| 3 | Check parent email | Alert received |
+| 4 | Check dashboard Alerts section | Alert visible with details |
+
+### Test: Heartbeat Missing Alert
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Extension installed and syncing | Heartbeat every 1 min |
+| 2 | Close browser for 15 minutes | No heartbeats sent |
+| 3 | Check parent email | "Device Offline" alert |
+| 4 | Reopen browser | Device shows online in dashboard |
+
+### Test: Extension Disabled Alert
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Disable extension via chrome://extensions | Extension disabled |
+| 2 | Check parent email | Instant "Extension Disabled" alert |
+| 3 | Check dashboard Alerts section | Alert with severity: high |
+
+---
+
 ## Security Rule Tests
 
 ### Test: Child Cannot Modify Parent Settings

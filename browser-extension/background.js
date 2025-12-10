@@ -270,21 +270,9 @@ chrome.runtime.onSuspend.addListener(() => {
     });
 });
 
-// Detect DevTools opened (potential bypass attempt)
-let devToolsOpen = false;
-const devToolsThreshold = 160;
-window.addEventListener('resize', () => {
-    const widthThreshold = window.outerWidth - window.innerWidth > devToolsThreshold;
-    const heightThreshold = window.outerHeight - window.innerHeight > devToolsThreshold;
-
-    if ((widthThreshold || heightThreshold) && !devToolsOpen) {
-        devToolsOpen = true;
-        logSecurityEvent('tamper_attempt', {
-            deviceName: 'Browser Extension',
-            action: 'devtools_opened'
-        });
-    }
-});
+// Note: DevTools detection via window.addEventListener('resize') is not possible in service workers
+// The content script monitors for DevTools in active tabs instead
+// See content.js for in-page tamper detection
 
 async function logSecurityEvent(type, metadata = {}) {
     try {

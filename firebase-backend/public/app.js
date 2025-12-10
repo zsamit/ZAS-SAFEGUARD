@@ -283,6 +283,9 @@ function navigateTo(section) {
         case 'children':
             loadChildren();
             break;
+        case 'alerts':
+            loadAlerts();
+            break;
         case 'settings':
             loadSettings();
             break;
@@ -1045,6 +1048,22 @@ function getAlertIcon(type) {
         'tamper_attempt': '🚨'
     };
     return icons[type] || '⚠️';
+}
+
+function getDeviceIcon(type) {
+    const icons = {
+        'chrome': '🌐',
+        'edge': '🌐',
+        'browser': '🌐',
+        'windows': '💻',
+        'macos': '🍎',
+        'android': '📱',
+        'ios': '📱',
+        'iphone': '📱',
+        'ipad': '📱',
+        'tablet': '📱'
+    };
+    return icons[type?.toLowerCase()] || '💻';
 }
 
 async function loadDeviceStatus() {
