@@ -976,3 +976,270 @@ async function removeCreator(creatorId) {
     }
 }
 
+// ===== ALERTS FUNCTIONS =====
+
+async function loadAlerts() {
+    if (!currentUser) return;
+
+    try {
+        // Load alerts
+        const alertsQuery = await db.collection(`alerts/${currentUser.uid}`)
+            .orderBy('timestamp', 'desc')
+            .limit(50)
+            .get();
+
+        const alertHistoryList = document.getElementById('alertHistoryList');
+        let unreadCount = 0;
+
+        if (alertsQuery.empty) {
+            alertHistoryList.innerHTML = '<div class="empty-state">No alerts yet. Your children\'s activity will appear here.</div>';
+        } else {
+            let html = '';
+            alertsQuery.forEach(doc => {
+                const alert = doc.data();
+                const timestamp = alert.timestamp?.toDate?.() || new Date();
+                const isUnread = !alert.read;
+                if (isUnread) unreadCount++;
+
+                html += `
+                    <div class="alert-item ${isUnread ? 'unread' : ''}" data-id="${doc.id}">
+                        <div class="alert-icon">${getAlertIcon(alert.type)}</div>
+                        <div class="alert-content">
+                            <h4>${alert.title || alert.type}</h4>
+                            <p>${alert.message || ''}</p>
+                            <span class="alert-time">${timestamp.toLocaleString()}</span>
+                        </div>
+                        ${isUnread ? '<span class="unread-dot"></span>' : ''}
+                    </div>
+                `;
+            });
+            alertHistoryList.innerHTML = html;
+        }
+
+        // Update badge
+        document.getElementById('unreadAlertsCount').textContent = unreadCount;
+        const badge = document.getElementById('alertBadge');
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        // Load device status
+        await loadDeviceStatus();
+
+        // Load alert settings
+        await loadAlertSettings();
+
+    } catch (error) {
+        console.error('Error loading alerts:', error);
+    }
+}
+
+function getAlertIcon(type) {
+    const icons = {
+        'extension_disabled': '🔌',
+        'heartbeat_missing': '📵',
+        'blocked_attempts_threshold': '🚫',
+        'tamper_attempt': '🚨'
+    };
+    return icons[type] || '⚠️';
+}
+
+async function loadDeviceStatus() {
+    if (!currentUser) return;
+
+    try {
+        const devicesQuery = await db.collection('devices')
+            .where('userId', '==', currentUser.uid)
+            .get();
+
+        const deviceStatusList = document.getElementById('deviceStatusList');
+        let onlineCount = 0;
+        const now = Date.now();
+        const tenMinutes = 10 * 60 * 1000;
+
+        if (devicesQuery.empty) {
+            deviceStatusList.innerHTML = '<div class="empty-state">No devices registered yet.</div>';
+            document.getElementById('onlineDevicesCount').textContent = '0';
+            return;
+        }
+
+        let html = '';
+        devicesQuery.forEach(doc => {
+            const device = doc.data();
+            const lastHeartbeat = device.lastHeartbeat?.toDate?.() || new Date(0);
+            const isOnline = (now - lastHeartbeat.getTime()) < tenMinutes;
+            if (isOnline) onlineCount++;
+
+            const statusClass = isOnline ? 'online' : 'offline';
+            const statusText = isOnline ? 'Online' : `Last seen ${getTimeAgo(lastHeartbeat)}`;
+
+            html += `
+                <div class="device-status-item ${statusClass}">
+                    <div class="device-icon">${getDeviceIcon(device.type)}</div>
+                    <div class="device-info">
+                        <h4>${device.name || 'Unknown Device'}</h4>
+                        <span class="device-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <span class="status-indicator ${statusClass}"></span>
+                </div>
+            `;
+        });
+
+        deviceStatusList.innerHTML = html;
+        document.getElementById('onlineDevicesCount').textContent = onlineCount;
+
+    } catch (error) {
+        console.error('Error loading device status:', error);
+    }
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+}
+
+async function loadAlertSettings() {
+    if (!currentUser) return;
+
+    try {
+        const settingsDoc = await db.doc(`alert_settings/${currentUser.uid}`).get();
+        if (settingsDoc.exists) {
+            const settings = settingsDoc.data();
+            document.getElementById('alertEmailEnabled').checked = settings.enabled !== false;
+            document.getElementById('alertThreshold').value = settings.blockedAttemptsPerMinute || '2';
+            document.getElementById('alertHeartbeatThreshold').value = settings.heartbeatMissingMinutes || '10';
+        }
+    } catch (error) {
+        console.error('Error loading alert settings:', error);
+    }
+}
+
+async function saveAlertSettings() {
+    if (!currentUser) return;
+
+    try {
+        const settings = {
+            enabled: document.getElementById('alertEmailEnabled').checked,
+            blockedAttemptsPerMinute: parseInt(document.getElementById('alertThreshold').value),
+            heartbeatMissingMinutes: parseInt(document.getElementById('alertHeartbeatThreshold').value)
+        };
+
+        await db.doc(`alert_settings/${currentUser.uid}`).set(settings, { merge: true });
+        alert('Alert settings saved!');
+    } catch (error) {
+        alert('Failed to save settings: ' + error.message);
+    }
+}
+
+async function markAllAlertsRead() {
+    if (!currentUser) return;
+
+    try {
+        const alertsQuery = await db.collection(`alerts/${currentUser.uid}`)
+            .where('read', '==', false)
+            .get();
+
+        const batch = db.batch();
+        alertsQuery.forEach(doc => {
+            batch.update(doc.ref, { read: true, readAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+
+        await batch.commit();
+        loadAlerts();
+    } catch (error) {
+        alert('Failed to mark alerts as read: ' + error.message);
+    }
+}
+
+// Setup alerts event listeners
+document.getElementById('saveAlertSettingsBtn')?.addEventListener('click', saveAlertSettings);
+document.getElementById('markAllReadBtn')?.addEventListener('click', markAllAlertsRead);
+
+// ===== EXPORT/IMPORT SETTINGS =====
+
+async function exportSettings() {
+    if (!currentUser || !userProfile) return;
+
+    try {
+        const exportData = {
+            version: DASHBOARD_VERSION,
+            exportDate: new Date().toISOString(),
+            settings: userProfile.settings || {},
+            customBlocklist: userProfile.settings?.customBlocklist || [],
+            categories: userProfile.settings?.categories || {}
+        };
+
+        // Get study sessions
+        const studyQuery = await db.collection('study_sessions')
+            .where('userId', '==', currentUser.uid)
+            .get();
+        exportData.studySessions = studyQuery.docs.map(d => d.data());
+
+        // Get blocked creators
+        const creatorsQuery = await db.collection('blocked_creators')
+            .where('userId', '==', currentUser.uid)
+            .get();
+        exportData.blockedCreators = creatorsQuery.docs.map(d => d.data());
+
+        // Get alert settings
+        const alertSettings = await db.doc(`alert_settings/${currentUser.uid}`).get();
+        exportData.alertSettings = alertSettings.exists ? alertSettings.data() : {};
+
+        // Download JSON
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zas-safeguard-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert('Settings exported successfully!');
+    } catch (error) {
+        alert('Export failed: ' + error.message);
+    }
+}
+
+async function importSettings(file) {
+    if (!currentUser || !file) return;
+
+    try {
+        const text = await file.text();
+        const importData = JSON.parse(text);
+
+        if (!importData.version) {
+            throw new Error('Invalid backup file');
+        }
+
+        // Confirm import
+        if (!confirm(`Import settings from ${importData.exportDate}?\n\nThis will overwrite your current settings.`)) {
+            return;
+        }
+
+        // Import settings
+        await db.doc(`users/${currentUser.uid}`).update({
+            settings: importData.settings || {}
+        });
+
+        // Import alert settings
+        if (importData.alertSettings) {
+            await db.doc(`alert_settings/${currentUser.uid}`).set(importData.alertSettings, { merge: true });
+        }
+
+        await loadUserProfile();
+        alert('Settings imported successfully!');
+
+    } catch (error) {
+        alert('Import failed: ' + error.message);
+    }
+}
+
+// Make functions available globally
+window.exportSettings = exportSettings;
+window.loadAlerts = loadAlerts;

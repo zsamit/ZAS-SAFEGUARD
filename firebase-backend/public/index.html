@@ -102,6 +102,10 @@
                     <li data-section="children" id="childrenNav" style="display: none;">
                         <span class="icon">👨‍👩‍👧</span> Children
                     </li>
+                    <li data-section="alerts">
+                        <span class="icon">🚨</span> Alerts
+                        <span class="alert-badge" id="alertBadge" style="display: none;">0</span>
+                    </li>
                     <li data-section="settings">
                         <span class="icon">⚙️</span> Settings
                     </li>
@@ -419,6 +423,93 @@
                 <div id="activityLog" class="activity-list">
                     <div class="empty-state">No activity recorded yet</div>
                 </div>
+                </section>
+
+                <!-- Alerts Section -->
+                <section id="alertsSection" class="section" style="display: none;">
+                    <h2>🚨 Security Alerts</h2>
+                    <p class="section-description">Monitor security events and receive notifications when your child
+                        attempts to access blocked content or disable the extension.</p>
+
+                    <!-- Alert Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🔔</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="unreadAlertsCount">0</span>
+                                <span class="stat-label">Unread Alerts</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📱</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="onlineDevicesCount">0</span>
+                                <span class="stat-label">Devices Online</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🚫</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="blockedTodayCount">0</span>
+                                <span class="stat-label">Blocked Today</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device Status -->
+                    <div class="settings-group">
+                        <h3>📱 Device Status</h3>
+                        <div id="deviceStatusList" class="device-status-list">
+                            <div class="empty-state">Loading device status...</div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Settings -->
+                    <div class="settings-group">
+                        <h3>⚙️ Alert Settings</h3>
+                        <div class="setting-item">
+                            <label>Email Alerts</label>
+                            <label class="switch">
+                                <input type="checkbox" id="alertEmailEnabled" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>Alert on blocked attempts (threshold)</label>
+                            <select id="alertThreshold">
+                                <option value="2">2 attempts in 1 minute</option>
+                                <option value="3">3 attempts in 1 minute</option>
+                                <option value="5">5 attempts in 1 minute</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Alert on missing heartbeat</label>
+                            <select id="alertHeartbeatThreshold">
+                                <option value="10">10 minutes</option>
+                                <option value="15">15 minutes</option>
+                                <option value="30">30 minutes</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="saveAlertSettingsBtn">Save Alert Settings</button>
+                    </div>
+
+                    <!-- Alert History -->
+                    <div class="settings-group">
+                        <h3>📜 Alert History</h3>
+                        <div class="alert-filters">
+                            <select id="alertTypeFilter">
+                                <option value="all">All Alerts</option>
+                                <option value="blocked_attempts_threshold">Blocked Attempts</option>
+                                <option value="extension_disabled">Extension Disabled</option>
+                                <option value="heartbeat_missing">Device Offline</option>
+                                <option value="tamper_attempt">Tamper Attempt</option>
+                            </select>
+                            <button class="btn btn-secondary" id="markAllReadBtn">Mark All Read</button>
+                        </div>
+                        <div id="alertHistoryList" class="alert-history-list">
+                            <div class="empty-state">No alerts yet. Your children's activity will appear here.</div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Children Section (Family Mode) -->

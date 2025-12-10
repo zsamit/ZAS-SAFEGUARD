@@ -911,3 +911,150 @@ input:checked+.slider:before {
 .auth-footer a:hover {
     color: var(--primary);
 }
+
+/* Alert Badge */
+.alert-badge {
+    background: var(--danger);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+/* Alert History List */
+.alert-history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-input);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.alert-item:hover {
+    background: var(--bg-dark);
+}
+
+.alert-item.unread {
+    border-left: 4px solid var(--primary);
+}
+
+.alert-item .alert-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.alert-item .alert-content h4 {
+    margin-bottom: 4px;
+    font-size: 15px;
+}
+
+.alert-item .alert-content p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.alert-item .alert-time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.unread-dot {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+/* Device Status List */
+.device-status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.device-status-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-input);
+    border-radius: 12px;
+}
+
+.device-status-item .device-icon {
+    font-size: 28px;
+}
+
+.device-status-item .device-info h4 {
+    margin-bottom: 4px;
+}
+
+.device-status-item .device-status {
+    font-size: 13px;
+}
+
+.device-status-item .device-status.online {
+    color: var(--success);
+}
+
+.device-status-item .device-status.offline {
+    color: var(--text-muted);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: auto;
+}
+
+.status-indicator.online {
+    background: var(--success);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-indicator.offline {
+    background: var(--text-muted);
+}
+
+/* Alert Filters */
+.alert-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.alert-filters select {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+}
+
+/* Export/Import Buttons */
+.settings-group .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.settings-group .btn-row .btn {
+    flex: 1;
+}
