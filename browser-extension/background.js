@@ -251,8 +251,11 @@ async function sendHeartbeat() {
 // Monitor for extension disable attempts
 chrome.management.onDisabled.addListener((info) => {
     if (info.id === chrome.runtime.id) {
-        // Extension was disabled - log this event
-        logTamperAttempt('extension_disabled');
+        // Extension was disabled - log security event for parent alert
+        logSecurityEvent('extension_disabled', {
+            deviceName: 'Browser Extension',
+            action: 'disabled'
+        });
 
         // Try to re-enable (won't work if user disabled, but logs the attempt)
         chrome.management.setEnabled(chrome.runtime.id, true);
@@ -261,33 +264,71 @@ chrome.management.onDisabled.addListener((info) => {
 
 // Monitor for uninstall (before it happens if possible)
 chrome.runtime.onSuspend.addListener(() => {
-    logTamperAttempt('extension_suspend');
+    logSecurityEvent('extension_suspend', {
+        deviceName: 'Browser Extension',
+        action: 'suspend_or_uninstall'
+    });
 });
 
-async function logTamperAttempt(type) {
+// Detect DevTools opened (potential bypass attempt)
+let devToolsOpen = false;
+const devToolsThreshold = 160;
+window.addEventListener('resize', () => {
+    const widthThreshold = window.outerWidth - window.innerWidth > devToolsThreshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > devToolsThreshold;
+
+    if ((widthThreshold || heightThreshold) && !devToolsOpen) {
+        devToolsOpen = true;
+        logSecurityEvent('tamper_attempt', {
+            deviceName: 'Browser Extension',
+            action: 'devtools_opened'
+        });
+    }
+});
+
+async function logSecurityEvent(type, metadata = {}) {
     try {
         const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY]);
         const token = storage[CONFIG.USER_TOKEN_KEY];
         const deviceId = storage[CONFIG.DEVICE_ID_KEY];
 
-        if (!token) return;
+        if (!token || !deviceId) return;
 
-        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEvent`, {
+        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEvent`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                deviceId,
-                type: 'tamper',
-                action: type,
-                metadata: { timestamp: Date.now() }
+                data: {
+                    deviceId,
+                    type,
+                    metadata: {
+                        ...metadata,
+                        timestamp: Date.now(),
+                        extensionVersion: EXTENSION_VERSION
+                    }
+                }
             })
         });
+
+        console.log(`Security event logged: ${type}`);
     } catch (error) {
-        console.error('Failed to log tamper attempt:', error);
+        console.error('Failed to log security event:', error);
+        // Store locally for later sync
+        const errorLogs = await chrome.storage.local.get(CONFIG.ERROR_LOG_KEY) || { [CONFIG.ERROR_LOG_KEY]: [] };
+        errorLogs[CONFIG.ERROR_LOG_KEY].push({ type, metadata, timestamp: Date.now() });
+        await chrome.storage.local.set(errorLogs);
     }
+}
+
+// Log blocked URL as security event (for alert threshold)
+async function logBlockedAttempt(domain) {
+    await logSecurityEvent('blocked_attempt', {
+        domain,
+        deviceName: 'Browser Extension'
+    });
 }
 
 // ============================================
@@ -329,6 +370,7 @@ async function logBlockedUrl(url, hostname) {
 
         if (!token) return;
 
+        // Log to activity logs
         await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEvent`, {
             method: 'POST',
             headers: {
@@ -342,6 +384,9 @@ async function logBlockedUrl(url, hostname) {
                 action: 'navigate_blocked'
             })
         });
+
+        // Also log as security event for parent alert threshold
+        await logBlockedAttempt(hostname);
     } catch (error) {
         // Silent fail
     }

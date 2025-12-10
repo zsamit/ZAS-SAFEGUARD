@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-12-09",
+  "categories": {
+    "social_media": [
+      "facebook.com", "www.facebook.com", "m.facebook.com",
+      "instagram.com", "www.instagram.com",
+      "twitter.com", "www.twitter.com", "x.com",
+      "tiktok.com", "www.tiktok.com",
+      "snapchat.com", "www.snapchat.com",
+      "pinterest.com", "www.pinterest.com",
+      "reddit.com", "www.reddit.com", "old.reddit.com",
+      "tumblr.com", "www.tumblr.com",
+      "linkedin.com", "www.linkedin.com",
+      "discord.com", "www.discord.com", "discordapp.com"
+    ],
+    "gambling": [
+      "bet365.com", "www.bet365.com",
+      "draftkings.com", "www.draftkings.com",
+      "fanduel.com", "www.fanduel.com",
+      "pokerstars.com", "www.pokerstars.com",
+      "bovada.lv", "www.bovada.lv",
+      "betmgm.com", "www.betmgm.com",
+      "caesars.com", "www.caesars.com",
+      "williamhill.com", "www.williamhill.com",
+      "888casino.com", "www.888casino.com",
+      "betway.com", "www.betway.com",
+      "unibet.com", "www.unibet.com",
+      "bwin.com", "www.bwin.com",
+      "stake.com", "www.stake.com",
+      "rollbit.com", "www.rollbit.com"
+    ],
+    "gaming": [
+      "steampowered.com", "store.steampowered.com",
+      "epicgames.com", "www.epicgames.com",
+      "roblox.com", "www.roblox.com",
+      "minecraft.net", "www.minecraft.net",
+      "twitch.tv", "www.twitch.tv",
+      "itch.io", "www.itch.io",
+      "ea.com", "www.ea.com",
+      "blizzard.com", "www.blizzard.com",
+      "xbox.com", "www.xbox.com",
+      "playstation.com", "www.playstation.com",
+      "nintendo.com", "www.nintendo.com",
+      "leagueoflegends.com", "www.leagueoflegends.com",
+      "valorant.com", "www.valorant.com",
+      "fortnite.com", "www.fortnite.com"
+    ],
+    "streaming": [
+      "netflix.com", "www.netflix.com",
+      "hulu.com", "www.hulu.com",
+      "disneyplus.com", "www.disneyplus.com",
+      "hbomax.com", "www.hbomax.com", "max.com",
+      "primevideo.com", "www.primevideo.com",
+      "peacocktv.com", "www.peacocktv.com",
+      "paramountplus.com", "www.paramountplus.com",
+      "crunchyroll.com", "www.crunchyroll.com"
+    ],
+    "youtube": [
+      "youtube.com", "www.youtube.com", "m.youtube.com",
+      "youtu.be", "youtube-nocookie.com"
+    ],
+    "news": [
+      "cnn.com", "www.cnn.com",
+      "foxnews.com", "www.foxnews.com",
+      "bbc.com", "www.bbc.com",
+      "nytimes.com", "www.nytimes.com"
+    ]
+  }
+}

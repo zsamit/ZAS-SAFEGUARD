@@ -19,6 +19,17 @@ const fraud = require('./fraud');
 const ai = require('./ai');
 const version = require('./version');
 const cleanup = require('./cleanup');
+const alerts = require('./alerts');
+
+// ============================================
+// ALERT FUNCTIONS
+// ============================================
+exports.onSecurityEvent = alerts.onSecurityEvent;
+exports.checkHeartbeats = alerts.checkHeartbeats;
+exports.logSecurityEvent = alerts.logSecurityEvent;
+exports.getAlerts = alerts.getAlerts;
+exports.updateAlertSettings = alerts.updateAlertSettings;
+exports.markAlertRead = alerts.markAlertRead;
 
 // ============================================
 // VERSION FUNCTIONS
