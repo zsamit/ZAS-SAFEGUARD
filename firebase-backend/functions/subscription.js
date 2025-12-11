@@ -71,7 +71,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
             });
         }
 
-        // Create checkout session
+        // Create checkout session with automatic tax
         const sessionParams = {
             customer: stripeCustomerId,
             payment_method_types: ['card'],
@@ -82,6 +82,17 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
             mode: 'subscription',
             success_url: `${data.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: data.cancelUrl,
+            // Enable automatic tax collection
+            automatic_tax: {
+                enabled: true,
+            },
+            // Collect billing address for tax calculation
+            customer_update: {
+                address: 'auto',
+            },
+            tax_id_collection: {
+                enabled: true,
+            },
             metadata: {
                 userId: uid,
                 priceTier: priceTier,

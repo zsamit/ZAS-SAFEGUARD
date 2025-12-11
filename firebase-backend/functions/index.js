@@ -20,6 +20,14 @@ const ai = require('./ai');
 const version = require('./version');
 const cleanup = require('./cleanup');
 const alerts = require('./alerts');
+const urlReputation = require('./urlReputation');
+
+// ============================================
+// URL REPUTATION FUNCTIONS
+// ============================================
+exports.checkUrlReputation = urlReputation.checkUrlReputation;
+exports.logUrlScan = urlReputation.logUrlScan;
+exports.cleanupOldUrlScans = urlReputation.cleanupOldUrlScans;
 
 // ============================================
 // ALERT FUNCTIONS

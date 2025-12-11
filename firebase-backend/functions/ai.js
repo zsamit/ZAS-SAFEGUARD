@@ -90,7 +90,7 @@ Return format: {"categories": ["category1"], "isAdult": boolean, "isHarmful": bo
 
             try {
                 const completion = await openai.chat.completions.create({
-                    model: 'gpt-4-turbo-preview',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',
@@ -354,7 +354,7 @@ exports.generateWeeklyReport = functions.https.onCall(async (data, context) => {
                 const openai = new OpenAI({ apiKey: openaiApiKey });
 
                 const completion = await openai.chat.completions.create({
-                    model: 'gpt-4-turbo-preview',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',

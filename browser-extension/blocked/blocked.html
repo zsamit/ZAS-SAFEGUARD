@@ -242,27 +242,102 @@
         </div>
     </div>
 
+    <script src="../shared/quotes.js"></script>
     <script>
-        const motivationalMessages = [
-            "Every time you resist temptation, you become stronger. You're doing great!",
-            "Your future self will thank you for this moment of strength.",
-            "Small victories lead to big transformations. Keep going!",
-            "You have the power to choose what influences your mind.",
-            "This moment of resistance is building a better you.",
-            "Stay focused on your goals. You've got this!",
-            "True strength is saying no when it matters most.",
-            "You're building habits that will change your life.",
-        ];
+        // ============================================
+        // QUOTES SYSTEM INTEGRATION
+        // ============================================
 
-        // Display random motivational message
-        const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-        document.getElementById('motivationText').textContent = randomMessage;
+        // Default settings (fallback if offline)
+        const DEFAULT_SETTINGS = {
+            quotesEnabled: true,
+            quoteType: 'motivational',
+            countryCode: 'US'
+        };
+
+        // Load quote settings and display quote
+        async function loadAndDisplayQuote() {
+            let settings = DEFAULT_SETTINGS;
+
+            try {
+                // Try to load settings from chrome.storage
+                const result = await chrome.storage.local.get(['quoteSettings']);
+                if (result.quoteSettings) {
+                    settings = { ...DEFAULT_SETTINGS, ...result.quoteSettings };
+                }
+            } catch (e) {
+                // Not running as extension or storage error
+                console.log('Using default quote settings');
+            }
+
+            // Check if quotes are enabled
+            if (!settings.quotesEnabled) {
+                document.getElementById('motivationText').textContent =
+                    'Stay focused on your goals. You\'ve got this!';
+                return;
+            }
+
+            // Get quote using the quotes system
+            try {
+                if (typeof window.QuotesSystem !== 'undefined') {
+                    const quote = window.QuotesSystem.getRandomQuote({
+                        quoteType: settings.quoteType,
+                        countryCode: settings.countryCode
+                    });
+
+                    if (quote) {
+                        // Update icon based on quote type
+                        const isIslamic = settings.quoteType === 'islamic' ||
+                            (settings.quoteType === 'auto' &&
+                                window.QuotesSystem.getDefaultQuoteTypeForCountry(settings.countryCode) === 'islamic');
+
+                        document.querySelector('.motivation-icon').textContent = isIslamic ? '🕌' : '💪';
+
+                        // Update quote text
+                        let quoteHtml = `"${quote.text}"`;
+                        if (quote.source && quote.source !== 'Unknown') {
+                            quoteHtml += `<br><small style="color: #6b7280; font-size: 14px; font-weight: normal;">— ${quote.source}</small>`;
+                        }
+                        document.getElementById('motivationText').innerHTML = quoteHtml;
+                    }
+                } else {
+                    // Fallback if quotes system not loaded
+                    displayFallbackQuote();
+                }
+            } catch (e) {
+                console.error('Quote load error:', e);
+                displayFallbackQuote();
+            }
+        }
+
+        // Fallback quotes (built-in)
+        function displayFallbackQuote() {
+            const fallbackQuotes = [
+                "Every time you resist temptation, you become stronger. You're doing great!",
+                "Your future self will thank you for this moment of strength.",
+                "Small victories lead to big transformations. Keep going!",
+                "You have the power to choose what influences your mind.",
+                "This moment of resistance is building a better you.",
+                "Stay focused on your goals. You've got this!",
+                "True strength is saying no when it matters most.",
+                "You're building habits that will change your life.",
+            ];
+            const randomMessage = fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
+            document.getElementById('motivationText').textContent = randomMessage;
+        }
+
+        // Initialize quote display
+        loadAndDisplayQuote();
 
         // Try to get blocked URL from query params
         const params = new URLSearchParams(window.location.search);
         const blockedUrl = params.get('url');
         if (blockedUrl) {
-            document.getElementById('reason').textContent = `Blocked: ${new URL(blockedUrl).hostname}`;
+            try {
+                document.getElementById('reason').textContent = `Blocked: ${new URL(blockedUrl).hostname}`;
+            } catch (e) {
+                document.getElementById('reason').textContent = 'Adult/Harmful Content';
+            }
         }
 
         // Load stats from storage

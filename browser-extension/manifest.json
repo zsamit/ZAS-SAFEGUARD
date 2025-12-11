@@ -56,6 +56,12 @@
         {
             "resources": [
                 "blocked/blocked.html",
+                "warnings/malwareBlocked.html",
+                "warnings/suspiciousWarning.html",
+                "lib/urlPatterns.js",
+                "lib/urlScanner.js",
+                "lib/malwareSignatures.json",
+                "shared/quotes.js",
                 "icons/*"
             ],
             "matches": [

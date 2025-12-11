@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚠️ Suspicious Link Detected - ZAS Safeguard</title>
+    <style>
+        :root {
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .warning-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        h1 {
+            color: var(--warning);
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 18px;
+            margin-bottom: 32px;
+        }
+
+        .warning-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: left;
+            border-left: 4px solid var(--warning);
+        }
+
+        .url-display {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 16px 0;
+            word-break: break-all;
+        }
+
+        .recommendation {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .recommendation h3 {
+            color: #3b82f6;
+            margin-bottom: 12px;
+        }
+
+        .recommendation p {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .virustotal-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #394EFF;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .virustotal-btn:hover {
+            background: #2d3fd9;
+            transform: translateY(-2px);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--warning);
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .risk-indicators {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .risk-tag {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="warning-icon">⚠️</div>
+        <h1>Suspicious Link Detected</h1>
+        <p class="subtitle">This link shows signs of being potentially unsafe.</p>
+
+        <div class="warning-card">
+            <h3>🔗 Suspicious URL</h3>
+            <div class="url-display" id="suspiciousUrl">Loading...</div>
+            <p style="color: var(--text-muted); font-size: 14px;">
+                This URL contains patterns commonly associated with scams, phishing, or malicious websites.
+            </p>
+            <div class="risk-indicators" id="riskIndicators"></div>
+        </div>
+
+        <div class="recommendation">
+            <h3>🔍 Verify Before Proceeding</h3>
+            <p>We recommend scanning this link with VirusTotal to check if it's safe before visiting.</p>
+            <a href="#" class="virustotal-btn" id="virusTotalLink" target="_blank">
+                🛡️ Scan with VirusTotal
+            </a>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-danger" onclick="exitPage()">🚫 Exit This Page</button>
+            <button class="btn btn-secondary" onclick="proceedAnyway()">Continue Anyway (Not Recommended)</button>
+        </div>
+
+        <div class="footer">
+            <p>Protected by <strong>ZAS Safeguard</strong></p>
+            <p>When in doubt, don't click!</p>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const suspiciousUrl = decodeURIComponent(params.get('url') || '');
+        const reason = params.get('reason') || '';
+        const category = params.get('category') || 'suspicious';
+
+        // Display URL
+        document.getElementById('suspiciousUrl').textContent = suspiciousUrl;
+
+        // Create VirusTotal link
+        const vtUrl = 'https://www.virustotal.com/gui/home/url';
+        document.getElementById('virusTotalLink').href = vtUrl;
+
+        // Show risk indicators
+        const indicators = document.getElementById('riskIndicators');
+        const risks = [];
+
+        if (suspiciousUrl.includes('free')) risks.push('Contains "free"');
+        if (suspiciousUrl.includes('win')) risks.push('Contains "win"');
+        if (suspiciousUrl.includes('prize')) risks.push('Contains "prize"');
+        if (suspiciousUrl.includes('verify')) risks.push('Contains "verify"');
+        if (suspiciousUrl.includes('login')) risks.push('Suspicious login');
+        if (suspiciousUrl.match(/\.(tk|ml|ga|cf|gq)$/)) risks.push('Suspicious domain');
+        if (category) risks.push(category.replace('_', ' '));
+
+        risks.forEach(risk => {
+            const tag = document.createElement('span');
+            tag.className = 'risk-tag';
+            tag.textContent = risk;
+            indicators.appendChild(tag);
+        });
+
+        function exitPage() {
+            // Go back or close tab
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.close();
+                // Fallback
+                window.location.href = 'about:blank';
+            }
+        }
+
+        function proceedAnyway() {
+            if (confirm('⚠️ WARNING: This link may be dangerous!\n\nAre you absolutely sure you want to proceed? This could expose you to:\n• Phishing attacks\n• Malware downloads\n• Scam websites\n\nClick OK only if you trust this source.')) {
+                // Store override in session
+                sessionStorage.setItem('zas_override_' + suspiciousUrl, 'true');
+                window.location.href = suspiciousUrl;
+            }
+        }
+    </script>
+</body>
+
+</html>

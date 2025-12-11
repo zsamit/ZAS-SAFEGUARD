@@ -77,6 +77,331 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 // ============================================
+// URL SAFETY SCANNER
+// ============================================
+
+// Load malware signatures
+let malwareSignatures = null;
+let urlScanCache = new Map();
+const URL_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Initialize scanner on startup
+async function initUrlScanner() {
+    try {
+        const response = await fetch(chrome.runtime.getURL('lib/malwareSignatures.json'));
+        malwareSignatures = await response.json();
+        console.log('[URLScanner] Loaded', malwareSignatures.total_entries, 'signatures');
+    } catch (error) {
+        console.error('[URLScanner] Failed to load signatures:', error);
+    }
+}
+
+// Run on startup
+initUrlScanner();
+
+// Intercept navigation BEFORE page loads
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+    // Only check main frame navigations
+    if (details.frameId !== 0) return;
+
+    const url = details.url;
+
+    // Skip internal URLs
+    if (url.startsWith('chrome://') ||
+        url.startsWith('chrome-extension://') ||
+        url.startsWith('about:') ||
+        url.startsWith('edge://') ||
+        url.startsWith('moz-extension://')) {
+        return;
+    }
+
+    // Check URL safety
+    const scanResult = await scanUrlForThreats(url);
+
+    if (scanResult.blocked) {
+        // 100% BLOCKED - Definitely malicious
+        console.log('[URLScanner] BLOCKED:', url, scanResult.category);
+
+        const warningUrl = chrome.runtime.getURL('warnings/malwareBlocked.html') +
+            `?url=${encodeURIComponent(url)}` +
+            `&category=${scanResult.category}` +
+            `&source=${scanResult.source}` +
+            `&reason=${encodeURIComponent(scanResult.reason || '')}` +
+            `&timestamp=${new Date().toISOString()}`;
+
+        chrome.tabs.update(details.tabId, { url: warningUrl });
+        logUrlScanEvent(scanResult);
+
+    } else if (scanResult.suspicious) {
+        // SUSPICIOUS - Recommend VirusTotal check
+        console.log('[URLScanner] SUSPICIOUS:', url, scanResult.category);
+
+        const warningUrl = chrome.runtime.getURL('warnings/suspiciousWarning.html') +
+            `?url=${encodeURIComponent(url)}` +
+            `&category=${scanResult.category}` +
+            `&reason=${encodeURIComponent(scanResult.reason || '')}`;
+
+        chrome.tabs.update(details.tabId, { url: warningUrl });
+        logUrlScanEvent({ ...scanResult, result: 'warned' });
+    }
+});
+
+/**
+ * Scan URL for threats using multi-layer approach
+ */
+async function scanUrlForThreats(url) {
+    // Check cache first
+    const cacheKey = hashUrlForCache(url);
+    const cached = urlScanCache.get(cacheKey);
+    if (cached && Date.now() < cached.expires) {
+        return { ...cached.result, cached: true };
+    }
+
+    let result = {
+        url: url,
+        safe: true,
+        blocked: false,
+        category: 'clean',
+        confidence: 100,
+        source: null,
+        reason: null
+    };
+
+    try {
+        // Layer A: Pattern matching (100% block)
+        const patternResult = checkMaliciousPatterns(url);
+        if (patternResult.blocked) {
+            result = { ...result, ...patternResult, source: 'pattern' };
+            cacheUrlResult(cacheKey, result);
+            return result;
+        }
+
+        // Layer B: Signature database (100% block)
+        const signatureResult = checkSignatureDatabase(url);
+        if (signatureResult.blocked) {
+            result = { ...result, ...signatureResult, source: 'signature' };
+            cacheUrlResult(cacheKey, result);
+            return result;
+        }
+
+        // Layer C: Suspicious patterns (warning, not block)
+        const suspiciousResult = checkSuspiciousPatterns(url);
+        if (suspiciousResult.suspicious) {
+            result = {
+                ...result,
+                ...suspiciousResult,
+                safe: false,
+                suspicious: true,
+                source: 'heuristic'
+            };
+            cacheUrlResult(cacheKey, result);
+            return result;
+        }
+
+        // Clean URL
+        cacheUrlResult(cacheKey, result);
+        return result;
+
+    } catch (error) {
+        console.error('[URLScanner] Error:', error);
+        return result;
+    }
+}
+
+/**
+ * Layer C: Check suspicious patterns (warns but doesn't block)
+ */
+function checkSuspiciousPatterns(url) {
+    // Patterns that are suspicious but not 100% malicious
+    const SUSPICIOUS_PATTERNS = [
+        /\.(tk|ml|ga|cf|gq)$/i,           // Suspicious free TLDs
+        /bit\.ly\/\w+$/i,                  // URL shorteners
+        /tinyurl\.com\/\w+$/i,
+        /t\.co\/\w+$/i,
+        /goo\.gl\/\w+$/i,
+        /ow\.ly\/\w+$/i,
+        /is\.gd\/\w+$/i,
+        /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/,  // IP addresses instead of domains
+        /login.*\.(xyz|top|club|online)/i,     // Login on suspicious TLDs
+        /free.*gift/i,
+        /win.*iphone/i,
+        /claim.*reward/i,
+        /urgent.*action/i,
+        /account.*locked/i,
+        /verify.*email/i,
+        /confirm.*order/i,
+        /update.*payment/i,
+    ];
+
+    const urlLower = url.toLowerCase();
+
+    for (const pattern of SUSPICIOUS_PATTERNS) {
+        if (pattern.test(url)) {
+            return {
+                suspicious: true,
+                reason: 'suspicious_pattern',
+                category: 'suspicious'
+            };
+        }
+    }
+
+    // Check for excessive subdomains (common in phishing)
+    try {
+        const urlObj = new URL(url);
+        const subdomains = urlObj.hostname.split('.').length - 2;
+        if (subdomains > 3) {
+            return {
+                suspicious: true,
+                reason: 'excessive_subdomains',
+                category: 'suspicious'
+            };
+        }
+    } catch (e) { }
+
+    return { suspicious: false };
+}
+
+/**
+ * Layer A: Check malicious patterns
+ */
+function checkMaliciousPatterns(url) {
+    const MALICIOUS_PATTERNS = [
+        /phish/i, /verify-account/i, /confirm-identity/i, /account-suspended/i,
+        /reset-password-now/i, /free-crypto/i, /crypto-giveaway/i, /wallet-drainer/i,
+        /claim-airdrop/i, /binance-verify/i, /coinbase-verify/i, /metamask-verify/i,
+        /steam-gift/i, /free-robux/i, /free-vbucks/i, /iphone-winner/i,
+        /prize-claim/i, /lottery-winner/i, /virus-detected/i, /your-pc-infected/i,
+        /grabify/i, /iplogger/i, /download-now-free/i,
+        /paypa[l1].*\.(tk|ml|ga|cf)/i, /amaz[o0]n.*\.(tk|ml|ga)/i,
+        /g[o0]{2}gle.*\.(tk|ml|ga)/i, /faceb[o0]{2}k.*\.(tk|ml|ga)/i
+    ];
+
+    const TRUSTED_DOMAINS = [
+        'google.com', 'youtube.com', 'facebook.com', 'instagram.com',
+        'twitter.com', 'x.com', 'microsoft.com', 'apple.com', 'amazon.com',
+        'netflix.com', 'github.com', 'reddit.com', 'paypal.com', 'stripe.com',
+        'zasgloballlc.com', 'zas-safeguard.web.app', 'firebase.google.com'
+    ];
+
+    const urlLower = url.toLowerCase();
+
+    // Check trusted first
+    for (const domain of TRUSTED_DOMAINS) {
+        if (urlLower.includes(domain)) {
+            return { blocked: false, reason: 'trusted' };
+        }
+    }
+
+    // Check patterns
+    for (const pattern of MALICIOUS_PATTERNS) {
+        if (pattern.test(url)) {
+            return {
+                blocked: true,
+                safe: false,
+                reason: 'malicious_pattern',
+                category: categorizeUrl(pattern.toString())
+            };
+        }
+    }
+
+    return { blocked: false };
+}
+
+/**
+ * Layer B: Check signature database
+ */
+function checkSignatureDatabase(url) {
+    if (!malwareSignatures) return { blocked: false };
+
+    try {
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname.toLowerCase();
+
+        const categories = [
+            { list: malwareSignatures.phishing_domains, category: 'phishing' },
+            { list: malwareSignatures.malware_domains, category: 'malware' },
+            { list: malwareSignatures.crypto_scam_domains, category: 'crypto_scam' },
+            { list: malwareSignatures.scam_domains, category: 'scam' },
+            { list: malwareSignatures.ip_grabber_domains, category: 'ip_grabber' }
+        ];
+
+        for (const { list, category } of categories) {
+            if (list && list.some(d => domain.includes(d) || domain === d)) {
+                return { blocked: true, safe: false, category, reason: 'known_malicious' };
+            }
+        }
+    } catch (e) { }
+
+    return { blocked: false };
+}
+
+/**
+ * Categorize URL threat
+ */
+function categorizeUrl(pattern) {
+    const p = pattern.toLowerCase();
+    if (p.includes('phish') || p.includes('verify') || p.includes('login')) return 'phishing';
+    if (p.includes('crypto') || p.includes('wallet')) return 'crypto_scam';
+    if (p.includes('virus') || p.includes('infected')) return 'malware';
+    if (p.includes('prize') || p.includes('winner')) return 'scam';
+    if (p.includes('grabify') || p.includes('iplogger')) return 'ip_grabber';
+    return 'suspicious';
+}
+
+/**
+ * Hash URL for caching
+ */
+function hashUrlForCache(url) {
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+        hash = ((hash << 5) - hash) + url.charCodeAt(i);
+        hash = hash & hash;
+    }
+    return hash.toString(36);
+}
+
+/**
+ * Cache scan result
+ */
+function cacheUrlResult(key, result) {
+    urlScanCache.set(key, { result, expires: Date.now() + URL_CACHE_DURATION });
+    if (urlScanCache.size > 500) {
+        const now = Date.now();
+        for (const [k, v] of urlScanCache.entries()) {
+            if (now > v.expires) urlScanCache.delete(k);
+        }
+    }
+}
+
+/**
+ * Log URL scan event to Firestore
+ */
+async function logUrlScanEvent(scanResult) {
+    try {
+        const deviceId = await getDeviceId();
+        const storage = await chrome.storage.local.get(CONFIG.USER_TOKEN_KEY);
+
+        if (!storage[CONFIG.USER_TOKEN_KEY]) return;
+
+        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logUrlScan`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${storage[CONFIG.USER_TOKEN_KEY]}`
+            },
+            body: JSON.stringify({
+                ...scanResult,
+                deviceId,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (error) {
+        console.error('[URLScanner] Log failed:', error);
+    }
+}
+
+
+// ============================================
 // DEVICE ID GENERATION
 // ============================================
 

@@ -63,12 +63,11 @@ service cloud.firestore {
     
     match /users/{userId} {
       allow read: if isOwner(userId);
+      // Allow creating new user document with any fields
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) && 
         // Prevent modifying subscription directly (must go through functions)
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription']) &&
-        // Prevent downgrading mode from owner to family (security feature)
-        !(resource.data.mode == 'owner' && request.resource.data.mode == 'family');
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'subscription.status', 'subscription.plan']);
       allow delete: if false; // Never delete users directly
     }
 

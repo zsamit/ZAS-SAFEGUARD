@@ -1526,3 +1526,142 @@ input:checked+.slider:before {
     font-weight: 500;
     margin-top: 12px;
 }
+
+/* ============================================
+   QUOTES PREVIEW SECTION
+   ============================================ */
+
+.quote-preview-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.quote-preview-box {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(59, 130, 246, 0.05));
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 16px;
+    min-height: 80px;
+    position: relative;
+}
+
+.quote-preview-box:empty {
+    display: none;
+}
+
+.quote-preview-box p {
+    font-size: 18px;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    color: var(--text);
+}
+
+.quote-preview-box small {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.quote-preview-box::before {
+    content: '"';
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    font-size: 48px;
+    color: rgba(99, 102, 241, 0.3);
+    font-family: Georgia, serif;
+    line-height: 1;
+}
+
+/* ============================================
+   URL SCAN TABLE
+   ============================================ */
+
+.url-scan-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.url-scan-table th,
+.url-scan-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.url-scan-table th {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.url-scan-table td {
+    font-size: 14px;
+}
+
+.url-scan-table .empty-row td {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 32px;
+}
+
+.scan-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.scan-filters select,
+.scan-filters input {
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+}
+
+/* ============================================
+   MANUAL URL CHECK FORM
+   ============================================ */
+
+.manual-check-form {
+    display: flex;
+    gap: 12px;
+}
+
+.manual-check-form input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+}
+
+.manual-check-result {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.manual-check-result.safe {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--success);
+}
+
+.manual-check-result.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+}
+
+.manual-check-result.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--warning);
+}
