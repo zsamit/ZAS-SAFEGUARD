@@ -131,67 +131,86 @@
 
         <!-- Dashboard Screen -->
         <div id="dashboardScreen" class="screen" style="display: none;">
-            <!-- Sidebar -->
-            <nav class="sidebar">
-                <div class="sidebar-header">
-                    <img src="logo.png" alt="ZAS Safeguard" class="logo-small"
-                        style="width: 28px; height: 28px; border-radius: 6px;">
-                    <span>ZAS Safeguard</span>
+            <!-- Sidebar (Premium Design) -->
+            <nav class="zas-sidebar sidebar">
+                <div class="zas-sidebar-header">
+                    <div class="zas-sidebar-logo">
+                        <img src="logo.png" alt="ZAS" style="width: 28px; height: 28px; border-radius: 6px;">
+                    </div>
+                    <span class="zas-sidebar-brand">ZAS Safeguard</span>
                 </div>
-                <ul class="nav-links">
-                    <li class="active" data-section="overview">
-                        <span class="icon">📊</span> Overview
-                    </li>
-                    <li data-section="devices">
-                        <span class="icon">💻</span> Devices
-                    </li>
-                    <li data-section="blocklist">
-                        <span class="icon">🚫</span> Blocklist
-                    </li>
-                    <li data-section="studymode">
-                        <span class="icon">📚</span> Study Mode
-                    </li>
-                    <!-- Creator Blocking hidden until content script implemented
-                    <li data-section="creators">
-                        <span class="icon">🎯</span> Block Creators
-                    </li>
-                    -->
-                    <li data-section="activity">
-                        <span class="icon">📋</span> Activity
-                    </li>
-                    <li data-section="children" id="childrenNav" style="display: none;">
-                        <span class="icon">👨‍👩‍👧</span> Children
-                    </li>
-                    <li data-section="alerts">
-                        <span class="icon">🚨</span> Alerts
-                        <span class="alert-badge" id="alertBadge" style="display: none;">0</span>
-                    </li>
-                    <li data-section="scanner" id="scannerNav">
-                        <span class="icon">🔍</span> Scanner
-                        <span class="pro-badge">PRO</span>
-                    </li>
-                    <li data-section="settings">
-                        <span class="icon">⚙️</span> Settings
-                    </li>
-                </ul>
-                <div class="sidebar-footer">
-                    <div class="theme-toggle" id="themeToggle">
-                        <span class="icon" id="themeIcon">🌙</span>
-                        <span id="themeLabel">Dark Mode</span>
+
+                <div class="zas-nav">
+                    <!-- MAIN Section -->
+                    <div class="zas-nav-section">
+                        <div class="zas-nav-label">MAIN</div>
+                        <div class="zas-nav-item active" data-section="overview">
+                            <span class="zas-nav-icon">🏠</span>
+                            <span>Dashboard</span>
+                        </div>
+                        <div class="zas-nav-item" data-section="devices">
+                            <span class="zas-nav-icon">💻</span>
+                            <span>Devices</span>
+                        </div>
+                        <div class="zas-nav-item" data-section="blocklist">
+                            <span class="zas-nav-icon">🚫</span>
+                            <span>Blocklist</span>
+                        </div>
                     </div>
-                    <div class="user-info">
-                        <img id="userAvatar" src="" alt="User" class="avatar">
-                        <span id="userName">User</span>
+
+                    <!-- SECURITY Section -->
+                    <div class="zas-nav-section">
+                        <div class="zas-nav-label">SECURITY</div>
+                        <div class="zas-nav-item" data-section="alerts">
+                            <span class="zas-nav-icon">🔔</span>
+                            <span>Alerts</span>
+                            <span class="alert-badge" id="alertBadge" style="display: none;">0</span>
+                        </div>
+                        <div class="zas-nav-item" data-section="scanner">
+                            <span class="zas-nav-icon">🔍</span>
+                            <span>Scanner</span>
+                            <span class="zas-badge-pro">PRO</span>
+                        </div>
                     </div>
-                    <button id="logoutBtn" class="btn-logout">Logout</button>
+
+                    <!-- PRODUCTIVITY Section -->
+                    <div class="zas-nav-section">
+                        <div class="zas-nav-label">PRODUCTIVITY</div>
+                        <div class="zas-nav-item" data-section="studymode">
+                            <span class="zas-nav-icon">📚</span>
+                            <span>Study Mode</span>
+                        </div>
+                        <div class="zas-nav-item" data-section="activity">
+                            <span class="zas-nav-icon">📊</span>
+                            <span>Activity</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="zas-sidebar-footer">
+                    <div class="zas-nav-item" data-section="settings">
+                        <span class="zas-nav-icon">⚙️</span>
+                        <span>Settings</span>
+                    </div>
+                    <div class="zas-user-card" id="userInfoCard">
+                        <div class="zas-user-avatar" id="userAvatarInitial">Z</div>
+                        <img id="userAvatar" src="" alt="User" class="zas-user-avatar-img" style="display: none;">
+                        <div>
+                            <div class="zas-user-name" id="userName">User</div>
+                            <div class="zas-user-plan" id="userPlan">Free Plan</div>
+                        </div>
+                    </div>
+                    <button id="logoutBtn" class="zas-btn zas-btn-ghost"
+                        style="width: 100%; margin-top: 8px;">Logout</button>
                 </div>
             </nav>
 
             <!-- Main Content -->
-            <main class="main-content">
+            <main class="zas-main main-content">
                 <!-- Overview Section -->
                 <section id="overviewSection" class="section">
-                    <h2>Dashboard Overview</h2>
+                    <h1 class="zas-page-title">Security Command Center</h1>
+                    <p class="zas-page-subtitle">Real-time protection status for all your devices</p>
 
                     <!-- Premium Security Status Indicator -->
                     <div class="security-overview-grid">
