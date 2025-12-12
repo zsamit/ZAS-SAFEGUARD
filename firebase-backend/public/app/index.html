@@ -192,41 +192,54 @@
                 <section id="overviewSection" class="section">
                     <h2>Dashboard Overview</h2>
 
-                    <!-- Status Banner (like popup) -->
-                    <div class="status-banner">
-                        <div class="status-indicator">
-                            <span class="status-dot"></span>
-                            <span class="status-text">Protected</span>
-                            <span class="status-check">✓</span>
+                    <!-- Premium Security Status Indicator -->
+                    <div class="security-overview-grid">
+                        <div class="zas-card security-status-card">
+                            <div class="security-status-indicator safe" id="securityIndicator">
+                                <div class="status-pulse"></div>
+                                <div class="status-circle">
+                                    <span class="status-icon">✓</span>
+                                </div>
+                                <span class="status-label">Protected</span>
+                            </div>
+                            <p class="status-summary" id="statusSummary">All systems active • 0 threats detected</p>
                         </div>
-                        <p class="status-sub">All systems active</p>
+
+                        <div class="zas-card stats-card">
+                            <div class="stats-grid-premium">
+                                <div class="stat-item">
+                                    <span class="stat-value" id="statBlockedToday">0</span>
+                                    <span class="stat-label">Blocked Today</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="statBlockedTotal">0</span>
+                                    <span class="stat-label">Total Blocked</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="statDevices">0</span>
+                                    <span class="stat-label">Devices</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value zas-badge zas-badge-pro" id="statSubscription">Free</span>
+                                    <span class="stat-label">Plan</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Stats Grid (popup style) -->
-                    <div class="stats-grid-new">
-                        <div class="stat-card-new">
-                            <span class="stat-num" id="statBlockedToday">0</span>
-                            <span class="stat-label-new">Blocked Today</span>
-                        </div>
-                        <div class="stat-card-new">
-                            <span class="stat-num" id="statBlockedTotal">0</span>
-                            <span class="stat-label-new">Total Blocked</span>
-                        </div>
-                        <div class="stat-card-new">
-                            <span class="stat-num" id="statDevices">0</span>
-                            <span class="stat-label-new">Devices</span>
-                        </div>
-                        <div class="stat-card-new status-card-sub">
-                            <span class="stat-num" id="statSubscription">Free</span>
-                            <span class="stat-label-new">Plan</span>
-                        </div>
-                    </div>
-
-                    <!-- Activity Chart -->
-                    <div class="chart-section">
+                    <!-- Activity Chart with Toggle -->
+                    <div class="zas-card chart-section">
                         <div class="chart-header">
-                            <h3>📊 Weekly Activity</h3>
-                            <span class="chart-subtitle">Sites blocked in the last 7 days</span>
+                            <div>
+                                <h3>Block Activity</h3>
+                                <span class="chart-subtitle">Sites blocked over time</span>
+                            </div>
+                            <div class="chart-toggle">
+                                <button class="chart-toggle-btn active" data-period="7d"
+                                    onclick="switchChartPeriod('7d')">7 Days</button>
+                                <button class="chart-toggle-btn" data-period="24h" onclick="switchChartPeriod('24h')">24
+                                    Hours</button>
+                            </div>
                         </div>
                         <div class="chart-container">
                             <canvas id="activityChart"></canvas>
@@ -406,13 +419,40 @@
                                 </label>
                             </div>
                         </div>
+
+                        <div class="category-card" data-category="streaming">
+                            <div class="category-header">
+                                <span class="category-icon">📺</span>
+                                <h3>Streaming</h3>
+                            </div>
+                            <p>Netflix, YouTube, Twitch, etc.</p>
+                            <div class="category-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggleStreaming">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="custom-blocklist">
-                        <h3>Custom Blocklist</h3>
+                        <div class="blocklist-header">
+                            <h3>Custom Blocklist</h3>
+                            <div class="blocklist-actions">
+                                <button class="zas-btn zas-btn-ghost zas-btn-sm" onclick="exportBlocklist()">
+                                    <i data-lucide="download"></i> Export
+                                </button>
+                                <button class="zas-btn zas-btn-ghost zas-btn-sm"
+                                    onclick="document.getElementById('importBlocklistInput').click()">
+                                    <i data-lucide="upload"></i> Import
+                                </button>
+                                <input type="file" id="importBlocklistInput" accept=".json" style="display: none;"
+                                    onchange="importBlocklist(event)">
+                            </div>
+                        </div>
                         <div class="add-domain">
-                            <input type="text" id="customDomain" placeholder="example.com">
-                            <button class="btn btn-primary" id="addDomainBtn">Add Domain</button>
+                            <input type="text" id="customDomain" placeholder="example.com" class="zas-input">
+                            <button class="zas-btn zas-btn-primary" id="addDomainBtn">Add Domain</button>
                         </div>
                         <ul id="customDomainsList"></ul>
                     </div>

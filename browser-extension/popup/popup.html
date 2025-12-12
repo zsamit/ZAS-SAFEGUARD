@@ -91,10 +91,37 @@
       </button>
     </div>
 
+    <!-- Quick Link Scan -->
+    <div class="quick-scan-section">
+      <div class="quick-scan-header">
+        <span class="feature-icon">🔍</span>
+        <span class="feature-title">Quick Link Scan</span>
+      </div>
+      <div class="quick-scan-input">
+        <input type="url" id="quickScanUrl" placeholder="Paste URL to scan..." />
+        <button class="scan-btn" id="quickScanBtn">
+          <span id="scanBtnText">Scan</span>
+        </button>
+      </div>
+      <div class="quick-scan-result" id="quickScanResult" style="display: none;">
+        <span class="scan-status-icon" id="scanResultIcon">✓</span>
+        <span class="scan-status-text" id="scanResultText">Safe</span>
+      </div>
+    </div>
+
+    <!-- Daily Quote -->
+    <div class="quote-section" id="quoteSection">
+      <span class="quote-icon">💡</span>
+      <div class="quote-content">
+        <p class="quote-text" id="popupQuoteText">"The only way to do great work is to love what you do."</p>
+        <span class="quote-source" id="popupQuoteSource">— Motivational Quote</span>
+      </div>
+    </div>
+
     <!-- Footer -->
     <div class="footer-row">
       <span>Last sync: <span id="lastSync">Never</span></span>
-      <span>v1.2.0</span>
+      <span>v1.3.0</span>
     </div>
   </div>
 

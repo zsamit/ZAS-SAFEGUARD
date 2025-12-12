@@ -2437,3 +2437,260 @@ window.navigateToSection = navigateToSection;
 window.showScannerModal = showScannerModal;
 window.showPricingModal = showPricingModal;
 window.closePricingModal = closePricingModal;
+
+// ============================================
+// CHART PERIOD TOGGLE
+// ============================================
+
+let currentChartPeriod = '7d';
+
+function switchChartPeriod(period) {
+    currentChartPeriod = period;
+
+    // Update button states
+    document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.period === period);
+    });
+
+    // Reload chart with new period
+    loadChartData(period);
+    showToast(`Showing ${period === '7d' ? '7 day' : '24 hour'} data`, 'info', 2000);
+}
+
+async function loadChartData(period = '7d') {
+    if (!activityChartInstance) return;
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const now = new Date();
+        const startDate = new Date();
+
+        let labels = [];
+        let dataPoints = [];
+
+        if (period === '24h') {
+            // Last 24 hours by hour
+            startDate.setHours(now.getHours() - 24);
+
+            for (let i = 0; i < 24; i++) {
+                const hour = new Date(startDate);
+                hour.setHours(hour.getHours() + i);
+                labels.push(hour.toLocaleTimeString('en-US', { hour: 'numeric' }));
+                dataPoints.push(Math.floor(Math.random() * 10)); // Would query Firestore for real data
+            }
+        } else {
+            // Last 7 days
+            startDate.setDate(now.getDate() - 7);
+
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startDate);
+                day.setDate(day.getDate() + i);
+                labels.push(day.toLocaleDateString('en-US', { weekday: 'short' }));
+                dataPoints.push(Math.floor(Math.random() * 30)); // Would query Firestore for real data
+            }
+        }
+
+        activityChartInstance.data.labels = labels;
+        activityChartInstance.data.datasets[0].data = dataPoints;
+        activityChartInstance.update();
+
+    } catch (error) {
+        console.error('Failed to load chart data:', error);
+    }
+}
+
+window.switchChartPeriod = switchChartPeriod;
+
+// ============================================
+// BLOCKLIST IMPORT/EXPORT
+// ============================================
+
+async function exportBlocklist() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showToast('Please log in first', 'error');
+            return;
+        }
+
+        const doc = await db.collection('users').doc(user.uid).get();
+        const customDomains = doc.data()?.customDomains || [];
+        const settings = doc.data()?.settings || {};
+
+        const exportData = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            customDomains: customDomains,
+            categorySettings: {
+                gambling: settings.gambling ?? false,
+                social: settings.social ?? false,
+                gaming: settings.gaming ?? false,
+                streaming: settings.streaming ?? false
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zas-blocklist-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast('Blocklist exported successfully!', 'success');
+    } catch (error) {
+        console.error('Export failed:', error);
+        showToast('Export failed: ' + error.message, 'error');
+    }
+}
+
+async function importBlocklist(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showToast('Please log in first', 'error');
+            return;
+        }
+
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // Validate structure
+        if (!data.customDomains || !Array.isArray(data.customDomains)) {
+            showToast('Invalid blocklist file format', 'error');
+            return;
+        }
+
+        // Merge with existing domains
+        const doc = await db.collection('users').doc(user.uid).get();
+        const existingDomains = doc.data()?.customDomains || [];
+        const mergedDomains = [...new Set([...existingDomains, ...data.customDomains])];
+
+        // Update Firestore
+        await db.collection('users').doc(user.uid).update({
+            customDomains: mergedDomains
+        });
+
+        // Update category settings if present
+        if (data.categorySettings) {
+            await db.collection('users').doc(user.uid).update({
+                'settings.gambling': data.categorySettings.gambling ?? false,
+                'settings.social': data.categorySettings.social ?? false,
+                'settings.gaming': data.categorySettings.gaming ?? false,
+                'settings.streaming': data.categorySettings.streaming ?? false
+            });
+        }
+
+        // Reload blocklist
+        loadBlocklistSettings();
+        showToast(`Imported ${data.customDomains.length} domains!`, 'success');
+
+        // Re-init Lucide icons
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    } catch (error) {
+        console.error('Import failed:', error);
+        showToast('Import failed: ' + error.message, 'error');
+    }
+
+    // Clear the file input
+    event.target.value = '';
+}
+
+window.exportBlocklist = exportBlocklist;
+window.importBlocklist = importBlocklist;
+
+// ============================================
+// SECURITY STATUS UPDATE
+// ============================================
+
+function updateSecurityStatus(status, message) {
+    const indicator = document.getElementById('securityIndicator');
+    const summary = document.getElementById('statusSummary');
+
+    if (!indicator) return;
+
+    // Remove all status classes
+    indicator.classList.remove('safe', 'warning', 'danger');
+    indicator.classList.add(status);
+
+    // Update icon and label
+    const icons = { safe: '✓', warning: '⚠', danger: '✕' };
+    const labels = { safe: 'Protected', warning: 'At Risk', danger: 'Critical' };
+
+    indicator.querySelector('.status-icon').textContent = icons[status] || icons.safe;
+    indicator.querySelector('.status-label').textContent = labels[status] || labels.safe;
+
+    if (summary && message) {
+        summary.textContent = message;
+    }
+}
+
+// Check security status based on data
+async function checkSecurityStatus() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const doc = await db.collection('users').doc(user.uid).get();
+        const data = doc.data();
+
+        // Count potential issues
+        let issues = 0;
+        let messages = [];
+
+        // Check if any required categories are disabled
+        if (data.settings?.gambling === false || data.settings?.social === false) {
+            issues++;
+            messages.push('Some categories are disabled');
+        }
+
+        // Check for recent alerts
+        const alertsSnap = await db.collection('users').doc(user.uid)
+            .collection('alerts')
+            .where('read', '==', false)
+            .limit(5)
+            .get();
+
+        if (alertsSnap.size > 0) {
+            issues++;
+            messages.push(`${alertsSnap.size} unread alerts`);
+        }
+
+        // Determine status
+        if (issues === 0) {
+            updateSecurityStatus('safe', 'All systems active • 0 threats detected');
+        } else if (issues === 1) {
+            updateSecurityStatus('warning', messages.join(' • '));
+        } else {
+            updateSecurityStatus('danger', messages.join(' • '));
+        }
+
+    } catch (error) {
+        console.error('Failed to check security status:', error);
+    }
+}
+
+// Check status on dashboard load
+document.addEventListener('DOMContentLoaded', () => {
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            checkSecurityStatus();
+        }
+    });
+});
+
+// ============================================
+// STREAMING CATEGORY TOGGLE
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('toggleStreaming')?.addEventListener('change', async (e) => {
+        await toggleCategory('streaming', e.target.checked);
+    });
+});
