@@ -2694,3 +2694,96 @@ document.addEventListener('DOMContentLoaded', () => {
         await toggleCategory('streaming', e.target.checked);
     });
 });
+
+// ============================================
+// MOBILE BOTTOM NAVIGATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const bottomNavItems = document.querySelectorAll('.zas-bottom-nav-item');
+
+    bottomNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = item.dataset.section;
+
+            // Update active state
+            bottomNavItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Navigate to section
+            navigateTo(section);
+        });
+    });
+});
+
+// ============================================
+// STUDY MODE STREAK & ENCOURAGEMENT
+// ============================================
+
+const ENCOURAGEMENT_MESSAGES = [
+    { icon: '🔥', text: "You're on fire! Keep that streak going!" },
+    { icon: '💪', text: "Great focus today! You're doing amazing!" },
+    { icon: '🌟', text: "You're a study superstar!" },
+    { icon: '🚀', text: "Nothing can stop you when you're focused!" },
+    { icon: '🎯', text: "Crushing your goals one session at a time!" },
+    { icon: '🏆', text: "Champions are made through dedication like yours!" },
+    { icon: '✨', text: "Your future self will thank you for this!" },
+    { icon: '📈', text: "Your productivity is through the roof!" },
+];
+
+function getRandomEncouragement() {
+    return ENCOURAGEMENT_MESSAGES[Math.floor(Math.random() * ENCOURAGEMENT_MESSAGES.length)];
+}
+
+function updateEncouragement() {
+    const encouragement = getRandomEncouragement();
+    const iconEl = document.getElementById('encouragementIcon');
+    const textEl = document.getElementById('encouragementText');
+
+    if (iconEl) iconEl.textContent = encouragement.icon;
+    if (textEl) textEl.textContent = encouragement.text;
+}
+
+async function loadStudyStats() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const doc = await db.collection('users').doc(user.uid).get();
+        const data = doc.data();
+
+        // Get study stats
+        const studyStats = data.studyStats || {
+            streak: 0,
+            totalHours: 0,
+            sessionsCompleted: 0
+        };
+
+        // Update UI
+        const streakEl = document.getElementById('studyStreak');
+        const hoursEl = document.getElementById('studyTotalHours');
+        const sessionsEl = document.getElementById('studySessionsCompleted');
+
+        if (streakEl) streakEl.textContent = studyStats.streak || 0;
+        if (hoursEl) hoursEl.textContent = (studyStats.totalHours || 0) + 'h';
+        if (sessionsEl) sessionsEl.textContent = studyStats.sessionsCompleted || 0;
+
+        // Show encouragement based on streak
+        if (studyStats.streak > 0) {
+            updateEncouragement();
+        }
+
+    } catch (error) {
+        console.error('Failed to load study stats:', error);
+    }
+}
+
+// Load study stats when navigating to study mode
+document.addEventListener('DOMContentLoaded', () => {
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            loadStudyStats();
+        }
+    });
+});

@@ -110,7 +110,8 @@
         <!-- Mode Selection Modal (shown after first login) -->
         <div id="modeModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2>Welcome to ZAS Safeguard! 🛡️</h2>
+                <h2>Welcome to ZAS Safeguard! <img src="logo.png" alt="ZAS"
+                        style="width: 24px; height: 24px; vertical-align: middle; border-radius: 6px;"></h2>
                 <p>How will you use ZAS Safeguard?</p>
 
                 <div class="mode-options">
@@ -480,6 +481,32 @@
                     <p class="section-description">Lock social media until your exam is done. Once activated, it cannot
                         be disabled early!</p>
 
+                    <!-- Study Stats Cards -->
+                    <div class="zas-grid zas-grid-3" style="margin-bottom: 24px;">
+                        <div class="zas-card zas-stat-card">
+                            <div class="zas-stat-icon" style="background: var(--color-warning-bg);">🔥</div>
+                            <div class="zas-stat-value" id="studyStreak">0</div>
+                            <div class="zas-stat-label">Day Streak</div>
+                        </div>
+                        <div class="zas-card zas-stat-card">
+                            <div class="zas-stat-icon" style="background: var(--color-success-bg);">⏱️</div>
+                            <div class="zas-stat-value" id="studyTotalHours">0h</div>
+                            <div class="zas-stat-label">Total Study Time</div>
+                        </div>
+                        <div class="zas-card zas-stat-card">
+                            <div class="zas-stat-icon" style="background: var(--color-indigo-glow);">📚</div>
+                            <div class="zas-stat-value" id="studySessionsCompleted">0</div>
+                            <div class="zas-stat-label">Sessions Completed</div>
+                        </div>
+                    </div>
+
+                    <!-- Encouragement Message -->
+                    <div class="zas-card encouragement-card" id="encouragementCard" style="margin-bottom: 24px;">
+                        <span class="encouragement-icon" id="encouragementIcon">💪</span>
+                        <p class="encouragement-text" id="encouragementText">Start a study session to boost your focus!
+                        </p>
+                    </div>
+
                     <!-- Active Study Session -->
                     <div id="activeStudySession" class="study-active-banner" style="display: none;">
                         <div class="study-icon">🎓</div>
@@ -722,7 +749,8 @@
                     <!-- Scan Stats -->
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-icon">🛡️</div>
+                            <div class="stat-icon"><img src="logo.png" alt="ZAS"
+                                    style="width: 24px; height: 24px; border-radius: 4px;"></div>
                             <div class="stat-info">
                                 <span class="stat-value" id="urlScansTotal">0</span>
                                 <span class="stat-label">Total Scans</span>
@@ -746,7 +774,9 @@
 
                     <!-- Protection Settings -->
                     <div class="settings-group">
-                        <h3>🛡️ Protection Settings</h3>
+                        <h3><img src="logo.png" alt=""
+                                style="width: 20px; height: 20px; vertical-align: middle; border-radius: 4px;">
+                            Protection Settings</h3>
                         <div class="protection-toggles">
                             <div class="setting-item">
                                 <label>Block Phishing Sites</label>
@@ -1046,7 +1076,8 @@
                     <!-- Pro Monthly -->
                     <div class="pricing-card-4 featured" data-plan="pro_monthly">
                         <div class="plan-badge">🔥 Most Popular</div>
-                        <h3>🛡️ Pro</h3>
+                        <h3><img src="logo.png" alt=""
+                                style="width: 20px; height: 20px; vertical-align: middle; border-radius: 4px;"> Pro</h3>
                         <div class="plan-price">
                             <span class="currency">$</span>
                             <span class="amount">5.99</span>
@@ -1089,7 +1120,9 @@
                     <!-- Pro Yearly -->
                     <div class="pricing-card-4" data-plan="pro_yearly">
                         <div class="plan-badge best-value">💎 Best Value</div>
-                        <h3>🛡️ Pro Yearly</h3>
+                        <h3><img src="logo.png" alt=""
+                                style="width: 20px; height: 20px; vertical-align: middle; border-radius: 4px;"> Pro
+                            Yearly</h3>
                         <div class="plan-price">
                             <span class="currency">$</span>
                             <span class="amount">59.99</span>
@@ -1139,7 +1172,8 @@
                 <img src="logo.png" alt="ZAS Safeguard"
                     style="width: 80px; height: 80px; border-radius: 16px; box-shadow: 0 8px 30px rgba(51, 102, 255, 0.3);">
             </div>
-            <h2>Welcome to ZAS Safeguard! 🛡️</h2>
+            <h2>Welcome to ZAS Safeguard! <img src="logo.png" alt="ZAS"
+                    style="width: 24px; height: 24px; vertical-align: middle; border-radius: 6px;"></h2>
             <p class="tos-subtitle">Before you begin, please review and accept our terms.</p>
 
             <div class="tos-scroll-box">
@@ -1225,6 +1259,30 @@
 
     <!-- Toast Container -->
     <div class="zas-toast-container" id="toastContainer"></div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="zas-bottom-nav" id="mobileBottomNav">
+        <a href="#" class="zas-bottom-nav-item active" data-section="overview">
+            <i data-lucide="home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="zas-bottom-nav-item" data-section="devices">
+            <i data-lucide="monitor-smartphone"></i>
+            <span>Devices</span>
+        </a>
+        <a href="#" class="zas-bottom-nav-item" data-section="blocklist">
+            <i data-lucide="shield-off"></i>
+            <span>Block</span>
+        </a>
+        <a href="#" class="zas-bottom-nav-item" data-section="alerts">
+            <i data-lucide="bell"></i>
+            <span>Alerts</span>
+        </a>
+        <a href="#" class="zas-bottom-nav-item" data-section="settings">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
 
     <!-- Initialize Lucide Icons -->
     <script>

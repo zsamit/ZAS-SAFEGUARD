@@ -122,4 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dashboardBtn').addEventListener('click', openDashboard);
     document.getElementById('syncBtn').addEventListener('click', syncNow);
     document.getElementById('loginBtn').addEventListener('click', signIn);
+
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 });
