@@ -201,6 +201,141 @@ async function handleLogout() {
     }
 }
 
+// Password Reset
+async function handlePasswordReset() {
+    const email = prompt('Enter your email address to reset password:');
+    if (!email) return;
+
+    try {
+        await auth.sendPasswordResetEmail(email);
+        alert('✅ Password reset email sent! Check your inbox.');
+    } catch (error) {
+        alert('Failed to send reset email: ' + error.message);
+    }
+}
+
+// Delete Child Profile
+async function handleDeleteChild(childId) {
+    if (!currentUser) return;
+
+    const confirmed = confirm('Are you sure you want to delete this child profile?\n\nThis action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+        await db.collection('children').doc(childId).delete();
+        alert('✅ Child profile deleted.');
+        loadChildren();
+    } catch (error) {
+        alert('Failed to delete child: ' + error.message);
+    }
+}
+
+// Delete Account
+async function handleDeleteAccount() {
+    if (!currentUser) return;
+
+    const email = currentUser.email;
+    const confirmed = confirm(
+        '⚠️ DELETE ACCOUNT ⚠️\n\n' +
+        'This will permanently delete:\n' +
+        '• Your account and profile\n' +
+        '• All your settings and blocklists\n' +
+        '• All device connections\n' +
+        '• All subscription data\n\n' +
+        'This action CANNOT be undone.\n\n' +
+        'Type "DELETE" to confirm.'
+    );
+
+    if (!confirmed) return;
+
+    const confirmText = prompt('Type "DELETE" to confirm account deletion:');
+    if (confirmText !== 'DELETE') {
+        alert('Account deletion cancelled.');
+        return;
+    }
+
+    try {
+        // Delete user data from Firestore
+        await db.collection('users').doc(currentUser.uid).delete();
+
+        // Delete associated data
+        const collections = ['devices', 'children', 'study_sessions', 'blocked_creators', 'logs'];
+        for (const coll of collections) {
+            const query = await db.collection(coll)
+                .where('userId', '==', currentUser.uid)
+                .get();
+            const batch = db.batch();
+            query.docs.forEach(doc => batch.delete(doc.ref));
+            if (query.docs.length > 0) await batch.commit();
+        }
+
+        // Delete auth account
+        await currentUser.delete();
+
+        alert('✅ Account deleted successfully. Goodbye!');
+        window.location.href = '/safeguard/';
+
+    } catch (error) {
+        if (error.code === 'auth/requires-recent-login') {
+            alert('For security, please log out and log back in, then try again.');
+        } else {
+            alert('Failed to delete account: ' + error.message);
+        }
+    }
+}
+
+// Save Settings
+async function handleSaveSettings() {
+    if (!currentUser) return;
+
+    try {
+        const updates = {
+            'settings.quotesEnabled': document.getElementById('quotesEnabled')?.checked ?? true,
+        };
+
+        // Save owner settings if in owner mode
+        if (userProfile?.mode === 'owner') {
+            // Master key is saved separately via handleSetMasterKey
+        }
+
+        await db.collection('users').doc(currentUser.uid).update(updates);
+
+        // Send updated settings to extension
+        const extId = new URLSearchParams(window.location.search).get('ext') || 'zas-safeguard';
+        try {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage(extId, {
+                    type: 'SETTINGS_UPDATE',
+                    settings: {
+                        quotesEnabled: updates['settings.quotesEnabled']
+                    }
+                });
+            }
+        } catch (e) {
+            console.log('Could not send to extension:', e);
+        }
+
+        alert('✅ Settings saved successfully!');
+
+    } catch (error) {
+        alert('Failed to save settings: ' + error.message);
+    }
+}
+
+// Wire up event listeners for new functions
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        handlePasswordReset();
+    });
+    document.getElementById('deleteAccountBtn')?.addEventListener('click', handleDeleteAccount);
+    document.getElementById('saveQuoteSettingsBtn')?.addEventListener('click', handleSaveSettings);
+});
+
+// Make deleteChild available globally for onclick in HTML
+window.deleteChild = handleDeleteChild;
+
+
 // User Profile
 async function createUserProfile(user, data) {
     const mode = data.mode || null; // Mode selected after login
@@ -375,6 +510,11 @@ function showDashboard() {
         tab.classList.toggle('active', tab.dataset.mode === mode);
     });
 
+    // Show URL Scans only for Pro/Lifetime plans
+    const plan = userProfile?.subscription?.plan?.toLowerCase() || 'free';
+    const isPro = plan.includes('pro') || plan === 'lifetime';
+    document.getElementById('urlScansNav').style.display = isPro ? 'flex' : 'none';
+
     // Load initial data
     loadOverviewData();
 }
@@ -457,6 +597,138 @@ async function loadOverviewData() {
     } catch (error) {
         console.error('Error loading overview:', error);
     }
+
+    // Initialize the activity chart
+    initActivityChart();
+}
+
+// ===== ACTIVITY CHART =====
+let activityChartInstance = null;
+
+async function initActivityChart() {
+    const ctx = document.getElementById('activityChart');
+    if (!ctx) return;
+
+    // Destroy existing chart if any
+    if (activityChartInstance) {
+        activityChartInstance.destroy();
+    }
+
+    // Get last 7 days data
+    const labels = [];
+    const data = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+
+        // Get blocked count for this day
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        try {
+            const query = await db.collection('logs')
+                .where('userId', '==', currentUser.uid)
+                .where('action', '==', 'navigate_blocked')
+                .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(dayStart))
+                .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(dayEnd))
+                .get();
+            data.push(query.size);
+        } catch (e) {
+            // Show 0 if no data or query fails (real data only)
+            console.log('Chart query error:', e.message);
+            data.push(0);
+        }
+    }
+
+    // Theme-aware colors
+    const isDark = !document.documentElement.getAttribute('data-theme') ||
+        document.documentElement.getAttribute('data-theme') !== 'light';
+
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#8f9bb3' : '#64748b';
+
+    activityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sites Blocked',
+                data: data,
+                fill: true,
+                backgroundColor: (context) => {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return 'rgba(51, 102, 255, 0.1)';
+                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    gradient.addColorStop(0, 'rgba(51, 102, 255, 0.3)');
+                    gradient.addColorStop(1, 'rgba(51, 102, 255, 0.02)');
+                    return gradient;
+                },
+                borderColor: '#3366ff',
+                borderWidth: 3,
+                tension: 0.4,
+                pointBackgroundColor: '#3366ff',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#1a2138',
+                    titleColor: '#ffffff',
+                    bodyColor: '#8f9bb3',
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: {
+                            size: 12
+                        },
+                        stepSize: 5
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
 }
 
 async function loadDevices() {
@@ -581,7 +853,9 @@ async function loadChildren() {
                     <div class="icon">👤</div>
                     <h4>${child.name}</h4>
                     <p>Age: ${child.age || 'Not set'}</p>
-                    <button class="btn btn-secondary" onclick="editChild('${doc.id}')">Edit</button>
+                    <div class="card-actions" style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn btn-danger btn-sm" onclick="deleteChild('${doc.id}')" style="font-size: 12px; padding: 6px 12px;">Delete</button>
+                    </div>
                 </div>
             `;
         });
@@ -593,14 +867,70 @@ async function loadChildren() {
     }
 }
 
+// Handle Add Child button click
+async function handleAddChild() {
+    if (!currentUser) {
+        alert('Please login first');
+        return;
+    }
+
+    const name = prompt('Enter child\'s name:');
+    if (!name || !name.trim()) {
+        return;
+    }
+
+    const ageStr = prompt('Enter child\'s age (optional):');
+    const age = ageStr ? parseInt(ageStr) : null;
+
+    try {
+        await db.collection('children').add({
+            name: name.trim(),
+            age: age,
+            parentId: currentUser.uid,
+            parentUid: currentUser.uid, // Both for compatibility
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            settings: {
+                adultBlocking: true,
+                socialMediaBlocking: false,
+                screenTimeLimit: null
+            }
+        });
+
+        alert(`✅ Child "${name}" has been added!`);
+        loadChildren();
+
+    } catch (error) {
+        console.error('Error adding child:', error);
+        alert('Failed to add child: ' + error.message);
+    }
+}
+
+// Wire up addChildBtn event listener
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('addChildBtn')?.addEventListener('click', handleAddChild);
+});
+
 function loadSettings() {
     if (!currentUser || !userProfile) return;
 
     document.getElementById('settingsEmail').value = currentUser.email || '';
     document.getElementById('settingsName').value = currentUser.displayName || '';
-    document.getElementById('currentPlan').textContent =
-        (userProfile.subscription?.plan || 'Free').charAt(0).toUpperCase() +
-        (userProfile.subscription?.plan || 'free').slice(1);
+
+    // Display plan name properly
+    const planName = userProfile.subscription?.plan;
+    let displayPlan = 'Free Trial';
+    if (planName) {
+        const planLabels = {
+            'essential_monthly': 'Essential Monthly',
+            'pro_monthly': 'Pro Monthly',
+            'essential_yearly': 'Essential Yearly',
+            'pro_yearly': 'Pro Yearly',
+            'lifetime': 'Lifetime',
+            'free': 'Free Trial'
+        };
+        displayPlan = planLabels[planName.toLowerCase()] || planName.charAt(0).toUpperCase() + planName.slice(1);
+    }
+    document.getElementById('currentPlan').textContent = displayPlan;
 
     // Show owner settings only for owner mode
     const ownerSettings = document.getElementById('ownerSettings');
@@ -609,7 +939,120 @@ function loadSettings() {
     } else {
         ownerSettings.style.display = 'none';
     }
+
+    // Pro feature lock for AI Analyzer
+    const plan = userProfile.subscription?.plan?.toLowerCase() || '';
+    const status = userProfile.subscription?.status?.toLowerCase() || '';
+    const isPro = (plan.includes('pro') || plan === 'lifetime') &&
+        (status === 'active' || status === 'trialing');
+
+    const aiContent = document.getElementById('aiAnalyzerContent');
+    const aiUpgrade = document.getElementById('aiAnalyzerUpgrade');
+
+    if (isPro) {
+        aiContent.style.display = 'block';
+        aiUpgrade.style.display = 'none';
+        // Load AI toggle state
+        const aiEnabled = userProfile.settings?.aiAnalysisEnabled !== false;
+        document.getElementById('aiAnalysisEnabled').checked = aiEnabled;
+    } else {
+        aiContent.style.display = 'none';
+        aiUpgrade.style.display = 'block';
+    }
 }
+
+// AI Analyzer - Analyze URL
+async function handleAnalyzeUrl() {
+    const urlInput = document.getElementById('aiAnalyzeUrl');
+    const resultDiv = document.getElementById('aiAnalyzerResult');
+    const resultText = document.getElementById('aiResultText');
+    const btn = document.getElementById('analyzeUrlBtn');
+
+    const url = urlInput.value.trim();
+    if (!url) {
+        alert('Please enter a URL to analyze');
+        return;
+    }
+
+    // Validate URL
+    try {
+        new URL(url);
+    } catch (e) {
+        alert('Please enter a valid URL (including https://)');
+        return;
+    }
+
+    // Show loading
+    btn.disabled = true;
+    btn.textContent = '⏳ Analyzing...';
+    resultDiv.style.display = 'block';
+    resultText.innerHTML = '🔄 Analyzing content, please wait...';
+
+    try {
+        const classifyContent = firebase.functions().httpsCallable('classifyContent');
+        const result = await classifyContent({
+            url: url,
+            title: '',
+            content: ''
+        });
+
+        const data = result.data;
+
+        if (data.success) {
+            const classification = data.classification;
+            let resultHtml = '';
+
+            if (classification.isAdult) {
+                resultHtml = `<span style="color: #ef4444; font-weight: bold;">🚫 UNSAFE - Adult Content Detected</span>`;
+            } else if (classification.isHarmful) {
+                resultHtml = `<span style="color: #f59e0b; font-weight: bold;">⚠️ SUSPICIOUS - Potentially Harmful</span>`;
+            } else if (classification.isGambling) {
+                resultHtml = `<span style="color: #f59e0b; font-weight: bold;">⚠️ WARNING - Gambling Content</span>`;
+            } else {
+                resultHtml = `<span style="color: #22c55e; font-weight: bold;">✅ SAFE - No threats detected</span>`;
+            }
+
+            resultHtml += `<br><br>`;
+            resultHtml += `<strong>Categories:</strong> ${classification.categories?.join(', ') || 'None'}<br>`;
+            resultHtml += `<strong>Confidence:</strong> ${Math.round((classification.confidence || 0) * 100)}%<br>`;
+            resultHtml += `<strong>Method:</strong> ${data.method === 'ai' ? 'AI Analysis' : 'Keyword Analysis'}<br>`;
+
+            if (classification.reason) {
+                resultHtml += `<strong>Reason:</strong> ${classification.reason}`;
+            }
+
+            resultText.innerHTML = resultHtml;
+        } else {
+            // Handle errors gracefully
+            if (data.error === 'pro_required') {
+                resultText.innerHTML = `<span style="color: #f59e0b;">🔒 ${data.message}</span>`;
+            } else {
+                resultText.innerHTML = `<span style="color: #f59e0b;">⚠️ ${data.message}</span>`;
+            }
+        }
+    } catch (error) {
+        console.error('AI Analysis error:', error);
+        resultText.innerHTML = `<span style="color: #ef4444;">❌ AI Analyzer is temporarily unavailable. Please try again later.</span>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Analyze URL';
+    }
+}
+
+// Wire up AI Analyzer event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('analyzeUrlBtn')?.addEventListener('click', handleAnalyzeUrl);
+    document.getElementById('aiAnalysisEnabled')?.addEventListener('change', async (e) => {
+        if (!currentUser) return;
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                'settings.aiAnalysisEnabled': e.target.checked
+            });
+        } catch (error) {
+            console.error('Failed to update AI toggle:', error);
+        }
+    });
+});
 
 // Action Handlers
 async function handleAddDomain() {
@@ -665,6 +1108,22 @@ async function toggleCategory(category, enabled) {
         });
 
         await loadUserProfile();
+
+        // Send to extension for immediate effect
+        const extId = new URLSearchParams(window.location.search).get('ext') || 'zas-safeguard';
+        try {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage(extId, {
+                    type: 'CATEGORY_TOGGLE',
+                    category: category,
+                    enabled: enabled
+                }, (response) => {
+                    console.log('Category toggle sent to extension:', response);
+                });
+            }
+        } catch (e) {
+            console.log('Could not send to extension:', e);
+        }
 
     } catch (error) {
         alert('Failed to update category: ' + error.message);
@@ -894,6 +1353,25 @@ async function handleStartStudyMode() {
             updates[`settings.categories.${cat}.studyLocked`] = true;
         });
         await db.collection('users').doc(currentUser.uid).update(updates);
+
+        // Send to extension to activate blocking immediately
+        const extId = new URLSearchParams(window.location.search).get('ext') || 'zas-safeguard';
+        try {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage(extId, {
+                    type: 'STUDY_MODE_START',
+                    session: {
+                        name: name,
+                        endTime: endTime.toISOString(),
+                        blockCategories: blockCategories
+                    }
+                }, (response) => {
+                    console.log('Study mode sent to extension:', response);
+                });
+            }
+        } catch (e) {
+            console.log('Could not communicate with extension:', e);
+        }
 
         alert('🎓 Study Mode activated! Stay focused and good luck! 📚');
         loadStudyMode();
@@ -1473,24 +1951,50 @@ async function selectPlan(plan) {
         return;
     }
 
+    // Hide any previous error
+    const errorEl = document.getElementById('checkoutError');
+    if (errorEl) errorEl.style.display = 'none';
+
+    // Show loading state on button
+    const btn = document.querySelector(`[data-plan="${plan}"] button, #selectProMonthly, #selectProYearly`);
+    const originalText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+    }
+
     try {
         // Call Cloud Function to create Stripe checkout
         const createCheckout = firebase.functions().httpsCallable('createCheckoutSession');
 
         const result = await createCheckout({
-            plan: plan, // 'monthly' or 'yearly'
-            successUrl: window.location.origin + '/settings?payment=success',
-            cancelUrl: window.location.origin + '/settings?payment=cancelled'
+            plan: plan,
+            successUrl: window.location.origin + '/app/?payment=success',
+            cancelUrl: window.location.origin + '/app/?payment=cancelled',
+            origin: window.location.origin
         });
 
         if (result.data.sessionUrl) {
             window.location.href = result.data.sessionUrl;
         } else {
-            alert('Failed to start checkout');
+            throw new Error('No session URL returned');
         }
     } catch (error) {
         console.error('Checkout error:', error);
-        alert('Failed to start checkout: ' + error.message);
+
+        // Show error UI
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = `⚠️ ${error.message || 'Checkout failed. Please try again or contact support.'}`;
+        } else {
+            alert('Failed to start checkout: ' + error.message);
+        }
+    } finally {
+        // Reset button
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
     }
 }
 
@@ -1498,9 +2002,16 @@ async function selectPlan(plan) {
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('upgradeBtn')?.addEventListener('click', openPricingModal);
     document.getElementById('closePricingModal')?.addEventListener('click', closePricingModal);
-    document.getElementById('billingToggle')?.addEventListener('click', toggleBilling);
-    document.getElementById('selectMonthly')?.addEventListener('click', () => selectPlan('monthly'));
-    document.getElementById('selectYearly')?.addEventListener('click', () => selectPlan('yearly'));
+
+    // 4-plan buttons
+    document.getElementById('selectEssentialMonthly')?.addEventListener('click', () => selectPlan('essential_monthly'));
+    document.getElementById('selectProMonthly')?.addEventListener('click', () => selectPlan('pro_monthly'));
+    document.getElementById('selectEssentialYearly')?.addEventListener('click', () => selectPlan('essential_yearly'));
+    document.getElementById('selectProYearly')?.addEventListener('click', () => selectPlan('pro_yearly'));
+
+    // Legacy buttons (backwards compat)
+    document.getElementById('selectMonthly')?.addEventListener('click', () => selectPlan('pro_monthly'));
+    document.getElementById('selectYearly')?.addEventListener('click', () => selectPlan('pro_yearly'));
 
     // Close modal on background click
     document.getElementById('pricingModal')?.addEventListener('click', (e) => {

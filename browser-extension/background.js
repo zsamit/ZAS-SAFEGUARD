@@ -42,6 +42,33 @@ const DEFAULT_BLOCKLIST = [
     '*://*.vporn.com/*', '*://*.youjizz.com/*', '*://*.porntube.com/*',
 ];
 
+// Category-based blocklists for Study Mode
+const CATEGORY_BLOCKLISTS = {
+    social_media: [
+        '*://*.facebook.com/*', '*://*.instagram.com/*', '*://*.twitter.com/*',
+        '*://*.x.com/*', '*://*.tiktok.com/*', '*://*.snapchat.com/*',
+        '*://*.linkedin.com/*', '*://*.pinterest.com/*', '*://*.tumblr.com/*',
+        '*://*.whatsapp.com/*', '*://*.messenger.com/*', '*://*.telegram.org/*',
+        '*://*.discord.com/*', '*://*.discordapp.com/*', '*://*.threads.net/*',
+    ],
+    gaming: [
+        '*://*.twitch.tv/*', '*://*.steam.com/*', '*://*.steampowered.com/*',
+        '*://*.epicgames.com/*', '*://*.roblox.com/*', '*://*.minecraft.net/*',
+        '*://*.ea.com/*', '*://*.origin.com/*', '*://*.blizzard.com/*',
+        '*://*.battle.net/*', '*://*.ign.com/*', '*://*.gamespot.com/*',
+        '*://*.kotaku.com/*', '*://*.polygon.com/*', '*://*.gog.com/*',
+    ],
+    youtube: [
+        '*://*.youtube.com/*', '*://*.youtu.be/*', '*://*.youtube-nocookie.com/*',
+    ],
+    reddit: [
+        '*://*.reddit.com/*', '*://*.redd.it/*', '*://*.old.reddit.com/*',
+    ],
+};
+
+// Active study session data
+let activeStudySession = null;
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -53,18 +80,76 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === 'install') {
         // Generate device ID
         const deviceId = generateDeviceId();
-        await chrome.storage.local.set({ [CONFIG.DEVICE_ID_KEY]: deviceId });
+        await chrome.storage.local.set({
+            [CONFIG.DEVICE_ID_KEY]: deviceId,
+            tosAgreed: false,  // Require TOS agreement
+            planType: 'free'   // Default to free until they subscribe
+        });
 
         // Set up default blocking rules
         await updateBlockingRules(DEFAULT_BLOCKLIST);
 
-        // Open onboarding page
-        chrome.tabs.create({ url: 'popup/popup.html?onboarding=true' });
+        // Redirect to dashboard for TOS agreement
+        chrome.tabs.create({
+            url: 'https://zasgloballlc.com/safeguard/app/?install=true&ext=zas-safeguard'
+        });
     }
 
     // Set up periodic sync
     chrome.alarms.create('syncBlocklist', { periodInMinutes: CONFIG.SYNC_INTERVAL_MINUTES });
     chrome.alarms.create('heartbeat', { periodInMinutes: 1 });
+});
+
+// Listen for TOS agreement from landing page
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+    if (message.type === 'TOS_AGREED') {
+        chrome.storage.local.set({ tosAgreed: true });
+        sendResponse({ success: true });
+        console.log('TOS agreed by user');
+    }
+    if (message.type === 'PLAN_UPDATE') {
+        chrome.storage.local.set({ planType: message.plan });
+        sendResponse({ success: true });
+        console.log('Plan updated:', message.plan);
+    }
+    if (message.type === 'STUDY_MODE_START') {
+        console.log('[StudyMode] Received start message:', message.session);
+        // Save to local storage
+        chrome.storage.local.set({
+            activeStudySession: message.session,
+            studyBlockCategories: message.session.blockCategories
+        }).then(() => {
+            // Apply blocking immediately
+            updateBlockingWithCategories(message.session.blockCategories);
+            sendResponse({ success: true });
+        });
+    }
+    if (message.type === 'STUDY_MODE_STOP') {
+        console.log('[StudyMode] Received stop message');
+        chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']).then(() => {
+            updateBlockingRules(DEFAULT_BLOCKLIST);
+            sendResponse({ success: true });
+        });
+    }
+    if (message.type === 'CATEGORY_TOGGLE') {
+        console.log('[Categories] Toggle:', message.category, message.enabled);
+        // Store category settings
+        chrome.storage.local.get(['categorySettings']).then(result => {
+            const settings = result.categorySettings || {};
+            settings[message.category] = message.enabled;
+            chrome.storage.local.set({ categorySettings: settings });
+
+            // Update blocking based on new settings
+            applyCurrentCategorySettings();
+            sendResponse({ success: true });
+        });
+    }
+    if (message.type === 'SETTINGS_UPDATE') {
+        console.log('[Settings] Update:', message.settings);
+        chrome.storage.local.set({ userSettings: message.settings });
+        sendResponse({ success: true });
+    }
+    return true;
 });
 
 // Handle alarms
@@ -115,7 +200,24 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return;
     }
 
-    // Check URL safety
+    // Check if TOS is agreed
+    const { tosAgreed } = await chrome.storage.local.get('tosAgreed');
+    if (!tosAgreed) {
+        console.log('[ZAS] TOS not agreed, skipping URL scan');
+        return;
+    }
+
+    // Check if user has Pro plan for URL scanning
+    const { planType } = await chrome.storage.local.get('planType');
+    const isProPlan = ['pro_monthly', 'pro_yearly', 'pro', 'lifetime'].includes(planType);
+
+    if (!isProPlan) {
+        // Essential users don't get URL safety scanning
+        console.log('[ZAS] Essential plan - URL scanning is Pro feature');
+        return;
+    }
+
+    // Check URL safety (Pro feature)
     const scanResult = await scanUrlForThreats(url);
 
     if (scanResult.blocked) {
@@ -476,6 +578,106 @@ async function updateBlockingRules(blockedDomains) {
         return false;
     }
 }
+
+// ============================================
+// STUDY MODE BLOCKING
+// ============================================
+
+// Sync study mode from storage and apply blocking
+async function syncStudyMode() {
+    try {
+        const result = await chrome.storage.local.get(['activeStudySession', 'studyBlockCategories']);
+
+        if (result.activeStudySession && result.studyBlockCategories) {
+            const session = result.activeStudySession;
+            const endTime = new Date(session.endTime);
+            const now = new Date();
+
+            if (now < endTime) {
+                // Study mode is still active - apply category blocking
+                console.log('[StudyMode] Active session, blocking categories:', result.studyBlockCategories);
+                await updateBlockingWithCategories(result.studyBlockCategories);
+                return true;
+            } else {
+                // Session expired - clear and restore default blocking
+                console.log('[StudyMode] Session expired, clearing');
+                await chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']);
+                await updateBlockingRules(DEFAULT_BLOCKLIST);
+            }
+        }
+    } catch (error) {
+        console.error('[StudyMode] Sync error:', error);
+    }
+    return false;
+}
+
+// Update blocking rules with category-based blocking for study mode
+async function updateBlockingWithCategories(categories) {
+    try {
+        // Start with default adult blocklist (always active)
+        let allBlockedDomains = [...DEFAULT_BLOCKLIST];
+
+        // Add category-specific blocks
+        for (const category of categories) {
+            if (CATEGORY_BLOCKLISTS[category]) {
+                allBlockedDomains = allBlockedDomains.concat(CATEGORY_BLOCKLISTS[category]);
+            }
+        }
+
+        // Remove duplicates
+        allBlockedDomains = [...new Set(allBlockedDomains)];
+
+        console.log('[StudyMode] Blocking', allBlockedDomains.length, 'domains');
+        await updateBlockingRules(allBlockedDomains);
+
+        return true;
+    } catch (error) {
+        console.error('[StudyMode] Failed to apply category blocking:', error);
+        return false;
+    }
+}
+
+// Apply blocking based on current category settings (from dashboard toggles)
+async function applyCurrentCategorySettings() {
+    try {
+        const result = await chrome.storage.local.get(['categorySettings']);
+        const settings = result.categorySettings || {};
+
+        // Start with default blocklist (always active)
+        let allBlockedDomains = [...DEFAULT_BLOCKLIST];
+
+        // Add enabled category blocks
+        for (const [category, enabled] of Object.entries(settings)) {
+            if (enabled && CATEGORY_BLOCKLISTS[category]) {
+                allBlockedDomains = allBlockedDomains.concat(CATEGORY_BLOCKLISTS[category]);
+            }
+        }
+
+        // Remove duplicates
+        allBlockedDomains = [...new Set(allBlockedDomains)];
+
+        console.log('[Categories] Applying', allBlockedDomains.length, 'domains');
+        await updateBlockingRules(allBlockedDomains);
+
+    } catch (error) {
+        console.error('[Categories] Failed to apply settings:', error);
+    }
+}
+
+// Listen for study mode activation from dashboard
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local') {
+        if (changes.activeStudySession || changes.studyBlockCategories) {
+            console.log('[StudyMode] Settings changed, syncing...');
+            syncStudyMode();
+        }
+    }
+});
+
+// Check study mode on startup
+chrome.runtime.onStartup.addListener(() => {
+    syncStudyMode();
+});
 
 // ============================================
 // FIREBASE SYNC

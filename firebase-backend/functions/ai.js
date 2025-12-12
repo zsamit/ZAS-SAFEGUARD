@@ -23,63 +23,102 @@ const GAMBLING_KEYWORDS = [
 /**
  * Classify content for adult/harmful material
  * Uses OpenAI GPT-4 for advanced classification
+ * 
+ * REQUIREMENTS:
+ * - User must be logged in
+ * - User must have Pro subscription
+ * - User must have AI Analysis enabled in settings
  */
-exports.classifyContent = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
-    }
-
-    const { url, title, content } = data;
-    const uid = context.auth.uid;
-
-    try {
-        // Quick keyword check first
-        const textToCheck = `${url} ${title} ${content}`.toLowerCase();
-
-        let quickResult = {
-            isAdult: false,
-            isGambling: false,
-            categories: [],
-            confidence: 0,
-        };
-
-        // Check adult keywords
-        for (const keyword of ADULT_KEYWORDS) {
-            if (textToCheck.includes(keyword)) {
-                quickResult.isAdult = true;
-                quickResult.categories.push('adult');
-                quickResult.confidence = 0.9;
-                break;
-            }
+exports.classifyContent = functions
+    .runWith({ secrets: ['OPENAI_API_KEY'] })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
         }
 
-        // Check gambling keywords
-        for (const keyword of GAMBLING_KEYWORDS) {
-            if (textToCheck.includes(keyword)) {
-                quickResult.isGambling = true;
-                quickResult.categories.push('gambling');
-                quickResult.confidence = Math.max(quickResult.confidence, 0.8);
-                break;
-            }
-        }
+        const { url, title, content } = data;
+        const uid = context.auth.uid;
 
-        // If quick check found something, return immediately
-        if (quickResult.confidence > 0.8) {
-            return {
-                success: true,
-                classification: quickResult,
-                method: 'keyword',
+        try {
+            // Check 1: Verify Pro subscription
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) {
+                throw new functions.https.HttpsError('not-found', 'User profile not found');
+            }
+
+            const userData = userDoc.data();
+            const subscription = userData.subscription || {};
+            const plan = subscription.plan?.toLowerCase() || '';
+            const status = subscription.status?.toLowerCase() || '';
+
+            const isPro = (plan.includes('pro') || plan === 'lifetime') &&
+                (status === 'active' || status === 'trialing');
+
+            if (!isPro) {
+                return {
+                    success: false,
+                    error: 'pro_required',
+                    message: 'Upgrade to Pro to unlock AI Content Analyzer',
+                };
+            }
+
+            // Check 2: Verify AI Analysis is enabled in user settings
+            const aiEnabled = userData.settings?.aiAnalysisEnabled !== false; // Default true for Pro users
+            if (!aiEnabled) {
+                return {
+                    success: false,
+                    error: 'feature_disabled',
+                    message: 'AI Analysis is disabled in your settings',
+                };
+            }
+
+            // Quick keyword check first
+            const textToCheck = `${url} ${title} ${content}`.toLowerCase();
+
+            let quickResult = {
+                isAdult: false,
+                isGambling: false,
+                categories: [],
+                confidence: 0,
             };
-        }
 
-        // Use OpenAI for advanced classification
-        const openaiApiKey = process.env.OPENAI_API_KEY;
+            // Check adult keywords
+            for (const keyword of ADULT_KEYWORDS) {
+                if (textToCheck.includes(keyword)) {
+                    quickResult.isAdult = true;
+                    quickResult.categories.push('adult');
+                    quickResult.confidence = 0.9;
+                    break;
+                }
+            }
 
-        if (openaiApiKey) {
-            const OpenAI = require('openai');
-            const openai = new OpenAI({ apiKey: openaiApiKey });
+            // Check gambling keywords
+            for (const keyword of GAMBLING_KEYWORDS) {
+                if (textToCheck.includes(keyword)) {
+                    quickResult.isGambling = true;
+                    quickResult.categories.push('gambling');
+                    quickResult.confidence = Math.max(quickResult.confidence, 0.8);
+                    break;
+                }
+            }
 
-            const prompt = `Classify the following web content. Respond with JSON only.
+            // If quick check found something, return immediately
+            if (quickResult.confidence > 0.8) {
+                return {
+                    success: true,
+                    classification: quickResult,
+                    method: 'keyword',
+                };
+            }
+
+            // Use OpenAI for advanced classification
+            const openaiApiKey = process.env.OPENAI_API_KEY;
+
+            if (openaiApiKey) {
+                const OpenAI = require('openai');
+                const openai = new OpenAI({ apiKey: openaiApiKey });
+
+                const prompt = `Classify the following web content. Respond with JSON only.
 
 URL: ${url}
 Title: ${title}
@@ -88,50 +127,85 @@ Content snippet: ${content?.substring(0, 500)}
 Classify into categories: safe, adult, gambling, violence, drugs, social_media, gaming
 Return format: {"categories": ["category1"], "isAdult": boolean, "isHarmful": boolean, "confidence": 0.0-1.0, "reason": "brief explanation"}`;
 
-            try {
-                const completion = await openai.chat.completions.create({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a content classifier for a parental control system. Be strict about adult content detection. Respond only with valid JSON.',
-                        },
-                        { role: 'user', content: prompt },
-                    ],
-                    max_tokens: 200,
-                    temperature: 0.1,
+                try {
+                    const completion = await openai.chat.completions.create({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a content classifier for a parental control system. Be strict about adult content detection. Respond only with valid JSON.',
+                            },
+                            { role: 'user', content: prompt },
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.1,
+                    });
+
+                    const aiResponse = completion.choices[0].message.content;
+                    const classification = JSON.parse(aiResponse);
+
+                    return {
+                        success: true,
+                        classification,
+                        method: 'ai',
+                    };
+                } catch (aiError) {
+                    console.error('OpenAI classification error:', aiError);
+
+                    // Log error to Firestore for monitoring
+                    await db.collection('errorLogs').add({
+                        type: 'ai_classification_error',
+                        userId: uid,
+                        error: aiError.message,
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+
+                    // Return graceful failure - don't crash UI
+                    return {
+                        success: false,
+                        error: 'ai_temporarily_unavailable',
+                        message: 'AI Analyzer is temporarily unavailable. Please try again later.',
+                        classification: quickResult.confidence > 0 ? quickResult : null,
+                    };
+                }
+            } else {
+                // No API key - log and return graceful failure
+                await db.collection('errorLogs').add({
+                    type: 'ai_api_key_missing',
+                    userId: uid,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                const aiResponse = completion.choices[0].message.content;
-                const classification = JSON.parse(aiResponse);
-
                 return {
-                    success: true,
-                    classification,
-                    method: 'ai',
+                    success: false,
+                    error: 'ai_temporarily_unavailable',
+                    message: 'AI Analyzer is temporarily unavailable. Please try again later.',
                 };
-            } catch (aiError) {
-                console.error('OpenAI classification error:', aiError);
-                // Fall back to keyword result
             }
-        }
+        } catch (error) {
+            console.error('Classify content error:', error);
 
-        // Return keyword result or safe default
-        return {
-            success: true,
-            classification: quickResult.confidence > 0 ? quickResult : {
-                isAdult: false,
-                isGambling: false,
-                categories: ['unknown'],
-                confidence: 0.5,
-            },
-            method: 'keyword',
-        };
-    } catch (error) {
-        console.error('Classify content error:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to classify content');
-    }
-});
+            // Log error to Firestore
+            try {
+                await db.collection('errorLogs').add({
+                    type: 'ai_classification_error',
+                    userId: uid,
+                    error: error.message,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                });
+            } catch (logError) {
+                console.error('Failed to log error:', logError);
+            }
+
+            if (error instanceof functions.https.HttpsError) throw error;
+
+            return {
+                success: false,
+                error: 'ai_temporarily_unavailable',
+                message: 'AI Analyzer is temporarily unavailable. Please try again later.',
+            };
+        }
+    });
 
 /**
  * Generate risk score based on user behavior

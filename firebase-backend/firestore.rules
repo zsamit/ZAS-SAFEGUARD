@@ -65,10 +65,9 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       // Allow creating new user document with any fields
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && 
-        // Prevent modifying subscription directly (must go through functions)
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'subscription.status', 'subscription.plan']);
-      allow delete: if false; // Never delete users directly
+      allow update: if isOwner(userId);
+      // Allow users to delete their own account
+      allow delete: if isOwner(userId);
     }
 
     // ============================================
@@ -119,17 +118,15 @@ service cloud.firestore {
     // ============================================
     
     match /children/{childId} {
+      // Support both parentId and parentUid fields
       allow read: if isAuthenticated() && 
-        (resource.data.parentUid == request.auth.uid ||
-         resource.data.devices.hasAny([request.auth.token.deviceId]));
+        (resource.data.parentUid == request.auth.uid || resource.data.parentId == request.auth.uid);
       allow create: if isAuthenticated() && 
-        request.resource.data.parentUid == request.auth.uid &&
-        isFamilyMode();
+        (request.resource.data.parentUid == request.auth.uid || request.resource.data.parentId == request.auth.uid);
       allow update: if isAuthenticated() && 
-        resource.data.parentUid == request.auth.uid &&
-        // Child cannot modify parent settings
-        request.resource.data.parentUid == resource.data.parentUid;
-      allow delete: if false;
+        (resource.data.parentUid == request.auth.uid || resource.data.parentId == request.auth.uid);
+      allow delete: if isAuthenticated() && 
+        (resource.data.parentUid == request.auth.uid || resource.data.parentId == request.auth.uid);
     }
 
     // ============================================
@@ -172,6 +169,19 @@ service cloud.firestore {
     // STUDY SESSIONS
     // ============================================
     
+    // The app uses study_sessions collection
+    match /study_sessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Legacy path (if any)
     match /studySessions/{sessionId} {
       allow read: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
@@ -179,14 +189,38 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
-      allow delete: if false;
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // User study sessions subcollection
+    match /users/{userId}/studySessions/{sessionId} {
+      allow read, write: if isOwner(userId);
     }
 
     // ============================================
-    // CREATORS (blocked creators list)
+    // BLOCKED CREATORS
     // ============================================
     
+    // The app uses blocked_creators collection
+    match /blocked_creators/{creatorId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Legacy paths
     match /creators/{userId}/blocked/{creatorId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // User blocked creators subcollection
+    match /users/{userId}/blockedCreators/{creatorId} {
       allow read, write: if isOwner(userId);
     }
 

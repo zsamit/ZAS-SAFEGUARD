@@ -7,6 +7,7 @@
     <title>ZAS Safeguard - Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
         <!-- Auth Screen -->
         <div id="authScreen" class="screen" style="display: none;">
             <div class="auth-container">
-                <div class="logo">🛡️</div>
+                <div class="logo"><img src="logo.png" alt="ZAS Safeguard" style="width: 80px; height: 80px;"></div>
                 <h1>ZAS Safeguard</h1>
                 <p class="tagline">Your Digital Guardian</p>
 
@@ -48,15 +49,13 @@
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
                             Google
                         </button>
-                        <button type="button" class="btn btn-microsoft" id="microsoftSignIn">
-                            <svg viewBox="0 0 21 21" width="20" height="20">
-                                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                            </svg>
-                            Microsoft
-                        </button>
+                        <!-- Microsoft Sign-In hidden until configured
+                        <button type="button" class="btn btn-microsoft" id="microsoftSignIn">...</button>
+                        -->
+                    </div>
+
+                    <div class="forgot-password">
+                        <a href="#" id="forgotPasswordLink">Forgot your password?</a>
                     </div>
                 </form>
 
@@ -83,21 +82,13 @@
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
                             Google
                         </button>
-                        <button type="button" class="btn btn-microsoft" id="microsoftSignUp">
-                            <svg viewBox="0 0 21 21" width="20" height="20">
-                                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                            </svg>
-                            Microsoft
-                        </button>
+                        <!-- Microsoft Sign-Up hidden until configured -->
                     </div>
                 </form>
 
                 <div class="auth-footer">
-                    <a href="#">Terms of Service</a>
-                    <a href="#">Privacy Policy</a>
+                    <a href="../terms.html" target="_blank">Terms of Service</a>
+                    <a href="../privacy.html" target="_blank">Privacy Policy</a>
                 </div>
             </div>
         </div>
@@ -145,9 +136,11 @@
                     <li data-section="studymode">
                         <span class="icon">📚</span> Study Mode
                     </li>
+                    <!-- Creator Blocking hidden until content script implemented
                     <li data-section="creators">
                         <span class="icon">🎯</span> Block Creators
                     </li>
+                    -->
                     <li data-section="activity">
                         <span class="icon">📋</span> Activity
                     </li>
@@ -158,8 +151,9 @@
                         <span class="icon">🚨</span> Alerts
                         <span class="alert-badge" id="alertBadge" style="display: none;">0</span>
                     </li>
-                    <li data-section="urlscans">
+                    <li data-section="urlscans" id="urlScansNav" style="display: none;">
                         <span class="icon">🔍</span> URL Scans
+                        <span class="pro-badge">PRO</span>
                     </li>
                     <li data-section="settings">
                         <span class="icon">⚙️</span> Settings
@@ -184,34 +178,44 @@
                 <section id="overviewSection" class="section">
                     <h2>Dashboard Overview</h2>
 
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">🛡️</div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="statStatus">Active</span>
-                                <span class="stat-label">Protection Status</span>
-                            </div>
+                    <!-- Status Banner (like popup) -->
+                    <div class="status-banner">
+                        <div class="status-indicator">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Protected</span>
+                            <span class="status-check">✓</span>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">🚫</div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="statBlockedToday">0</span>
-                                <span class="stat-label">Blocked Today</span>
-                            </div>
+                        <p class="status-sub">All systems active</p>
+                    </div>
+
+                    <!-- Stats Grid (popup style) -->
+                    <div class="stats-grid-new">
+                        <div class="stat-card-new">
+                            <span class="stat-num" id="statBlockedToday">0</span>
+                            <span class="stat-label-new">Blocked Today</span>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">💻</div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="statDevices">0</span>
-                                <span class="stat-label">Connected Devices</span>
-                            </div>
+                        <div class="stat-card-new">
+                            <span class="stat-num" id="statBlockedTotal">0</span>
+                            <span class="stat-label-new">Total Blocked</span>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">📅</div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="statSubscription">Free</span>
-                                <span class="stat-label">Subscription</span>
-                            </div>
+                        <div class="stat-card-new">
+                            <span class="stat-num" id="statDevices">0</span>
+                            <span class="stat-label-new">Devices</span>
+                        </div>
+                        <div class="stat-card-new status-card-sub">
+                            <span class="stat-num" id="statSubscription">Free</span>
+                            <span class="stat-label-new">Plan</span>
+                        </div>
+                    </div>
+
+                    <!-- Activity Chart -->
+                    <div class="chart-section">
+                        <div class="chart-header">
+                            <h3>📊 Weekly Activity</h3>
+                            <span class="chart-subtitle">Sites blocked in the last 7 days</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="activityChart"></canvas>
                         </div>
                     </div>
 
@@ -768,6 +772,45 @@
                         </div>
                     </div>
 
+                    <!-- AI Content Analyzer Section (Pro Only) -->
+                    <div class="settings-group" id="aiAnalyzerSection">
+                        <h3>🤖 AI Content Analyzer <span class="pro-badge" id="aiProBadge">PRO</span></h3>
+                        <p class="setting-description">Use AI to analyze and classify web content for safety.</p>
+
+                        <div id="aiAnalyzerContent">
+                            <div class="setting-item">
+                                <label>Enable AI Analysis</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="aiAnalysisEnabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="ai-analyzer-form" style="margin-top: 16px;">
+                                <div class="form-group">
+                                    <label>URL to Analyze</label>
+                                    <input type="url" id="aiAnalyzeUrl" placeholder="https://example.com"
+                                        style="width: 100%;">
+                                </div>
+                                <button class="btn btn-primary" id="analyzeUrlBtn" style="margin-top: 8px;">
+                                    🔍 Analyze URL
+                                </button>
+                            </div>
+
+                            <div id="aiAnalyzerResult" style="margin-top: 16px; display: none;">
+                                <div class="analysis-result-box"
+                                    style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <p id="aiResultText"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="aiAnalyzerUpgrade" style="display: none;">
+                            <p style="color: var(--text-muted);">AI Content Analyzer is a Pro-only feature.</p>
+                            <button class="btn btn-primary" onclick="showPricingModal()">Upgrade to Pro</button>
+                        </div>
+                    </div>
+
                     <!-- Quotes & Messages Section -->
                     <div class="settings-group">
                         <h3>💬 Quotes & Messages</h3>
@@ -775,35 +818,18 @@
                             behavior.</p>
 
                         <div class="setting-item">
-                            <label>Show quotes on blocked pages</label>
+                            <label>Show motivational quotes on blocked pages</label>
                             <label class="switch">
                                 <input type="checkbox" id="quotesEnabled" checked>
                                 <span class="slider"></span>
                             </label>
                         </div>
+                        <p class="setting-hint" style="color: var(--text-muted); font-size: 13px; margin-top: -8px;">
+                            💡 Quotes are automatically selected based on your location. Islamic reminders are shown in
+                            Muslim-majority countries.
+                        </p>
 
-                        <div class="setting-item">
-                            <label for="quoteType">Quote style</label>
-                            <select id="quoteType">
-                                <option value="auto">🌍 Auto (based on country)</option>
-                                <option value="motivational">💪 Motivational / Productivity</option>
-                                <option value="islamic">🕌 Islamic reminders</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-item">
-                            <label for="countryCode">Your country code (for Auto mode)</label>
-                            <input type="text" id="countryCode" placeholder="US" maxlength="2"
-                                style="width: 80px; text-transform: uppercase;">
-                            <small style="color: var(--text-muted); margin-left: 8px;">e.g., US, PK, GB, SA</small>
-                        </div>
-
-                        <div class="quote-preview-section">
-                            <button class="btn btn-secondary" id="previewQuoteBtn">✨ Preview Random Quote</button>
-                            <div id="quotePreview" class="quote-preview-box"></div>
-                        </div>
-
-                        <button class="btn btn-primary" id="saveQuoteSettingsBtn">Save Quote Settings</button>
+                        <button class="btn btn-primary" id="saveQuoteSettingsBtn">Save Settings</button>
                     </div>
 
                     <div class="settings-group danger-zone">
@@ -814,74 +840,112 @@
             </main>
         </div>
 
-        <!-- Pricing Modal -->
         <div id="pricingModal" class="modal" style="display: none;">
             <div class="modal-content pricing-modal">
                 <button class="modal-close" id="closePricingModal">&times;</button>
-                <h2>Choose Your Plan</h2>
-                <p class="pricing-subtitle">Start your 7-day free trial, cancel anytime</p>
+                <h2>Upgrade Your Plan</h2>
+                <p class="pricing-subtitle">7-day free trial • Cancel anytime • Secure payment via Stripe</p>
 
-                <div class="pricing-toggle">
-                    <span class="toggle-label active" data-billing="monthly">Monthly</span>
-                    <div class="toggle-switch" id="billingToggle">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span class="toggle-label" data-billing="yearly">Yearly <span class="save-badge">Save
-                            17%</span></span>
-                </div>
-
-                <div class="pricing-cards">
-                    <div class="pricing-card monthly active" data-plan="monthly">
-                        <div class="plan-badge">Most Popular</div>
-                        <h3>Monthly</h3>
+                <!-- Monthly Plans -->
+                <h3 class="pricing-section-title">Monthly Plans</h3>
+                <div class="pricing-cards-4">
+                    <!-- Essential Monthly -->
+                    <div class="pricing-card-4" data-plan="essential">
+                        <h3>⚡ Essential</h3>
                         <div class="plan-price">
                             <span class="currency">$</span>
                             <span class="amount">2.99</span>
                             <span class="period">/month</span>
                         </div>
+                        <p class="plan-tagline">Content blocking</p>
                         <ul class="plan-features">
-                            <li>✅ All browsers protection</li>
-                            <li>✅ Unlimited devices</li>
-                            <li>✅ Parent alerts & notifications</li>
+                            <li>✅ Adult content blocking</li>
+                            <li>✅ Custom blocklists</li>
                             <li>✅ Study Mode</li>
-                            <li>✅ Activity dashboard</li>
-                            <li>✅ 🤖 AI-powered content detection</li>
+                            <li>✅ Dashboard access</li>
+                            <li>✅ 3 devices</li>
+                            <li>✅ Motivational quotes</li>
                         </ul>
-                        <button class="btn btn-primary" id="selectMonthly">Start Free Trial</button>
+                        <button class="btn btn-outline" id="selectEssentialMonthly">Start Free Trial</button>
                     </div>
 
-                    <div class="pricing-card yearly" data-plan="yearly">
-                        <div class="plan-badge best-value">Best Value</div>
-                        <h3>Yearly</h3>
+                    <!-- Pro Monthly -->
+                    <div class="pricing-card-4 featured" data-plan="pro_monthly">
+                        <div class="plan-badge">🔥 Most Popular</div>
+                        <h3>🛡️ Pro</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount">5.99</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <p class="plan-tagline">Full protection</p>
+                        <ul class="plan-features">
+                            <li>✅ Everything in Essential</li>
+                            <li>✅ <strong>URL Safety Scanner</strong></li>
+                            <li>✅ <strong>AI Content Analysis</strong></li>
+                            <li>✅ <strong>Phishing/Malware Blocking</strong></li>
+                            <li>✅ Google Safe Browsing API</li>
+                            <li>✅ Unlimited devices</li>
+                            <li>✅ Priority support</li>
+                        </ul>
+                        <button class="btn btn-primary" id="selectProMonthly">Start Free Trial</button>
+                    </div>
+                </div>
+
+                <!-- Yearly Plans -->
+                <h3 class="pricing-section-title success">💰 Save More with Yearly Plans</h3>
+                <div class="pricing-cards-4">
+                    <!-- Essential Yearly -->
+                    <div class="pricing-card-4" data-plan="essential_yearly">
+                        <h3>⚡ Essential Yearly</h3>
                         <div class="plan-price">
                             <span class="currency">$</span>
                             <span class="amount">29.99</span>
                             <span class="period">/year</span>
                         </div>
-                        <p class="plan-savings">That's just $2.49/month - 2 months FREE!</p>
+                        <p class="plan-tagline savings">$2.49/mo - Save 17%</p>
                         <ul class="plan-features">
-                            <li>✅ All browsers protection</li>
-                            <li>✅ Unlimited devices</li>
-                            <li>✅ Parent alerts & notifications</li>
-                            <li>✅ Study Mode</li>
-                            <li>✅ Activity dashboard</li>
-                            <li>✅ 🤖 AI-powered content detection</li>
-                            <li>✅ Priority support</li>
+                            <li>✅ All Essential features</li>
+                            <li>✅ <strong>2 months FREE</strong></li>
+                            <li>✅ Billed annually</li>
                         </ul>
-                        <button class="btn btn-primary" id="selectYearly">Start Free Trial</button>
+                        <button class="btn btn-outline" id="selectEssentialYearly">Start Free Trial</button>
+                    </div>
+
+                    <!-- Pro Yearly -->
+                    <div class="pricing-card-4" data-plan="pro_yearly">
+                        <div class="plan-badge best-value">💎 Best Value</div>
+                        <h3>🛡️ Pro Yearly</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount">59.99</span>
+                            <span class="period">/year</span>
+                        </div>
+                        <p class="plan-tagline savings">$4.99/mo - Save 17%</p>
+                        <ul class="plan-features">
+                            <li>✅ All Pro features</li>
+                            <li>✅ <strong>2 months FREE</strong></li>
+                            <li>✅ VIP support</li>
+                            <li>✅ Early access to features</li>
+                        </ul>
+                        <button class="btn btn-primary" id="selectProYearly">Best Value - Start Trial</button>
                     </div>
                 </div>
 
                 <p class="pricing-note">💳 No charge until your 7-day trial ends • Prices exclude applicable taxes</p>
 
                 <div class="promo-section">
-                    <button class="promo-toggle" id="promoToggle">Have a code?</button>
+                    <button class="promo-toggle" id="promoToggle">Have a promo code?</button>
                     <div class="promo-input-wrap" id="promoInputWrap" style="display: none;">
                         <input type="text" id="promoCodeInput" placeholder="Enter code" class="promo-input">
                         <button class="btn btn-secondary" id="applyPromoBtn">Apply</button>
                     </div>
                     <p class="promo-success" id="promoSuccess" style="display: none;">✅ Code applied! Enjoy lifetime
                         access.</p>
+                </div>
+
+                <div id="checkoutError" class="checkout-error" style="display: none;">
+                    ⚠️ Checkout failed. Please try again or contact support.
                 </div>
             </div>
         </div>
@@ -891,7 +955,99 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
     <script src="app.js"></script>
+
+    <!-- TOS Agreement Modal (shows on extension install) -->
+    <div id="tosModal" class="tos-modal" style="display: none;">
+        <div class="tos-modal-content">
+            <div class="tos-logo">
+                <img src="logo.png" alt="ZAS Safeguard"
+                    style="width: 80px; height: 80px; border-radius: 16px; box-shadow: 0 8px 30px rgba(51, 102, 255, 0.3);">
+            </div>
+            <h2>Welcome to ZAS Safeguard! 🛡️</h2>
+            <p class="tos-subtitle">Before you begin, please review and accept our terms.</p>
+
+            <div class="tos-scroll-box">
+                <h3>Terms of Service Summary</h3>
+                <ul>
+                    <li>✅ ZAS Safeguard blocks adult content and harmful websites</li>
+                    <li>✅ Your browsing data is processed locally and securely</li>
+                    <li>✅ We use SSL encryption for all data transfers</li>
+                    <li>✅ You can cancel your subscription anytime</li>
+                    <li>✅ We do NOT sell your data to third parties</li>
+                </ul>
+                <p><a href="../terms.html" target="_blank">Read full Terms of Service →</a></p>
+                <p><a href="../privacy.html" target="_blank">Read full Privacy Policy →</a></p>
+            </div>
+
+            <div class="tos-checkbox">
+                <input type="checkbox" id="tosAgreeCheckbox">
+                <label for="tosAgreeCheckbox">I have read and agree to the <a href="../terms.html" target="_blank">Terms
+                        of Service</a> and <a href="../privacy.html" target="_blank">Privacy Policy</a></label>
+            </div>
+
+            <div class="tos-buttons">
+                <button class="btn btn-outline-danger" id="tosDeclineBtn">Decline</button>
+                <button class="btn btn-primary" id="tosAcceptBtn" disabled>Accept & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if this is an extension install redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const isInstall = urlParams.get('install') === 'true';
+        const extId = urlParams.get('ext');
+
+        if (isInstall) {
+            document.getElementById('tosModal').style.display = 'flex';
+        }
+
+        // Enable accept button when checkbox is checked
+        document.getElementById('tosAgreeCheckbox')?.addEventListener('change', (e) => {
+            document.getElementById('tosAcceptBtn').disabled = !e.target.checked;
+        });
+
+        // Accept TOS
+        document.getElementById('tosAcceptBtn')?.addEventListener('click', () => {
+            // Try to communicate with extension
+            if (typeof chrome !== 'undefined' && chrome.runtime && extId) {
+                try {
+                    chrome.runtime.sendMessage(extId, { type: 'TOS_AGREED' }, (response) => {
+                        console.log('TOS agreement sent to extension:', response);
+                    });
+                } catch (e) {
+                    console.log('Could not communicate with extension:', e);
+                }
+            }
+
+            // Store in localStorage as backup
+            localStorage.setItem('zas_tos_agreed', 'true');
+            localStorage.setItem('zas_tos_date', new Date().toISOString());
+
+            // Hide modal
+            document.getElementById('tosModal').style.display = 'none';
+
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        });
+
+        // Decline TOS
+        document.getElementById('tosDeclineBtn')?.addEventListener('click', () => {
+            const confirmed = confirm(
+                'If you decline, ZAS Safeguard will not be able to protect you.\n\n' +
+                'The extension will remain disabled until you accept the Terms of Service.\n\n' +
+                'Are you sure you want to decline?'
+            );
+
+            if (confirmed) {
+                alert('You have declined the Terms of Service. The extension will remain inactive.\n\n' +
+                    'You can accept the terms anytime by clicking the extension icon.');
+                document.getElementById('tosModal').style.display = 'none';
+            }
+        });
+    </script>
 </body>
 
 </html>

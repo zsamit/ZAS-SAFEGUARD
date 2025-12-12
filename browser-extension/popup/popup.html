@@ -1,103 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ZAS Safeguard</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <div class="logo">🛡️</div>
-      <h1>ZAS Safeguard</h1>
-      <p class="tagline">Your Digital Guardian</p>
-    </div>
-
-    <!-- Status Section -->
-    <div class="status-section">
-      <div class="status-indicator active" id="statusIndicator">
-        <span class="status-dot"></span>
-        <span class="status-text">Protection Active</span>
+      <div class="logo-area">
+        <div class="logo-icon">
+          <img src="../icons/icon48.png" alt="ZAS" style="width: 32px; height: 32px; border-radius: 6px;">
+        </div>
+        <div class="brand-text">
+          <h1>ZAS Safeguard</h1>
+          <p>Your Digital Guardian</p>
+        </div>
       </div>
-      <div class="sync-info" id="syncInfo">
-        Last synced: <span id="lastSync">Never</span>
-      </div>
-    </div>
-
-    <!-- Login Section (shown when not authenticated) -->
-    <div class="login-section" id="loginSection" style="display: none;">
-      <p>Sign in to sync your protection across devices</p>
-      <button class="btn btn-primary" id="loginBtn">
-        Sign In with Google
+      <button class="theme-btn" id="themeToggle">
+        <span id="themeIcon">🌙</span>
       </button>
     </div>
 
-    <!-- User Section (shown when authenticated) -->
-    <div class="user-section" id="userSection" style="display: none;">
-      <div class="user-info">
-        <img id="userAvatar" class="avatar" src="" alt="User">
-        <div class="user-details">
-          <span class="user-name" id="userName">User</span>
-          <span class="user-mode" id="userMode">Family Mode</span>
-        </div>
+    <!-- Status Card -->
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot"></span>
+        <span class="status-text">Protected</span>
+        <span class="status-check">✓</span>
       </div>
+      <p class="status-sub">All systems active</p>
     </div>
 
-    <!-- Stats Section -->
-    <div class="stats-section">
-      <div class="stat">
-        <span class="stat-value" id="blockedToday">0</span>
+    <!-- Stats Grid -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <span class="stat-num" id="blockedToday">0</span>
         <span class="stat-label">Blocked Today</span>
       </div>
-      <div class="stat">
-        <span class="stat-value" id="blockedTotal">0</span>
+      <div class="stat-box">
+        <span class="stat-num" id="blockedTotal">0</span>
         <span class="stat-label">Total Blocked</span>
       </div>
     </div>
 
-    <!-- Mode Indicator -->
-    <div class="mode-section" id="modeSection">
-      <div class="mode-badge" id="modeBadge">
-        <span class="mode-icon">👨‍👩‍👧</span>
-        <span class="mode-name">Family Mode</span>
+    <!-- Study Mode -->
+    <div class="feature-row">
+      <div class="feature-left">
+        <span class="feature-icon">📚</span>
+        <div class="feature-text">
+          <span class="feature-title">Study Mode</span>
+          <span class="feature-desc">Block all distractions</span>
+        </div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="studyModeToggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- User Info -->
+    <div class="user-row" id="userSection" style="display: none;">
+      <div class="user-avatar" id="userAvatarWrap">
+        <img id="userAvatar" src="" alt="">
+      </div>
+      <div class="user-info">
+        <span class="user-name" id="userName">User</span>
+        <span class="user-plan" id="userPlan">Essential Plan</span>
       </div>
     </div>
 
-    <!-- Owner Mode Unlock Section -->
-    <div class="unlock-section" id="unlockSection" style="display: none;">
-      <div class="unlock-status" id="unlockStatus">
-        <div class="cooldown-timer" id="cooldownTimer" style="display: none;">
-          <span class="timer-value" id="timerValue">30:00</span>
-          <span class="timer-label">Cooldown Remaining</span>
-        </div>
-        <div class="anti-temptation" id="antiTemptation" style="display: none;">
-          <p id="temptationMessage"></p>
-        </div>
-      </div>
-      <button class="btn btn-danger" id="unlockBtn">
-        Request Temporary Unlock
-      </button>
+    <!-- Login Button -->
+    <div class="login-row" id="loginSection" style="display: none;">
+      <button class="login-btn" id="loginBtn">Sign In to Sync</button>
     </div>
 
-    <!-- Actions -->
-    <div class="actions-section">
-      <button class="btn btn-secondary" id="syncBtn">
-        🔄 Sync Now
+    <!-- Action Buttons -->
+    <div class="actions-row">
+      <button class="action-box" id="dashboardBtn">
+        <span class="action-icon">📊</span>
+        <span class="action-label">Dashboard</span>
       </button>
-      <button class="btn btn-secondary" id="settingsBtn">
-        ⚙️ Settings
+      <button class="action-box" id="syncBtn">
+        <span class="action-icon">🔄</span>
+        <span class="action-label">Sync Now</span>
       </button>
     </div>
 
     <!-- Footer -->
-    <div class="footer">
-      <span class="device-id">Device: <span id="deviceId">Loading...</span></span>
-      <span class="version">v1.0.0</span>
+    <div class="footer-row">
+      <span>Last sync: <span id="lastSync">Never</span></span>
+      <span>v1.2.0</span>
     </div>
   </div>
 
   <script src="popup.js"></script>
 </body>
+
 </html>

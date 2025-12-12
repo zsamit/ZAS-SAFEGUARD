@@ -17,109 +17,150 @@ const REGION_TO_TIER = {
     'EG': 'egy',
     'BD': 'bgd',
 };
+/**
+ * Stripe Price IDs - Update these with your actual Stripe price IDs
+ */
+const STRIPE_PRICE_IDS = {
+    essential_monthly: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || 'price_essential_monthly',
+    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
+    essential_yearly: process.env.STRIPE_PRICE_ESSENTIAL_YEARLY || 'price_essential_yearly',
+    pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
+};
+
+const VALID_PLANS = ['essential_monthly', 'pro_monthly', 'essential_yearly', 'pro_yearly', 'monthly', 'yearly'];
 
 /**
- * Create Stripe checkout session with regional pricing
+ * Create Stripe checkout session
  */
-exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
-    }
-
-    const uid = context.auth.uid;
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-    try {
-        // Get user data and fraud score
-        const userDoc = await db.doc(`users/${uid}`).get();
-        const userData = userDoc.data();
-
-        // Calculate fraud score and get pricing
-        const fraudDoc = await db.doc(`fraud_scores/${uid}`).get();
-        const fraudScore = fraudDoc.exists ? fraudDoc.data().score : 0;
-
-        // Determine pricing tier
-        let priceTier = userData.subscription?.price_tier || 'usa';
-
-        if (fraudScore >= 4) {
-            priceTier = 'usa'; // Force US pricing for high fraud
+exports.createCheckoutSession = functions
+    .runWith({
+        memory: '512MB',
+        timeoutSeconds: 60,
+        secrets: ['STRIPE_SECRET_KEY']
+    })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
         }
 
-        // Get price from regional pricing
-        const pricingDoc = await db.doc(`region_pricing/${priceTier}`).get();
-        const pricing = pricingDoc.data();
+        const uid = context.auth.uid;
+        const { plan, successUrl, cancelUrl } = data;
 
-        if (!pricing || !pricing.stripe_price_id) {
-            throw new functions.https.HttpsError('not-found', 'Pricing not configured');
+        // Validate plan
+        if (!plan || !VALID_PLANS.includes(plan)) {
+            throw new functions.https.HttpsError('invalid-argument', 'Invalid plan selected');
         }
 
-        // Check trial eligibility
-        const trialEligible = await checkTrialEligibilityInternal(uid);
+        // Normalize legacy plan names
+        let normalizedPlan = plan;
+        if (plan === 'monthly') normalizedPlan = 'pro_monthly';
+        if (plan === 'yearly') normalizedPlan = 'pro_yearly';
 
-        // Get or create Stripe customer
-        let stripeCustomerId = userData.subscription?.stripe_customer_id;
-
-        if (!stripeCustomerId) {
-            const customer = await stripe.customers.create({
-                email: userData.email,
-                metadata: { firebaseUid: uid },
-            });
-            stripeCustomerId = customer.id;
-
-            await db.doc(`users/${uid}`).update({
-                'subscription.stripe_customer_id': stripeCustomerId,
-            });
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new functions.https.HttpsError('failed-precondition', 'Stripe secret key not configured. Please set STRIPE_SECRET_KEY.');
         }
 
-        // Create checkout session with automatic tax
-        const sessionParams = {
-            customer: stripeCustomerId,
-            payment_method_types: ['card'],
-            line_items: [{
-                price: pricing.stripe_price_id,
-                quantity: 1,
-            }],
-            mode: 'subscription',
-            success_url: `${data.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: data.cancelUrl,
-            // Enable automatic tax collection
-            automatic_tax: {
-                enabled: true,
-            },
-            // Collect billing address for tax calculation
-            customer_update: {
-                address: 'auto',
-            },
-            tax_id_collection: {
-                enabled: true,
-            },
-            metadata: {
-                userId: uid,
-                priceTier: priceTier,
-            },
-        };
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-        // Add trial if eligible
-        if (trialEligible.eligible) {
-            sessionParams.subscription_data = {
-                trial_period_days: 7,
-                metadata: { userId: uid },
+        try {
+            // Get user data
+            const userDoc = await db.doc(`users/${uid}`).get();
+            const userData = userDoc.exists ? userDoc.data() : {};
+
+            // Get price ID - first try from Firestore config, then env vars
+            let priceId;
+            const pricingDoc = await db.doc('config/stripe_prices').get();
+            if (pricingDoc.exists && pricingDoc.data()[normalizedPlan]) {
+                priceId = pricingDoc.data()[normalizedPlan];
+            } else {
+                priceId = STRIPE_PRICE_IDS[normalizedPlan];
+            }
+
+            // Check if price ID is a placeholder (not configured)
+            const isPlaceholder = !priceId ||
+                priceId.includes('REPLACE') ||
+                priceId === 'price_essential_monthly' ||
+                priceId === 'price_pro_monthly' ||
+                priceId === 'price_essential_yearly' ||
+                priceId === 'price_pro_yearly';
+
+            if (isPlaceholder) {
+                console.error('Stripe price not configured. Plan:', normalizedPlan, 'PriceId:', priceId);
+                throw new functions.https.HttpsError(
+                    'failed-precondition',
+                    'Stripe price not configured. Please set up Stripe price IDs in Firebase config or environment.'
+                );
+            }
+
+            // Check trial eligibility
+            const trialEligible = await checkTrialEligibilityInternal(uid);
+
+            // Get or create Stripe customer
+            let stripeCustomerId = userData.subscription?.stripe_customer_id;
+
+            if (!stripeCustomerId) {
+                const customer = await stripe.customers.create({
+                    email: userData.email || context.auth.token?.email,
+                    metadata: { firebaseUid: uid },
+                });
+                stripeCustomerId = customer.id;
+
+                await db.doc(`users/${uid}`).update({
+                    'subscription.stripe_customer_id': stripeCustomerId,
+                });
+            }
+
+            // Create checkout session
+            const sessionParams = {
+                customer: stripeCustomerId,
+                payment_method_types: ['card'],
+                line_items: [{
+                    price: priceId,
+                    quantity: 1,
+                }],
+                mode: 'subscription',
+                success_url: successUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=success`,
+                cancel_url: cancelUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=cancelled`,
+                automatic_tax: {
+                    enabled: true,
+                },
+                customer_update: {
+                    address: 'auto',
+                    name: 'auto',
+                },
+                tax_id_collection: {
+                    enabled: true,
+                },
+                metadata: {
+                    userId: uid,
+                    plan: normalizedPlan,
+                },
             };
+
+            // Add trial if eligible
+            if (trialEligible.eligible) {
+                sessionParams.subscription_data = {
+                    trial_period_days: 7,
+                    metadata: { userId: uid, plan: normalizedPlan },
+                };
+            }
+
+            const session = await stripe.checkout.sessions.create(sessionParams);
+
+            return {
+                success: true,
+                sessionId: session.id,
+                sessionUrl: session.url,
+                trialEligible: trialEligible.eligible,
+            };
+        } catch (error) {
+            console.error('Checkout session error:', error);
+            if (error instanceof functions.https.HttpsError) {
+                throw error;
+            }
+            throw new functions.https.HttpsError('internal', `Checkout failed: ${error.message}`);
         }
-
-        const session = await stripe.checkout.sessions.create(sessionParams);
-
-        return {
-            success: true,
-            sessionId: session.id,
-            sessionUrl: session.url,
-            trialEligible: trialEligible.eligible,
-        };
-    } catch (error) {
-        console.error('Checkout session error:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to create checkout session');
-    }
-});
+    });
 
 /**
  * Stripe webhook handler
