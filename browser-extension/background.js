@@ -940,8 +940,85 @@ async function handleMessage(message, sender) {
             await logTamperAttempt('dev_tools_opened');
             return { logged: true };
 
+        case 'ANALYZE_CONTENT_FOR_ADULT':
+            return await analyzeContentForAdult(message.data);
+
+        case 'AI_CONTENT_BLOCKED':
+            await logAIBlock(message.url, message.classification, message.confidence);
+            return { logged: true };
+
+        case 'CONTENT_BLOCKED':
+            await logContentBlock(message.url, message.reason);
+            return { logged: true };
+
+        case 'PING':
+            return { pong: true };
+
         default:
             return { error: 'Unknown message type' };
+    }
+}
+
+// AI Content Analysis for Adult Detection
+async function analyzeContentForAdult(pageData) {
+    try {
+        const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY]);
+        const token = storage[CONFIG.USER_TOKEN_KEY];
+
+        if (!token) {
+            return { blocked: false, reason: 'not_logged_in' };
+        }
+
+        // Call the Firebase Cloud Function
+        const response = await fetch(`${CONFIG.FIREBASE_FUNCTIONS_URL}/analyzeContentForAdult`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ data: pageData })
+        });
+
+        if (!response.ok) {
+            console.log('[ZAS] AI analysis request failed:', response.status);
+            return { blocked: false, reason: 'request_failed' };
+        }
+
+        const result = await response.json();
+        return result.result || result;
+
+    } catch (error) {
+        console.error('[ZAS] AI analysis error:', error);
+        return { blocked: false, error: error.message };
+    }
+}
+
+async function logAIBlock(url, classification, confidence) {
+    try {
+        const storage = await chrome.storage.local.get(['stats']);
+        const stats = storage.stats || { blockedToday: 0, blockedTotal: 0 };
+        stats.blockedToday++;
+        stats.blockedTotal++;
+        stats.lastAIBlock = { url, classification, confidence, timestamp: Date.now() };
+        await chrome.storage.local.set({ stats });
+
+        console.log('[ZAS] AI blocked:', url, classification, confidence);
+    } catch (error) {
+        console.error('[ZAS] Failed to log AI block:', error);
+    }
+}
+
+async function logContentBlock(url, reason) {
+    try {
+        const storage = await chrome.storage.local.get(['stats']);
+        const stats = storage.stats || { blockedToday: 0, blockedTotal: 0 };
+        stats.blockedToday++;
+        stats.blockedTotal++;
+        await chrome.storage.local.set({ stats });
+
+        console.log('[ZAS] Content blocked:', url, reason);
+    } catch (error) {
+        console.error('[ZAS] Failed to log block:', error);
     }
 }
 

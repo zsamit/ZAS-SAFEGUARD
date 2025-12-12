@@ -458,3 +458,144 @@ exports.generateWeeklyReport = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'Failed to generate report');
     }
 });
+
+/**
+ * Analyze Content for Adult Material
+ * Real-time AI analysis of page content to detect adult/NSFW content
+ * 
+ * Called by browser extension content script
+ */
+exports.analyzeContentForAdult = functions
+    .runWith({ secrets: ['OPENAI_API_KEY'], timeoutSeconds: 30 })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const { title, text, url } = data;
+        const uid = context.auth.uid;
+
+        try {
+            // Check subscription status
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) {
+                return { blocked: false, reason: 'user_not_found' };
+            }
+
+            const userData = userDoc.data();
+            const subscription = userData.subscription || {};
+            const plan = subscription.plan?.toLowerCase() || '';
+            const status = subscription.status?.toLowerCase() || '';
+
+            const isPro = (plan.includes('pro') || plan === 'lifetime') &&
+                (status === 'active' || status === 'trialing');
+
+            if (!isPro) {
+                return { blocked: false, reason: 'pro_required' };
+            }
+
+            // Quick keyword check first (fast path)
+            const textToCheck = `${title} ${url} ${text?.substring(0, 500)}`.toLowerCase();
+
+            const QUICK_ADULT_KEYWORDS = [
+                'porn', 'xxx', 'pornhub', 'xvideos', 'xhamster', 'redtube',
+                'youporn', 'brazzers', 'onlyfans.com/creator', 'cam4',
+                'chaturbate', 'stripchat', 'livejasmin', 'bongacams'
+            ];
+
+            for (const keyword of QUICK_ADULT_KEYWORDS) {
+                if (textToCheck.includes(keyword)) {
+                    // Log the block
+                    await db.collection('users').doc(uid).collection('blocks').add({
+                        url: url,
+                        reason: 'adult_keyword_match',
+                        keyword: keyword,
+                        timestamp: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    return {
+                        blocked: true,
+                        classification: 'ADULT',
+                        confidence: 95,
+                        reason: 'Known adult content site'
+                    };
+                }
+            }
+
+            // Use OpenAI for advanced classification
+            const openaiApiKey = process.env.OPENAI_API_KEY;
+            if (!openaiApiKey) {
+                return { blocked: false, reason: 'ai_unavailable' };
+            }
+
+            const OpenAI = require('openai');
+            const openai = new OpenAI({ apiKey: openaiApiKey });
+
+            // Truncate text to save tokens
+            const truncatedText = text?.substring(0, 2000) || '';
+
+            const prompt = `Analyze this webpage content and classify it.
+
+Title: ${title}
+URL: ${url}
+Content: ${truncatedText}
+
+Classify as ONE of:
+- SAFE: Normal, appropriate content
+- ADULT: Pornography, explicit sexual content, NSFW material
+- INAPPROPRIATE: Violence, drugs, gambling, self-harm content
+
+Respond with ONLY the classification word and a confidence percentage.
+Example: "ADULT 95%" or "SAFE 90%"`;
+
+            const response = await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a content classifier for a parental control system. Be strict about adult content detection. Respond with ONLY the classification and confidence percentage.'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 20,
+                temperature: 0
+            });
+
+            const result = response.choices[0].message.content.trim();
+            const parts = result.split(' ');
+            const classification = parts[0].toUpperCase();
+            const confidence = parseInt(parts[1]) || 80;
+
+            const isBlocked = classification === 'ADULT';
+            const isFlagged = classification === 'INAPPROPRIATE';
+
+            // Log the result
+            if (isBlocked || isFlagged) {
+                await db.collection('users').doc(uid).collection('blocks').add({
+                    url: url,
+                    title: title,
+                    classification: classification,
+                    confidence: confidence,
+                    method: 'ai',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            return {
+                blocked: isBlocked,
+                flagged: isFlagged,
+                classification: classification,
+                confidence: confidence,
+                reason: isBlocked ? 'AI detected adult content' : null
+            };
+
+        } catch (error) {
+            console.error('Analyze content error:', error);
+            // Don't block on error - fail open
+            return {
+                blocked: false,
+                error: error.message,
+                reason: 'analysis_failed'
+            };
+        }
+    });

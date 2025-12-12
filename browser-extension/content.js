@@ -176,14 +176,14 @@
         <div style="
           width: 80px;
           height: 80px;
-          background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+          background: linear-gradient(135deg, #4C5EFF 0%, #6366f1 100%);
           border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 24px;
-          font-size: 40px;
-        ">🛡️</div>
+          overflow: hidden;
+        "><img src="${chrome.runtime.getURL('icons/icon128.png')}" alt="ZAS" style="width: 60px; height: 60px;"></div>
         
         <h1 style="
           font-size: 28px;
@@ -281,5 +281,78 @@
             console.warn('ZAS Safeguard: Extension communication lost');
         });
     }, 30000);
+
+    // ============================================
+    // AI CONTENT ANALYSIS (Pro Feature)
+    // ============================================
+
+    async function analyzePageForAdultContent() {
+        try {
+            // Check if user has Pro plan
+            const storage = await chrome.storage.local.get(['planType', 'aiAnalysisEnabled']);
+
+            const planType = storage.planType || '';
+            if (!['pro_monthly', 'pro_yearly', 'pro', 'lifetime'].includes(planType.toLowerCase())) {
+                return; // Not a Pro user
+            }
+
+            // Check if AI analysis is enabled
+            if (storage.aiAnalysisEnabled === false) {
+                return; // AI analysis disabled in settings
+            }
+
+            // Don't analyze extension pages or already analyzed pages
+            if (window.location.href.startsWith('chrome-extension://')) return;
+            if (window.location.href.startsWith('chrome://')) return;
+
+            // Check if already analyzed (use sessionStorage for caching)
+            const cacheKey = `zas_analyzed_${btoa(window.location.href).substring(0, 20)}`;
+            if (sessionStorage.getItem(cacheKey)) return;
+
+            // Collect page data
+            const pageData = {
+                title: document.title || '',
+                text: document.body?.innerText?.substring(0, 3000) || '',
+                url: window.location.href
+            };
+
+            // Skip if page has too little content
+            if (pageData.text.length < 100) return;
+
+            // Send to background script for analysis
+            const result = await chrome.runtime.sendMessage({
+                type: 'ANALYZE_CONTENT_FOR_ADULT',
+                data: pageData
+            });
+
+            // Mark as analyzed
+            sessionStorage.setItem(cacheKey, 'analyzed');
+
+            // Block if adult content detected
+            if (result?.blocked) {
+                showBlockingOverlay(result.reason || 'AI detected adult content');
+
+                // Log the AI block
+                chrome.runtime.sendMessage({
+                    type: 'AI_CONTENT_BLOCKED',
+                    url: pageData.url,
+                    classification: result.classification,
+                    confidence: result.confidence
+                }).catch(() => { });
+            }
+
+        } catch (error) {
+            console.log('[ZAS] AI content analysis skipped:', error.message);
+        }
+    }
+
+    // Run AI analysis after page loads (with delay for page to render)
+    if (document.readyState === 'complete') {
+        setTimeout(analyzePageForAdultContent, 2000);
+    } else {
+        window.addEventListener('load', () => {
+            setTimeout(analyzePageForAdultContent, 2000);
+        });
+    }
 
 })();
