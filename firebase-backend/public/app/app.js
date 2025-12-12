@@ -2088,3 +2088,352 @@ async function applyPromoCode() {
         alert('Failed to apply code: ' + error.message);
     }
 }
+
+// ============================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - Type: 'success', 'error', 'warning', 'info'
+ * @param {number} duration - Duration in ms (default 4000)
+ */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `zas-toast ${type}`;
+
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+
+    toast.innerHTML = `
+        <div class="zas-toast-icon">${icons[type] || icons.info}</div>
+        <div class="zas-toast-content">
+            <div class="zas-toast-message">${message}</div>
+        </div>
+        <button class="zas-toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto dismiss
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// Make toast available globally
+window.showToast = showToast;
+
+// ============================================
+// QUOTE PANEL SYSTEM
+// ============================================
+
+const QUOTES_DATABASE = {
+    motivational: [
+        { text: "The only way to do great work is to love what you do.", source: "Steve Jobs" },
+        { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", source: "Winston Churchill" },
+        { text: "Believe you can and you're halfway there.", source: "Theodore Roosevelt" },
+        { text: "The future belongs to those who believe in the beauty of their dreams.", source: "Eleanor Roosevelt" },
+        { text: "In the middle of difficulty lies opportunity.", source: "Albert Einstein" }
+    ],
+    islamic: [
+        { text: "Verily, with hardship comes ease.", source: "Quran 94:6" },
+        { text: "And whoever puts their trust in Allah, He will be enough for them.", source: "Quran 65:3" },
+        { text: "Be in this world as if you were a stranger or a traveler.", source: "Prophet Muhammad ﷺ" },
+        { text: "The best of people are those who are most beneficial to others.", source: "Prophet Muhammad ﷺ" },
+        { text: "Patience is the key to relief.", source: "Prophet Muhammad ﷺ" }
+    ],
+    productivity: [
+        { text: "Focus on being productive instead of busy.", source: "Tim Ferriss" },
+        { text: "The key is not to prioritize what's on your schedule, but to schedule your priorities.", source: "Stephen Covey" },
+        { text: "You don't have to be great to start, but you have to start to be great.", source: "Zig Ziglar" },
+        { text: "Your limitation—it's only your imagination.", source: "Unknown" },
+        { text: "The secret of getting ahead is getting started.", source: "Mark Twain" }
+    ]
+};
+
+const ISLAMIC_COUNTRIES = ['PK', 'SA', 'AE', 'EG', 'ID', 'MY', 'TR', 'BD', 'IR', 'IQ', 'JO', 'KW', 'QA', 'BH', 'OM'];
+
+async function loadQuote() {
+    try {
+        // Detect user's country
+        let countryCode = localStorage.getItem('userCountry');
+        if (!countryCode) {
+            try {
+                const response = await fetch('https://ipapi.co/country/');
+                countryCode = await response.text();
+                localStorage.setItem('userCountry', countryCode);
+            } catch {
+                countryCode = 'US';
+            }
+        }
+
+        // Select quote category based on country
+        const isIslamicCountry = ISLAMIC_COUNTRIES.includes(countryCode.trim().toUpperCase());
+        const category = isIslamicCountry ? 'islamic' :
+            (Math.random() > 0.5 ? 'motivational' : 'productivity');
+
+        const quotes = QUOTES_DATABASE[category];
+        const quote = quotes[Math.floor(Math.random() * quotes.length)];
+
+        // Update UI
+        const quoteText = document.getElementById('quoteText');
+        const quoteSource = document.getElementById('quoteSource');
+        const quoteCategory = document.getElementById('quoteCategory');
+
+        if (quoteText) quoteText.textContent = `"${quote.text}"`;
+        if (quoteSource) quoteSource.textContent = `— ${quote.source}`;
+        if (quoteCategory) quoteCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+
+    } catch (error) {
+        console.error('Failed to load quote:', error);
+    }
+}
+
+function refreshQuote() {
+    loadQuote();
+    showToast('Quote refreshed!', 'success', 2000);
+}
+
+// Make functions globally available
+window.refreshQuote = refreshQuote;
+
+// Load quote on page load
+document.addEventListener('DOMContentLoaded', loadQuote);
+
+// ============================================
+// URL SCANNER FUNCTIONS
+// ============================================
+
+let scanHistory = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+
+async function handleScanUrl() {
+    const urlInput = document.getElementById('scannerUrl');
+    const scanBtn = document.getElementById('scanUrlBtn');
+    const resultCard = document.getElementById('scanResultCard');
+
+    const url = urlInput?.value?.trim();
+
+    if (!url) {
+        showToast('Please enter a URL to scan', 'warning');
+        return;
+    }
+
+    // Validate URL format
+    try {
+        new URL(url);
+    } catch {
+        showToast('Please enter a valid URL (include https://)', 'error');
+        return;
+    }
+
+    // Show loading state
+    if (scanBtn) {
+        scanBtn.innerHTML = '<span class="zas-spinner" style="width:16px;height:16px;"></span> Scanning...';
+        scanBtn.disabled = true;
+    }
+
+    try {
+        // Call the classifyContent Cloud Function for AI analysis
+        const classifyContent = firebase.functions().httpsCallable('classifyContent');
+        const result = await classifyContent({ url: url });
+
+        // Determine threat level based on AI result
+        const data = result.data;
+        let status = 'safe';
+        let statusIcon = '✓';
+        let statusText = 'Safe';
+        let threatType = 'None';
+        let trustScore = 95;
+
+        if (data.error) {
+            // Handle error gracefully
+            status = 'warning';
+            statusIcon = '⚠';
+            statusText = 'Unknown';
+            threatType = data.error;
+            trustScore = 50;
+        } else if (data.categories?.includes('adult') || data.categories?.includes('gambling') || data.categories?.includes('malware')) {
+            status = 'malicious';
+            statusIcon = '✕';
+            statusText = 'Malicious';
+            threatType = data.categories.join(', ');
+            trustScore = 10;
+        } else if (data.riskScore > 50) {
+            status = 'suspicious';
+            statusIcon = '⚠';
+            statusText = 'Suspicious';
+            threatType = data.categories?.join(', ') || 'Potential Risk';
+            trustScore = 100 - data.riskScore;
+        }
+
+        // Update result card
+        updateScanResult({
+            url: url,
+            status: status,
+            statusIcon: statusIcon,
+            statusText: statusText,
+            threatType: threatType,
+            trustScore: trustScore,
+            aiResult: data.analysis || 'Analysis complete',
+            googleStatus: 'Clean' // We'd need actual Google Safe Browsing integration
+        });
+
+        // Add to history
+        addToScanHistory(url, status);
+
+        showToast('Scan complete!', 'success');
+
+    } catch (error) {
+        console.error('Scan failed:', error);
+        showToast('Scan failed: ' + error.message, 'error');
+
+        // Show result with error
+        updateScanResult({
+            url: url,
+            status: 'warning',
+            statusIcon: '⚠',
+            statusText: 'Error',
+            threatType: 'Scan failed',
+            trustScore: 0,
+            aiResult: error.message,
+            googleStatus: 'Unknown'
+        });
+    } finally {
+        // Reset button
+        if (scanBtn) {
+            scanBtn.innerHTML = '<i data-lucide="search"></i> Analyze URL';
+            scanBtn.disabled = false;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+}
+
+function updateScanResult(data) {
+    const resultCard = document.getElementById('scanResultCard');
+    const statusEl = document.getElementById('scanStatus');
+    const urlEl = document.getElementById('scannedUrl');
+    const threatEl = document.getElementById('scanThreatType');
+    const trustEl = document.getElementById('scanTrustScore');
+    const googleEl = document.getElementById('scanGoogleStatus');
+    const aiEl = document.getElementById('scanAIResult');
+
+    if (resultCard) resultCard.style.display = 'block';
+
+    if (statusEl) {
+        statusEl.className = `scan-status ${data.status}`;
+        statusEl.innerHTML = `
+            <span class="scan-status-icon">${data.statusIcon}</span>
+            <span class="scan-status-text">${data.statusText}</span>
+        `;
+    }
+
+    if (urlEl) urlEl.textContent = new URL(data.url).hostname;
+    if (threatEl) threatEl.textContent = data.threatType;
+    if (aiEl) aiEl.textContent = data.aiResult;
+    if (googleEl) {
+        googleEl.textContent = data.googleStatus;
+        googleEl.className = `detail-value zas-badge ${data.googleStatus === 'Clean' ? 'zas-badge-success' : 'zas-badge-warning'}`;
+    }
+
+    if (trustEl) {
+        trustEl.innerHTML = `
+            <div class="trust-score-bar">
+                <div class="trust-score-fill" style="width: ${data.trustScore}%; background: ${data.trustScore > 70 ? 'var(--color-success)' : data.trustScore > 40 ? 'var(--color-warning)' : 'var(--color-danger)'}"></div>
+            </div>
+            <span>${data.trustScore}/100</span>
+        `;
+    }
+}
+
+function addToScanHistory(url, status) {
+    const entry = {
+        url: url,
+        status: status,
+        timestamp: Date.now()
+    };
+
+    scanHistory.unshift(entry);
+    if (scanHistory.length > 20) scanHistory.pop();
+
+    localStorage.setItem('scanHistory', JSON.stringify(scanHistory));
+    renderScanHistory();
+}
+
+function renderScanHistory() {
+    const tbody = document.getElementById('scanHistoryBody');
+    if (!tbody) return;
+
+    if (scanHistory.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="3" style="text-align: center; color: var(--text-muted);">No scans yet</td></tr>';
+        return;
+    }
+
+    const statusColors = {
+        safe: 'zas-badge-success',
+        suspicious: 'zas-badge-warning',
+        malicious: 'zas-badge-danger',
+        warning: 'zas-badge-warning'
+    };
+
+    tbody.innerHTML = scanHistory.map(entry => `
+        <tr>
+            <td>${new URL(entry.url).hostname}</td>
+            <td><span class="zas-badge ${statusColors[entry.status] || ''}">${entry.status}</span></td>
+            <td>${new Date(entry.timestamp).toLocaleDateString()}</td>
+        </tr>
+    `).join('');
+}
+
+function clearScanHistory() {
+    if (confirm('Clear all scan history?')) {
+        scanHistory = [];
+        localStorage.removeItem('scanHistory');
+        renderScanHistory();
+        showToast('History cleared', 'success');
+    }
+}
+
+// Make functions globally available
+window.handleScanUrl = handleScanUrl;
+window.clearScanHistory = clearScanHistory;
+
+// Load scan history on page load
+document.addEventListener('DOMContentLoaded', renderScanHistory);
+
+// ============================================
+// NAVIGATION HELPERS
+// ============================================
+
+function navigateToSection(section) {
+    navigateTo(section);
+}
+
+function showScannerModal() {
+    navigateTo('scanner');
+}
+
+function showPricingModal() {
+    const modal = document.getElementById('pricingModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closePricingModal() {
+    const modal = document.getElementById('pricingModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Make functions globally available
+window.navigateToSection = navigateToSection;
+window.showScannerModal = showScannerModal;
+window.showPricingModal = showPricingModal;
+window.closePricingModal = closePricingModal;

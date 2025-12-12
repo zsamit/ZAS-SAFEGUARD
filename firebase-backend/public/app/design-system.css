@@ -1934,3 +1934,236 @@ a:hover {
     white-space: nowrap;
     border: 0;
 }
+
+/* ============================================
+   QUOTE PANEL
+   ============================================ */
+
+.quote-panel {
+    margin-top: var(--space-6);
+}
+
+.quote-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.quote-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.quote-text-container {
+    flex: 1;
+}
+
+.quote-text {
+    font-size: var(--text-base);
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+}
+
+.quote-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.quote-category {
+    background: var(--color-indigo-glow);
+    color: var(--color-indigo);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+}
+
+/* ============================================
+   QUICK ACTIONS PANEL
+   ============================================ */
+
+.quick-actions-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-top: var(--space-6);
+}
+
+.quick-actions-panel h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-4);
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+}
+
+@media (max-width: 768px) {
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   SCANNER COMPONENTS
+   ============================================ */
+
+.scanner-card {
+    max-width: 600px;
+}
+
+.scanner-input-group {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.scanner-input-group .zas-input {
+    flex: 1;
+}
+
+@media (max-width: 480px) {
+    .scanner-input-group {
+        flex-direction: column;
+    }
+
+    .scanner-input-group .zas-btn {
+        width: 100%;
+    }
+}
+
+.scan-result-card {
+    max-width: 600px;
+    margin-top: var(--space-6);
+}
+
+.scan-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-4);
+}
+
+.scan-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-full);
+    font-weight: var(--weight-semibold);
+}
+
+.scan-status.safe {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.scan-status.suspicious {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.scan-status.malicious {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+.scan-status.warning {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.scan-status-icon {
+    font-size: 18px;
+}
+
+.scan-url {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.scan-result-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.scan-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) 0;
+}
+
+.detail-label {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.detail-value {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Trust Score Bar */
+.trust-score-bar {
+    width: 100px;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.trust-score-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width var(--transition-slow);
+}
+
+/* Scan History */
+.scan-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.scan-history-header h3 {
+    margin: 0;
+}
+
+/* Section Subtitle */
+.section-subtitle {
+    color: var(--text-muted);
+    margin-bottom: var(--space-6);
+}
+
+/* ============================================
+   TOAST SLIDE OUT ANIMATION
+   ============================================ */
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
