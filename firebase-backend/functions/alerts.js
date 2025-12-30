@@ -12,6 +12,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall } = require('firebase-functions/v2/https');
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
+const costGuard = require('./costGuard');
 
 const db = getFirestore();
 
@@ -22,6 +23,28 @@ const DEFAULT_THRESHOLDS = {
     maxAlertsPerHour: 10
 };
 
+// Dashboard URL for email links
+const DASHBOARD_BASE_URL = process.env.DASHBOARD_URL || 'https://zassafeguard.com/app';
+
+// Spam prevention config
+const SPAM_CONFIG = {
+    MAX_EMAILS_PER_DAY: 3,
+    TAMPER_COOLDOWN_MS: 30 * 60 * 1000,  // 30 minutes
+    DEFAULT_QUIET_START: 22, // 10 PM
+    DEFAULT_QUIET_END: 7,    // 7 AM
+};
+
+// TAMPER events get instant emails (subject to cooldown)
+const TAMPER_EVENTS = [
+    'EXTENSION_DISABLED', 'DISABLE_ATTEMPT', 'EXTENSION_UNINSTALLED',
+    'DEVTOOLS_OPENED', 'POLICY_TAMPER', 'TOKEN_TAMPER'
+];
+
+// OFFLINE events go to digest, NOT instant email
+const OFFLINE_EVENTS = [
+    'HEARTBEAT_MISSING', 'HEARTBEAT_MISSED', 'DEVICE_OFFLINE', 'BROWSER_CLOSED'
+];
+
 // ============================================
 // SECURITY EVENT TRIGGER
 // ============================================
@@ -31,7 +54,10 @@ const DEFAULT_THRESHOLDS = {
  * Evaluates alert rules and sends notifications
  */
 exports.onSecurityEvent = onDocumentCreated(
-    'security_events/{userId}/{deviceId}/{eventId}',
+    {
+        document: 'security_events/{userId}/{deviceId}/{eventId}',
+        memory: '512MiB'
+    },
     async (event) => {
         const snap = event.data;
         if (!snap) return;
@@ -52,40 +78,59 @@ exports.onSecurityEvent = onDocumentCreated(
             }
 
             // Evaluate alert rules based on event type
-            switch (eventData.type) {
+            // Support both old names and new standardized names
+            const eventType = eventData.type;
+
+            switch (eventType) {
+                case 'DISABLE_ATTEMPT':
                 case 'extension_disabled':
-                    // RULE 3: Instant alert on extension disable
+                    // RULE: Instant alert on extension disable
                     await sendAlert(userId, deviceId, {
-                        type: 'extension_disabled',
+                        type: 'DISABLE_ATTEMPT',
                         severity: 'high',
                         title: '⚠️ Extension Disabled',
                         message: `The ZAS Safeguard extension was disabled on ${eventData.deviceName || 'a device'}.`,
-                        timestamp: eventData.timestamp
+                        eventRef: `security_events/${userId}/${deviceId}/${event.params.eventId}`
                     });
                     break;
 
+                case 'BLOCKED_SITE':
                 case 'blocked_attempt':
-                    // RULE 1: Check for 2+ blocks in 1 minute
-                    await checkBlockedAttemptThreshold(userId, deviceId, eventData);
+                    // RULE: Check for 2+ blocks in 1 minute
+                    await checkBlockedAttemptThreshold(userId, deviceId, eventData, event.params.eventId);
                     break;
 
+                case 'DEVTOOLS_OPENED':
                 case 'tamper_attempt':
                     await sendAlert(userId, deviceId, {
-                        type: 'tamper_attempt',
-                        severity: 'high',
-                        title: '🚨 Tamper Attempt Detected',
-                        message: `Someone tried to tamper with the extension on ${eventData.deviceName || 'a device'}.`,
-                        timestamp: eventData.timestamp
+                        type: 'DEVTOOLS_OPENED',
+                        severity: 'medium',
+                        title: '🛠️ Developer Tools Opened',
+                        message: `Developer tools were opened on ${eventData.deviceName || 'a device'}. This could indicate an attempt to bypass protection.`,
+                        eventRef: `security_events/${userId}/${deviceId}/${event.params.eventId}`
                     });
                     break;
 
+                case 'HEARTBEAT_MISSED':
                 case 'heartbeat_missing':
+                    // CRITICAL: Do NOT send instant email for heartbeat missing
+                    // These go to daily digest to prevent spam
+                    console.log(`[Alert] Heartbeat missed for ${deviceId} - queuing for digest (no instant email)`);
+                    await queueForDigest(userId, deviceId, {
+                        eventType: 'DEVICE_OFFLINE',
+                        deviceName: eventData.deviceName || 'Unknown',
+                        minutesOffline: eventData.minutesMissing || 10
+                    });
+                    break;
+
+                case 'MALWARE_DETECTED':
+                case 'SCAN_MALICIOUS':
                     await sendAlert(userId, deviceId, {
-                        type: 'heartbeat_missing',
-                        severity: 'medium',
-                        title: '📵 Device Offline',
-                        message: `Device ${eventData.deviceName || 'Unknown'} hasn't reported in for ${eventData.minutesMissing || 10}+ minutes. The extension may be disabled or uninstalled.`,
-                        timestamp: eventData.timestamp
+                        type: 'MALWARE_DETECTED',
+                        severity: 'high',
+                        title: '🚨 Malware/Phishing Detected',
+                        message: `A dangerous link was detected and blocked on ${eventData.deviceName || 'a device'}: ${eventData.url || 'Unknown URL'}`,
+                        eventRef: `security_events/${userId}/${deviceId}/${event.params.eventId}`
                     });
                     break;
             }
@@ -96,73 +141,138 @@ exports.onSecurityEvent = onDocumentCreated(
 );
 
 // ============================================
-// HEARTBEAT CHECKER (Scheduled)
+// DIGEST QUEUE (For offline events - no instant spam)
 // ============================================
 
 /**
- * Runs every 5 minutes to check for stale heartbeats
- * RULE 2: Alert if heartbeat missing > 10 minutes
+ * Queue event for daily digest instead of instant email
  */
-exports.checkHeartbeats = onSchedule('every 5 minutes', async (event) => {
-    console.log('Running heartbeat check...');
-
-    const now = Date.now();
-    const threshold = 10 * 60 * 1000; // 10 minutes
-    const staleTime = new Date(now - threshold);
-
+async function queueForDigest(userId, deviceId, eventData) {
     try {
-        // Get all devices with stale heartbeats
-        const devicesQuery = await db.collection('devices')
-            .where('lastHeartbeat', '<', Timestamp.fromDate(staleTime))
-            .where('isActive', '==', true)
-            .get();
-
-        console.log(`Found ${devicesQuery.size} devices with stale heartbeats`);
-
-        for (const deviceDoc of devicesQuery.docs) {
-            const device = deviceDoc.data();
-            const deviceId = deviceDoc.id;
-            const userId = device.userId;
-
-            // Check if we already sent an alert recently
-            const recentAlerts = await db.collection(`alerts/${userId}`)
-                .where('type', '==', 'heartbeat_missing')
-                .where('deviceId', '==', deviceId)
-                .where('timestamp', '>', Timestamp.fromDate(new Date(now - 30 * 60 * 1000))) // Last 30 min
-                .limit(1)
-                .get();
-
-            if (!recentAlerts.empty) {
-                console.log(`Already alerted for device ${deviceId}, skipping`);
-                continue;
-            }
-
-            // Calculate how long heartbeat has been missing
-            const lastHeartbeat = device.lastHeartbeat?.toDate() || new Date(0);
-            const minutesMissing = Math.floor((now - lastHeartbeat.getTime()) / 60000);
-
-            // Create security event (which will trigger alert)
-            await db.collection(`security_events/${userId}/${deviceId}`).add({
-                type: 'heartbeat_missing',
-                deviceName: device.name || 'Unknown Device',
-                minutesMissing,
-                timestamp: FieldValue.serverTimestamp()
-            });
-
-            // Mark device as inactive
-            await deviceDoc.ref.update({ isActive: false });
-        }
-
+        const today = new Date().toISOString().split('T')[0];
+        await db.collection('digest_queue').add({
+            userId,
+            deviceId,
+            deviceName: eventData.deviceName || 'Unknown Device',
+            eventType: eventData.eventType,
+            details: eventData,
+            queuedAt: FieldValue.serverTimestamp(),
+            digestDate: today,
+            processed: false
+        });
+        console.log(`[Digest] Queued ${eventData.eventType} for ${deviceId}`);
     } catch (error) {
-        console.error('Heartbeat check error:', error);
+        console.error('[Digest] Queue error:', error);
     }
-});
+}
+
+// NOTE: checkHeartbeats is now in heartbeat.js with proper spam prevention
+
+// ============================================
+// SPAM PREVENTION HELPERS
+// ============================================
+
+/**
+ * Check if user has exceeded daily email cap
+ */
+async function checkDailyEmailCap(userId) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const capDoc = await db.doc(`email_caps/${userId}_${today}`).get();
+
+        if (!capDoc.exists) return false;
+
+        const count = capDoc.data().count || 0;
+        return count >= SPAM_CONFIG.MAX_EMAILS_PER_DAY;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Check if tamper cooldown is active
+ */
+async function checkTamperCooldown(userId, deviceId, eventType) {
+    try {
+        const cooldownDoc = await db.doc(`alert_cooldown/${userId}_${deviceId}_${eventType}`).get();
+
+        if (!cooldownDoc.exists) return false;
+
+        const lastAlert = cooldownDoc.data().timestamp?.toMillis?.() || 0;
+        return Date.now() - lastAlert < SPAM_CONFIG.TAMPER_COOLDOWN_MS;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Check if current time is within user's quiet hours
+ */
+function isInQuietHours(timezone, alertSettings) {
+    try {
+        const quietEnabled = alertSettings.quietHoursEnabled !== false; // Default ON
+        if (!quietEnabled) return false;
+
+        const quietStart = alertSettings.quietHoursStart ?? SPAM_CONFIG.DEFAULT_QUIET_START;
+        const quietEnd = alertSettings.quietHoursEnd ?? SPAM_CONFIG.DEFAULT_QUIET_END;
+
+        // Get current hour in user's timezone
+        const now = new Date();
+        const options = { timeZone: timezone, hour: 'numeric', hour12: false };
+        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(now));
+
+        // Handle overnight quiet hours (e.g., 22-7)
+        if (quietStart > quietEnd) {
+            return currentHour >= quietStart || currentHour < quietEnd;
+        } else {
+            return currentHour >= quietStart && currentHour < quietEnd;
+        }
+    } catch (error) {
+        console.warn('[isInQuietHours] Error:', error);
+        return false;
+    }
+}
+
+/**
+ * Increment daily email counter
+ */
+async function incrementDailyEmailCount(userId) {
+    const today = new Date().toISOString().split('T')[0];
+    const capRef = db.doc(`email_caps/${userId}_${today}`);
+
+    await capRef.set({
+        count: FieldValue.increment(1),
+        lastUpdated: FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/**
+ * Set cooldown for alert type
+ */
+async function setAlertCooldown(userId, deviceId, eventType) {
+    const cooldownRef = db.doc(`alert_cooldown/${userId}_${deviceId}_${eventType}`);
+    await cooldownRef.set({
+        timestamp: FieldValue.serverTimestamp()
+    });
+}
+
+// Helper to get hour key for dedupe
+function getHourKey() {
+    const now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}`;
+}
+
+// Helper to get minute key for dedupe
+function getMinuteKey() {
+    const now = new Date();
+    return `${getHourKey()}${String(now.getMinutes()).padStart(2, '0')}`;
+}
 
 // ============================================
 // BLOCKED ATTEMPT THRESHOLD CHECK
 // ============================================
 
-async function checkBlockedAttemptThreshold(userId, deviceId, eventData) {
+async function checkBlockedAttemptThreshold(userId, deviceId, eventData, eventId) {
     const now = Date.now();
     const oneMinuteAgo = new Date(now - 60 * 1000);
 
@@ -172,27 +282,44 @@ async function checkBlockedAttemptThreshold(userId, deviceId, eventData) {
         const threshold = settingsDoc.data()?.blockedAttemptsPerMinute || DEFAULT_THRESHOLDS.blockedAttemptsPerMinute;
 
         // Count blocked attempts in last minute
-        const recentBlocks = await db.collection(`security_events/${userId}/${deviceId}`)
-            .where('type', '==', 'blocked_attempt')
-            .where('timestamp', '>', Timestamp.fromDate(oneMinuteAgo))
+        // Query only on createdAt (auto-indexed), filter type in code to avoid composite index
+        const recentEvents = await db.collection(`security_events/${userId}/${deviceId}`)
+            .where('createdAt', '>', Timestamp.fromDate(oneMinuteAgo))
             .get();
 
-        if (recentBlocks.size >= threshold) {
-            // Check if we already sent an alert recently (debounce)
-            const recentAlerts = await db.collection(`alerts/${userId}`)
-                .where('type', '==', 'blocked_attempts_threshold')
-                .where('timestamp', '>', Timestamp.fromDate(new Date(now - 5 * 60 * 1000))) // Last 5 min
+        // Filter for blocked site events in code
+        const recentBlocks = recentEvents.docs.filter(doc => {
+            const type = doc.data().type;
+            return type === 'BLOCKED_SITE' || type === 'blocked_attempt';
+        });
+
+        if (recentBlocks.length >= threshold) {
+            // Dedupe check - one alert per device per minute window
+            const dedupeKey = `${userId}:${deviceId}:BLOCKED_THRESHOLD:${getMinuteKey()}`;
+            const recentAlerts = await db.collection('alerts')
+                .where('userId', '==', userId)
+                .where('dedupeKey', '==', dedupeKey)
                 .limit(1)
                 .get();
 
             if (recentAlerts.empty) {
+                // Extract the blocked URLs for the alert message
+                const blockedUrls = recentBlocks.map(doc => {
+                    const data = doc.data();
+                    return data.url || data.reason || 'Unknown site';
+                }).slice(0, 5); // Show up to 5 URLs
+
+                const urlList = blockedUrls.join(', ');
+                const moreText = recentBlocks.length > 5 ? ` and ${recentBlocks.length - 5} more` : '';
+
                 await sendAlert(userId, deviceId, {
-                    type: 'blocked_attempts_threshold',
+                    type: 'BLOCKED_THRESHOLD',
                     severity: 'medium',
                     title: '🚫 Multiple Blocked Attempts',
-                    message: `${recentBlocks.size} attempts to access blocked content in the last minute on ${eventData.deviceName || 'a device'}.`,
-                    timestamp: eventData.timestamp,
-                    blockedCount: recentBlocks.size
+                    message: `${recentBlocks.length} attempts to access blocked content: ${urlList}${moreText}`,
+                    blockedCount: recentBlocks.length,
+                    blockedUrls: blockedUrls,
+                    eventRef: `security_events/${userId}/${deviceId}/${eventId}`
                 });
             }
         }
@@ -206,58 +333,168 @@ async function checkBlockedAttemptThreshold(userId, deviceId, eventData) {
 // ============================================
 
 async function sendAlert(userId, deviceId, alertData) {
+    console.log(`[sendAlert] Creating alert for user ${userId}, type: ${alertData.type}`);
+
     try {
+        // COST GUARD: Check global kill switch
+        const canSendEmail = await costGuard.shouldSendEmail(userId);
+        if (!canSendEmail) {
+            console.log('[sendAlert] Email blocked by cost guard');
+            return;
+        }
+
+        // SPAM PREVENTION: Check if this is an offline event (should NOT instant email)
+        if (OFFLINE_EVENTS.includes(alertData.type)) {
+            console.log(`[sendAlert] ${alertData.type} is offline event - redirecting to digest`);
+            await queueForDigest(userId, deviceId, alertData);
+            return;
+        }
+
+        // SPAM PREVENTION: Check daily email cap
+        const dailyCapReached = await checkDailyEmailCap(userId);
+        if (dailyCapReached) {
+            console.log('[sendAlert] Daily email cap reached, skipping');
+            return;
+        }
+
+        // SPAM PREVENTION: Check cooldown for tamper events
+        if (TAMPER_EVENTS.includes(alertData.type)) {
+            const cooldownActive = await checkTamperCooldown(userId, deviceId, alertData.type);
+            if (cooldownActive) {
+                console.log('[sendAlert] Tamper cooldown active, skipping');
+                return;
+            }
+        }
+
         // Get user data for email
         const userDoc = await db.doc(`users/${userId}`).get();
-        const user = userDoc.data();
+        const user = userDoc.data() || {};
 
-        if (!user?.email) {
-            console.log('No email for user, skipping alert');
+        // SPAM PREVENTION: Check quiet hours
+        const timezone = user.timezone || 'America/Los_Angeles';
+        const alertSettings = user.alertSettings || {};
+        if (isInQuietHours(timezone, alertSettings) && !TAMPER_EVENTS.includes(alertData.type)) {
+            console.log('[sendAlert] Quiet hours active, skipping non-tamper alert');
             return;
         }
 
-        // Check rate limit (max alerts per hour)
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        const recentAlerts = await db.collection(`alerts/${userId}`)
-            .where('timestamp', '>', Timestamp.fromDate(oneHourAgo))
-            .get();
+        // Try family_profiles first for parent email
+        const familyDoc = await db.doc(`family_profiles/${userId}`).get();
+        const parentEmail = familyDoc.data()?.parentEmail || user.email;
 
-        if (recentAlerts.size >= DEFAULT_THRESHOLDS.maxAlertsPerHour) {
-            console.log('Alert rate limit reached, skipping');
+        if (!parentEmail) {
+            console.log('[sendAlert] No email for user, skipping alert');
             return;
         }
+        console.log(`[sendAlert] Sending to: ${parentEmail}`);
+
+        // Generate dedupe key
+        const dedupeKey = `${userId}:${deviceId}:${alertData.type}:${getMinuteKey()}`;
+
+        // Check if already sent (dedupe) - handle gracefully if collection doesn't exist
+        try {
+            const existing = await db.collection('alerts')
+                .where('userId', '==', userId)
+                .where('dedupeKey', '==', dedupeKey)
+                .limit(1)
+                .get();
+
+            if (!existing.empty) {
+                console.log('[sendAlert] Duplicate alert, skipping');
+                return;
+            }
+        } catch (e) {
+            console.log('[sendAlert] Dedupe check failed (first alert?):', e.message);
+        }
+
+        // Get device name
+        const deviceDoc = await db.doc(`devices/${deviceId}`).get();
+        const deviceName = deviceDoc.data()?.deviceName || 'Unknown Device';
 
         // Save alert to Firestore
-        const alertRef = await db.collection(`alerts/${userId}`).add({
+        console.log('[sendAlert] Saving alert to Firestore...');
+        const alertRef = await db.collection('alerts').add({
             ...alertData,
+            userId,
             deviceId,
+            deviceName,
             read: false,
             emailSent: false,
-            timestamp: FieldValue.serverTimestamp()
+            dedupeKey,
+            createdAt: FieldValue.serverTimestamp()
         });
+        console.log(`[sendAlert] Alert created: ${alertRef.id}`);
 
-        // Queue email via Firebase Email Extension
-        // The extension watches the 'mail' collection
+        // Build email content (both HTML and plain text)
+        const timestamp = new Date().toLocaleString();
+        const alertsLink = `${DASHBOARD_BASE_URL}/?view=alerts`;
+
+        const emailHtml = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 20px; border-radius: 12px 12px 0 0;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">ZAS Safeguard</h1>
+                </div>
+                <div style="background: #f8fafc; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+                    <div style="background: ${alertData.severity === 'high' ? '#fef2f2' : '#fefce8'}; border-left: 4px solid ${alertData.severity === 'high' ? '#ef4444' : '#eab308'}; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+                        <h2 style="margin: 0 0 8px 0; color: ${alertData.severity === 'high' ? '#dc2626' : '#ca8a04'};">${alertData.title}</h2>
+                        <p style="margin: 0; color: #374151;">${alertData.message}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Device:</td><td style="padding: 8px 0; color: #111827; font-weight: 500;">${deviceName}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Time:</td><td style="padding: 8px 0; color: #111827;">${timestamp}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Severity:</td><td style="padding: 8px 0;"><span style="background: ${alertData.severity === 'high' ? '#fee2e2' : '#fef9c3'}; color: ${alertData.severity === 'high' ? '#dc2626' : '#ca8a04'}; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 500;">${alertData.severity.toUpperCase()}</span></td></tr>
+                    </table>
+                    <div style="margin-top: 24px; text-align: center;">
+                        <a href="${alertsLink}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600;">View All Alerts</a>
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 16px; color: #9ca3af; font-size: 12px;">
+                    <p>You're receiving this because you have ZAS Safeguard alerts enabled.</p>
+                    <p>© ${new Date().getFullYear()} ZAS Global LLC</p>
+                </div>
+            </div>
+        `;
+
+        const emailText = `
+ZAS Safeguard Alert
+
+${alertData.title}
+
+${alertData.message}
+
+Device: ${deviceName}
+Time: ${timestamp}
+Severity: ${alertData.severity.toUpperCase()}
+
+View all alerts: ${alertsLink}
+
+---
+You're receiving this because you have ZAS Safeguard alerts enabled.
+© ${new Date().getFullYear()} ZAS Global LLC
+        `.trim();
+
+        // Queue email via Firebase Email Extension (mail collection)
         await db.collection('mail').add({
-            to: user.email,
-            template: {
-                name: 'security_alert',
-                data: {
-                    userName: user.displayName || 'Parent',
-                    alertTitle: alertData.title,
-                    alertMessage: alertData.message,
-                    severity: alertData.severity,
-                    deviceName: alertData.deviceName || 'Unknown Device',
-                    timestamp: new Date().toLocaleString(),
-                    dashboardLink: 'https://zasgloballlc.com/safeguard'
-                }
+            to: parentEmail,
+            message: {
+                subject: `ZAS Safeguard: ${alertData.title}`,
+                text: emailText,
+                html: emailHtml
             }
         });
 
         // Mark email as sent
         await alertRef.update({ emailSent: true });
 
-        console.log(`Alert sent to ${user.email}: ${alertData.title}`);
+        // SPAM PREVENTION: Track email for daily cap
+        await incrementDailyEmailCount(userId);
+
+        // SPAM PREVENTION: Set cooldown for this event type
+        if (TAMPER_EVENTS.includes(alertData.type)) {
+            await setAlertCooldown(userId, deviceId, alertData.type);
+        }
+
+        console.log(`Alert sent to ${parentEmail}: ${alertData.title}`);
 
     } catch (error) {
         console.error('Error sending alert:', error);
@@ -268,24 +505,67 @@ async function sendAlert(userId, deviceId, alertData) {
 // LOG SECURITY EVENT (Called by extension)
 // ============================================
 
-exports.logSecurityEvent = onCall(async (request) => {
+exports.logSecurityEvent = onCall({ memory: '512MiB' }, async (request) => {
     if (!request.auth) {
         throw new Error('Authentication required');
     }
 
     const userId = request.auth.uid;
-    const { deviceId, type, metadata = {} } = request.data;
+    const { deviceId, type, url, reason, severity = 'medium', metadata = {} } = request.data;
 
     if (!deviceId || !type) {
         throw new Error('deviceId and type are required');
     }
 
+    // COST GUARD: Check if security event write is allowed
+    const canWrite = await costGuard.shouldWriteSecurityEvent(userId, deviceId);
+    if (!canWrite) {
+        console.log('[logSecurityEvent] Blocked by cost guard (cap or kill switch)');
+        return { success: true, skipped: true };
+    }
+
     try {
-        // Log the security event
+        // Verify or auto-create device
+        const deviceRef = db.doc(`devices/${deviceId}`);
+        const deviceDoc = await deviceRef.get();
+        let deviceName = 'Unknown Device';
+
+        if (!deviceDoc.exists) {
+            // Auto-create device if it doesn't exist
+            console.log(`Auto-creating device ${deviceId} for user ${userId}`);
+            await deviceRef.set({
+                userId,
+                deviceId,
+                deviceType: metadata.deviceType || 'browser',
+                deviceName: metadata.deviceName || 'Browser Extension',
+                status: 'active',
+                lastSeen: FieldValue.serverTimestamp(),
+                createdAt: FieldValue.serverTimestamp(),
+                autoCreated: true
+            });
+            deviceName = metadata.deviceName || 'Browser Extension';
+        } else {
+            // Verify ownership
+            if (deviceDoc.data().userId !== userId) {
+                throw new Error('Unauthorized: device does not belong to user');
+            }
+            deviceName = deviceDoc.data().deviceName || 'Unknown Device';
+
+            // Update lastSeen
+            await deviceRef.update({
+                lastSeen: FieldValue.serverTimestamp()
+            });
+        }
+
+        // Log the security event with standardized schema
         const eventRef = await db.collection(`security_events/${userId}/${deviceId}`).add({
             type,
+            url: url || null,
+            reason: reason || '',
+            severity,
+            deviceName,
             ...metadata,
-            timestamp: FieldValue.serverTimestamp()
+            createdAt: FieldValue.serverTimestamp()
         });
 
         return { success: true, eventId: eventRef.id };
@@ -309,8 +589,9 @@ exports.getAlerts = onCall(async (request) => {
     const { limit = 50, unreadOnly = false } = request.data || {};
 
     try {
-        let query = db.collection(`alerts/${userId}`)
-            .orderBy('timestamp', 'desc')
+        let query = db.collection('alerts')
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
             .limit(limit);
 
         if (unreadOnly) {

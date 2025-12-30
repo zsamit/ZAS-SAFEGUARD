@@ -62,10 +62,14 @@
     };
 
     function reportDevToolsOpen() {
-        chrome.runtime.sendMessage({
-            type: 'DEV_TOOLS_OPENED',
-            url: window.location.href
-        }).catch(() => { });
+        try {
+            chrome.runtime.sendMessage({
+                type: 'DEV_TOOLS_OPENED',
+                url: window.location.href
+            }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
 
         // Show warning
         showDevToolsWarning();
@@ -237,11 +241,15 @@
         document.body.style.overflow = 'hidden';
 
         // Log the block
-        chrome.runtime.sendMessage({
-            type: 'CONTENT_BLOCKED',
-            url: window.location.href,
-            reason
-        }).catch(() => { });
+        try {
+            chrome.runtime.sendMessage({
+                type: 'CONTENT_BLOCKED',
+                url: window.location.href,
+                reason
+            }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
     }
 
     // ============================================
@@ -271,15 +279,379 @@
     }
 
     // ============================================
+    // COSMETIC FILTERING (AD BLOCKER)
+    // Hides ad elements via CSS injection
+    // ============================================
+
+    // Generic ad selectors (site-agnostic) - EXPANDED
+    const COSMETIC_SELECTORS = [
+        // Ad containers
+        '[class*="ad-container"]',
+        '[class*="ad-wrapper"]',
+        '[class*="ad-slot"]',
+        '[class*="ad-unit"]',
+        '[class*="ad-box"]',
+        '[class*="ad_container"]',
+        '[class*="ad_wrapper"]',
+        '[class*="ad_slot"]',
+        '[class*="adContainer"]',
+        '[class*="adWrapper"]',
+        '[class*="adSlot"]',
+        '[id*="ad-container"]',
+        '[id*="ad-wrapper"]',
+        '[id*="ad_container"]',
+        '[id*="ad_wrapper"]',
+        '[id*="google_ads"]',
+        '[id*="googleAds"]',
+        '[class*="google-ad"]',
+        '[class*="GoogleAd"]',
+        // Common ad IDs
+        '#ad', '#ads', '#advertising', '#advertisement',
+        '#sidebar-ad', '#header-ad', '#footer-ad',
+        '#top-ad', '#bottom-ad', '#right-ad', '#left-ad',
+        // Sponsored content
+        '[class*="sponsored"]',
+        '[class*="Sponsored"]',
+        '[class*="promoted"]',
+        '[class*="Promoted"]',
+        '[data-ad]',
+        '[data-ad-slot]',
+        '[data-ad-unit]',
+        '[data-google-query-id]',
+        '[data-dfp]',
+        '[data-advertisement]',
+        // Common ad classes
+        '.adsbygoogle',
+        '.ad-banner',
+        '.ad-placeholder',
+        '.ad-leaderboard',
+        '.ad-rectangle',
+        '.ad-skyscraper',
+        '.ad-native',
+        '.advertisement',
+        '.advertisment',
+        '.advert',
+        '.ads',
+        '.adsbox',
+        '.adbanner',
+        '.adblock',
+        // Specific ad network classes
+        '.GoogleActiveViewElement',
+        '.pubads',
+        '.dfp-ad',
+        '.taboola',
+        '.outbrain',
+        '.mgid',
+        '.content-ad',
+        '.native-ad',
+        '.inline-ad',
+        // iframes commonly used for ads
+        'iframe[src*="doubleclick"]',
+        'iframe[src*="googlesyndication"]',
+        'iframe[src*="googleadservices"]',
+        'iframe[src*="facebook.com/plugins"]',
+        'iframe[id*="ad"]',
+        'iframe[class*="ad"]',
+        // Overlays and popups (annoyances)
+        '[class*="cookie-banner"]',
+        '[class*="cookie-notice"]',
+        '[class*="cookie-consent"]',
+        '[class*="cookie-popup"]',
+        '[class*="cookieBanner"]',
+        '[class*="gdpr-banner"]',
+        '[class*="gdpr-notice"]',
+        '[class*="newsletter-popup"]',
+        '[class*="newsletter-modal"]',
+        '[class*="subscribe-popup"]',
+        '[class*="paywall"]',
+        '[class*="Paywall"]',
+        // Tracking pixels
+        'img[src*="pixel"]',
+        'img[width="1"][height="1"]',
+        'img[src*="tracking"]'
+    ];
+
+    // Site-specific selectors
+    const SITE_COSMETIC_SELECTORS = {
+        'youtube.com': [
+            'ytd-ad-slot-renderer',
+            'ytd-banner-promo-renderer',
+            'ytd-video-masthead-ad-v3-renderer',
+            '#player-ads',
+            '.ytp-ad-module',
+            '.video-ads'
+        ],
+        'facebook.com': [
+            '[data-pagelet*="FeedUnit"]:has([aria-label*="Sponsored"])'
+        ],
+        'reddit.com': [
+            '.promotedlink',
+            'shreddit-ad-post',
+            '[data-testid="ad-container"]'
+        ],
+        'forbes.com': [
+            '.fbs-ad',
+            '.ad-unit'
+        ]
+    };
+
+    // Cosmetic filtering state
+    let cosmeticStyleElement = null;
+    let cosmeticEnabled = true;
+    let cosmeticObserver = null;
+    let cosmeticLastActivity = Date.now();
+    let cosmeticInactivityTimer = null;
+    const COSMETIC_DEBOUNCE_MS = 300;
+    const COSMETIC_INACTIVITY_MS = 30000; // 30 seconds
+
+    /**
+     * Get hostname without www
+     */
+    function getCosmeticHostname() {
+        try {
+            return window.location.hostname.replace(/^www\./, '');
+        } catch (e) {
+            return '';
+        }
+    }
+
+    /**
+     * Get selectors for current site
+     */
+    function getCosmeticSelectors() {
+        const hostname = getCosmeticHostname();
+        let selectors = [...COSMETIC_SELECTORS];
+
+        // Add site-specific selectors
+        for (const [site, siteSelectors] of Object.entries(SITE_COSMETIC_SELECTORS)) {
+            if (hostname.includes(site)) {
+                selectors = selectors.concat(siteSelectors);
+            }
+        }
+
+        return [...new Set(selectors)];
+    }
+
+    /**
+     * Generate CSS to hide ad elements
+     */
+    function generateCosmeticCSS(selectors) {
+        if (!selectors.length) return '';
+
+        return `
+/* ZAS Safeguard Ad Blocker - Cosmetic Filtering */
+${selectors.join(',\n')} {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    z-index: -9999 !important;
+}
+`;
+    }
+
+    /**
+     * Inject cosmetic filter CSS
+     */
+    async function injectCosmeticCSS() {
+        if (!cosmeticEnabled) return;
+
+        try {
+            // Check if cosmetic filtering is enabled in settings
+            const result = await chrome.storage.local.get(['adblock_engine_config']);
+            const config = result.adblock_engine_config;
+            if (config && config.cosmeticEnabled === false) {
+                cosmeticEnabled = false;
+                return;
+            }
+
+            const selectors = getCosmeticSelectors();
+            const css = generateCosmeticCSS(selectors);
+
+            if (!css) return;
+
+            // Remove existing style element
+            if (cosmeticStyleElement && cosmeticStyleElement.parentNode) {
+                cosmeticStyleElement.parentNode.removeChild(cosmeticStyleElement);
+            }
+
+            // Create and inject new style element
+            cosmeticStyleElement = document.createElement('style');
+            cosmeticStyleElement.id = 'zas-adblock-cosmetic';
+            cosmeticStyleElement.type = 'text/css';
+            cosmeticStyleElement.textContent = css;
+
+            // Inject at document start if possible
+            const target = document.head || document.documentElement;
+            if (target) {
+                target.appendChild(cosmeticStyleElement);
+
+                // Count how many elements would be hidden by our selectors
+                let hiddenCount = 0;
+                try {
+                    for (const selector of selectors) {
+                        try {
+                            const elements = document.querySelectorAll(selector);
+                            hiddenCount += elements.length;
+                        } catch (e) {
+                            // Invalid selector, skip
+                        }
+                    }
+                } catch (e) {
+                    // Counting failed, that's okay
+                }
+
+                console.log('[ZAS AdBlock] Cosmetic: Injected', selectors.length, 'selectors, hiding', hiddenCount, 'elements');
+
+                // Report to background if we blocked anything
+                if (hiddenCount > 0) {
+                    try {
+                        chrome.runtime.sendMessage({
+                            type: 'ADBLOCK_COSMETIC_STATS',
+                            count: hiddenCount,
+                            domain: getCosmeticHostname()
+                        }, () => {
+                            if (chrome.runtime.lastError) { /* ignore */ }
+                        });
+                    } catch (e) { /* ignore */ }
+                }
+            }
+        } catch (error) {
+            console.log('[ZAS AdBlock] Cosmetic error:', error.message);
+        }
+    }
+
+    /**
+     * Debounce helper
+     */
+    function cosmeticDebounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    /**
+     * Record cosmetic activity
+     */
+    function recordCosmeticActivity() {
+        cosmeticLastActivity = Date.now();
+    }
+
+    /**
+     * Check for inactivity and stop observer
+     */
+    function checkCosmeticInactivity() {
+        const elapsed = Date.now() - cosmeticLastActivity;
+        if (elapsed > COSMETIC_INACTIVITY_MS) {
+            stopCosmeticObserver();
+            console.log('[ZAS AdBlock] Cosmetic: Stopped due to inactivity');
+        }
+    }
+
+    /**
+     * Start cosmetic MutationObserver
+     */
+    function startCosmeticObserver() {
+        if (cosmeticObserver) return;
+
+        const debouncedInject = cosmeticDebounce(injectCosmeticCSS, COSMETIC_DEBOUNCE_MS);
+
+        cosmeticObserver = new MutationObserver((mutations) => {
+            recordCosmeticActivity();
+
+            // Check if any mutations added new elements
+            let shouldReinject = false;
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    shouldReinject = true;
+                    break;
+                }
+            }
+
+            if (shouldReinject) {
+                debouncedInject();
+            }
+        });
+
+        cosmeticObserver.observe(document.body || document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+
+        // Set up inactivity check
+        cosmeticInactivityTimer = setInterval(checkCosmeticInactivity, 5000);
+
+        console.log('[ZAS AdBlock] Cosmetic observer started');
+    }
+
+    /**
+     * Stop cosmetic MutationObserver
+     */
+    function stopCosmeticObserver() {
+        if (cosmeticObserver) {
+            cosmeticObserver.disconnect();
+            cosmeticObserver = null;
+        }
+        if (cosmeticInactivityTimer) {
+            clearInterval(cosmeticInactivityTimer);
+            cosmeticInactivityTimer = null;
+        }
+    }
+
+    /**
+     * Initialize cosmetic filtering
+     */
+    async function initCosmeticFiltering() {
+        // Skip on extension pages
+        if (window.location.href.startsWith('chrome-extension://')) return;
+        if (window.location.href.startsWith('chrome://')) return;
+
+        // Inject CSS immediately
+        await injectCosmeticCSS();
+
+        // Start observer when DOM is ready
+        if (document.body) {
+            startCosmeticObserver();
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                startCosmeticObserver();
+            });
+        }
+
+        // Re-inject on scroll (new content may load)
+        document.addEventListener('scroll', cosmeticDebounce(() => {
+            recordCosmeticActivity();
+            if (!cosmeticObserver) {
+                startCosmeticObserver();
+            }
+        }, 500), { passive: true });
+    }
+
+    // Initialize cosmetic filtering
+    initCosmeticFiltering();
+
+    // ============================================
     // EXTENSION CHECK
     // ============================================
 
     // Periodically verify extension is still running
     setInterval(() => {
-        chrome.runtime.sendMessage({ type: 'PING' }).catch(() => {
-            // Extension might be disabled - show warning
-            console.warn('ZAS Safeguard: Extension communication lost');
-        });
+        try {
+            chrome.runtime.sendMessage({ type: 'PING' }, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('ZAS Safeguard: Extension communication lost');
+                }
+            });
+        } catch (e) { /* ignore */ }
     }, 30000);
 
     // ============================================
@@ -319,27 +691,36 @@
             // Skip if page has too little content
             if (pageData.text.length < 100) return;
 
-            // Send to background script for analysis
-            const result = await chrome.runtime.sendMessage({
+            // Send to background script for analysis (use callback style)
+            chrome.runtime.sendMessage({
                 type: 'ANALYZE_CONTENT_FOR_ADULT',
                 data: pageData
+            }, (result) => {
+                if (chrome.runtime.lastError) {
+                    console.log('[ZAS] AI analysis error:', chrome.runtime.lastError.message);
+                    return;
+                }
+
+                // Mark as analyzed
+                sessionStorage.setItem(cacheKey, 'analyzed');
+
+                // Block if adult content detected
+                if (result?.blocked) {
+                    showBlockingOverlay(result.reason || 'AI detected adult content');
+
+                    // Log the AI block
+                    try {
+                        chrome.runtime.sendMessage({
+                            type: 'AI_CONTENT_BLOCKED',
+                            url: pageData.url,
+                            classification: result.classification,
+                            confidence: result.confidence
+                        }, () => {
+                            if (chrome.runtime.lastError) { /* ignore */ }
+                        });
+                    } catch (e) { /* ignore */ }
+                }
             });
-
-            // Mark as analyzed
-            sessionStorage.setItem(cacheKey, 'analyzed');
-
-            // Block if adult content detected
-            if (result?.blocked) {
-                showBlockingOverlay(result.reason || 'AI detected adult content');
-
-                // Log the AI block
-                chrome.runtime.sendMessage({
-                    type: 'AI_CONTENT_BLOCKED',
-                    url: pageData.url,
-                    classification: result.classification,
-                    confidence: result.confidence
-                }).catch(() => { });
-            }
 
         } catch (error) {
             console.log('[ZAS] AI content analysis skipped:', error.message);
@@ -354,5 +735,117 @@
             setTimeout(analyzePageForAdultContent, 2000);
         });
     }
+
+    // ============================================
+    // DASHBOARD MESSAGE RELAY
+    // Listen for messages from ZAS Dashboard and relay to background
+    // ============================================
+
+    window.addEventListener('message', (event) => {
+        // Only accept messages from same origin and with zas-dashboard source
+        if (event.source !== window) return;
+        if (!event.data || event.data.source !== 'zas-dashboard') return;
+
+        console.log('[ZAS Content] Received dashboard message:', event.data.type);
+
+        // Relay to background script (use callback style, not Promise)
+        const { source, ...message } = event.data;
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.log('[ZAS Content] Background error:', chrome.runtime.lastError.message);
+                } else {
+                    console.log('[ZAS Content] Background response:', response);
+                }
+            });
+        } catch (error) {
+            console.log('[ZAS Content] sendMessage failed:', error);
+        }
+    });
+
+    // ============================================
+    // AUTO-ANNOUNCE EXTENSION ID TO DASHBOARD
+    // When on ZAS domains, send extension ID so dashboard can communicate
+    // ============================================
+
+    function announceExtensionIdToDashboard() {
+        const hostname = window.location.hostname;
+        const isZasDomain =
+            hostname.includes('zas-safeguard.web.app') ||
+            hostname.includes('zassafeguard.com') ||
+            hostname.includes('zasgloballlc.com') ||
+            hostname === 'localhost';
+
+        if (isZasDomain) {
+            // Get extension ID and send to page
+            const extensionId = chrome.runtime.id;
+            console.log('[ZAS Content] Announcing extension ID to dashboard:', extensionId);
+
+            // Post message to page - dashboard will listen for this
+            window.postMessage({
+                source: 'zas-extension',
+                type: 'EXTENSION_ID_ANNOUNCEMENT',
+                extensionId: extensionId
+            }, '*');
+
+            // Also store in localStorage for persistence
+            try {
+                localStorage.setItem('zasExtensionId', extensionId);
+            } catch (e) {
+                // localStorage might be blocked
+            }
+        }
+    }
+
+    // Announce on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', announceExtensionIdToDashboard);
+    } else {
+        announceExtensionIdToDashboard();
+    }
+
+    // ============================================
+    // GRACEFUL OFFLINE DETECTION
+    // Prevents false tamper alerts when user closes browser normally
+    // ============================================
+
+    // Track visibility changes
+    document.addEventListener('visibilitychange', () => {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'VISIBILITY_CHANGE',
+                hidden: document.hidden,
+                url: window.location.href
+            }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+    });
+
+    // Track page hide (tab close, navigation away)
+    window.addEventListener('pagehide', (event) => {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'PAGE_UNLOAD',
+                hint: event.persisted ? 'pagehide_persisted' : 'pagehide',
+                url: window.location.href
+            }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+    });
+
+    // Track before unload (page refresh, close)
+    window.addEventListener('beforeunload', () => {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'PAGE_UNLOAD',
+                hint: 'beforeunload',
+                url: window.location.href
+            }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+    });
 
 })();

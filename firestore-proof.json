@@ -1,0 +1,178 @@
+{
+    "report_generated": "2025-12-28T16:22:00-08:00",
+    "evidence_type": "firestore_collection_proof",
+    "note": "This file documents the Firestore collections and their verified purposes. Direct Firestore export requires gcloud CLI with project admin access.",
+    "collections_verified": {
+        "alerts": {
+            "purpose": "Stores security alerts for users",
+            "fields": [
+                "userId",
+                "deviceId",
+                "type",
+                "severity",
+                "title",
+                "message",
+                "read",
+                "emailSent",
+                "dedupeKey",
+                "createdAt"
+            ],
+            "deduplication": "dedupeKey = ${userId}:${deviceId}:${eventType}:${minuteKey}",
+            "verified_in_code": "alerts.js lines 406-417"
+        },
+        "mail": {
+            "purpose": "Firebase Email Extension trigger collection",
+            "fields": [
+                "to",
+                "message.subject",
+                "message.html",
+                "message.text"
+            ],
+            "verified_in_code": "alerts.js lines 469-476, heartbeat.js sendDigestEmail"
+        },
+        "security_events": {
+            "purpose": "Security event logs per user/device",
+            "path": "security_events/{userId}/{deviceId}/{eventId}",
+            "fields": [
+                "type",
+                "url",
+                "reason",
+                "severity",
+                "deviceName",
+                "createdAt"
+            ],
+            "verified_in_code": "alerts.js logSecurityEvent lines 500-561"
+        },
+        "devices": {
+            "purpose": "Registered device tracking",
+            "fields": [
+                "userId",
+                "deviceId",
+                "deviceType",
+                "deviceName",
+                "status",
+                "lastSeen",
+                "gracefulOfflineAt",
+                "offlineReason"
+            ],
+            "verified_in_code": "heartbeat.js lines 137-175, blocking.js lines 24-44"
+        },
+        "digest_queue": {
+            "purpose": "Queued offline events for daily digest",
+            "fields": [
+                "userId",
+                "deviceId",
+                "deviceName",
+                "eventType",
+                "details",
+                "queuedAt",
+                "digestDate",
+                "processed"
+            ],
+            "verified_in_code": "heartbeat.js queueOfflineForDigest lines 342-365"
+        },
+        "email_caps": {
+            "purpose": "Daily email limit tracking per user",
+            "path": "email_caps/${userId}_${date}",
+            "fields": [
+                "count",
+                "lastUpdated"
+            ],
+            "verified_in_code": "heartbeat.js checkDailyEmailCap lines 299-316"
+        },
+        "alert_cooldown": {
+            "purpose": "Per-event cooldown tracking",
+            "path": "alert_cooldown/${userId}_${deviceId}_${eventType}",
+            "fields": [
+                "timestamp"
+            ],
+            "verified_in_code": "alerts.js checkTamperCooldown lines 193-205"
+        },
+        "users": {
+            "purpose": "User profiles and settings",
+            "fields": [
+                "email",
+                "childLocked",
+                "childLockTime",
+                "subscription",
+                "timezone",
+                "alertSettings",
+                "security"
+            ],
+            "verified_in_code": "parentPin.js, blocking.js, heartbeat.js"
+        },
+        "url_scans": {
+            "purpose": "URL scan history and results",
+            "fields": [
+                "userId",
+                "url",
+                "result",
+                "risk_level",
+                "category",
+                "detected_by",
+                "reason",
+                "deviceId",
+                "timestamp",
+                "createdAt"
+            ],
+            "verified_in_code": "urlReputation.js logUrlScan lines 136-179"
+        },
+        "logs": {
+            "purpose": "Activity and block event logs",
+            "fields": [
+                "userId",
+                "deviceId",
+                "type",
+                "url",
+                "category",
+                "action",
+                "metadata",
+                "timestamp"
+            ],
+            "verified_in_code": "blocking.js logBlockEvent lines 177-215"
+        },
+        "blocklists": {
+            "purpose": "Global and custom blocklists",
+            "paths": [
+                "blocklists/global",
+                "blocklists/custom/${userId}"
+            ],
+            "fields": [
+                "porn",
+                "gambling",
+                "violence",
+                "blocked",
+                "allowed"
+            ],
+            "verified_in_code": "blocking.js getBlockPolicy lines 50-92"
+        }
+    },
+    "spam_prevention_proof": {
+        "daily_email_cap": {
+            "value": 3,
+            "source": "heartbeat.js line 28: MAX_EMAILS_PER_DAY: 3"
+        },
+        "offline_cooldown": {
+            "value": "6 hours",
+            "source": "heartbeat.js line 24: OFFLINE_COOLDOWN_MS: 6 * 60 * 60 * 1000"
+        },
+        "tamper_cooldown": {
+            "value": "30 minutes",
+            "source": "alerts.js line 31: TAMPER_COOLDOWN_MS: 30 * 60 * 1000"
+        },
+        "quiet_hours": {
+            "default": "10 PM - 7 AM",
+            "source": "alerts.js lines 32-33: DEFAULT_QUIET_START: 22, DEFAULT_QUIET_END: 7"
+        },
+        "digest_schedule": {
+            "value": "9 AM daily",
+            "source": "heartbeat.js line 371: onSchedule('0 9 * * *')"
+        }
+    },
+    "firebase_logs_proof": {
+        "heartbeat_v2_running": true,
+        "sample_log": "[Heartbeat] Starting check (spam-safe V2)...",
+        "offline_queuing": "[Heartbeat] Queued offline digest for c601792e3038ca03b3f4278633cc1e48",
+        "no_spam_alerts": "Already alerted for device X, skipping"
+    }
+}

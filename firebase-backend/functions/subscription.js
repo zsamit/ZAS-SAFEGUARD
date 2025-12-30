@@ -435,3 +435,182 @@ exports.handleTrialEnd = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'Failed to handle trial end');
     }
 });
+
+/**
+ * Create Stripe Customer Portal session
+ * Allows users to manage their subscription, payment methods, and view invoices
+ */
+exports.createPortalSession = functions
+    .runWith({
+        memory: '512MB',
+        timeoutSeconds: 60,
+        secrets: ['STRIPE_SECRET_KEY']
+    })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const uid = context.auth.uid;
+        const { returnUrl } = data;
+
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new functions.https.HttpsError('failed-precondition', 'Stripe not configured');
+        }
+
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+        try {
+            // Get user's Stripe customer ID
+            const userDoc = await db.doc(`users/${uid}`).get();
+            const customerId = userDoc.data()?.subscription?.stripe_customer_id;
+
+            if (!customerId) {
+                throw new functions.https.HttpsError(
+                    'failed-precondition',
+                    'No subscription found. Please subscribe first.'
+                );
+            }
+
+            // Create portal session
+            const session = await stripe.billingPortal.sessions.create({
+                customer: customerId,
+                return_url: returnUrl || 'https://zassafeguard.com/app/settings',
+            });
+
+            return {
+                success: true,
+                url: session.url
+            };
+        } catch (error) {
+            console.error('Portal session error:', error);
+            if (error instanceof functions.https.HttpsError) throw error;
+            throw new functions.https.HttpsError('internal', `Portal creation failed: ${error.message}`);
+        }
+    });
+
+/**
+ * Get user's invoices from Stripe
+ */
+exports.getInvoices = functions
+    .runWith({
+        memory: '512MB',
+        timeoutSeconds: 60,
+        secrets: ['STRIPE_SECRET_KEY']
+    })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const uid = context.auth.uid;
+        const { limit = 10 } = data;
+
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new functions.https.HttpsError('failed-precondition', 'Stripe not configured');
+        }
+
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+        try {
+            // Get user's Stripe customer ID
+            const userDoc = await db.doc(`users/${uid}`).get();
+            const customerId = userDoc.data()?.subscription?.stripe_customer_id;
+
+            if (!customerId) {
+                return { success: true, invoices: [], message: 'No billing history' };
+            }
+
+            // Fetch invoices
+            const invoices = await stripe.invoices.list({
+                customer: customerId,
+                limit: Math.min(limit, 100),
+            });
+
+            // Map to simplified format
+            const formattedInvoices = invoices.data.map(inv => ({
+                id: inv.id,
+                number: inv.number,
+                amount: inv.amount_due / 100,
+                currency: inv.currency.toUpperCase(),
+                status: inv.status,
+                date: new Date(inv.created * 1000).toISOString(),
+                pdfUrl: inv.invoice_pdf,
+                hostedUrl: inv.hosted_invoice_url,
+            }));
+
+            return {
+                success: true,
+                invoices: formattedInvoices
+            };
+        } catch (error) {
+            console.error('Get invoices error:', error);
+            throw new functions.https.HttpsError('internal', `Failed to fetch invoices: ${error.message}`);
+        }
+    });
+
+/**
+ * Get user's subscription status (real data from Firestore + Stripe)
+ * Used by dashboard and extension to display correct plan
+ */
+exports.getSubscription = functions
+    .runWith({ memory: '512MB', timeoutSeconds: 60 })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const uid = context.auth.uid;
+
+        try {
+            // Get user data
+            const userDoc = await db.doc(`users/${uid}`).get();
+            if (!userDoc.exists) {
+                throw new functions.https.HttpsError('not-found', 'User not found');
+            }
+
+            const userData = userDoc.data();
+            const subscription = userData.subscription || {};
+
+            // Get subscription record for more details
+            const subDoc = await db.doc(`subscriptions/${uid}`).get();
+            const subData = subDoc.exists ? subDoc.data() : {};
+
+            // Determine plan type
+            let planType = 'free';
+            let planStatus = subscription.plan_status || 'inactive';
+
+            // Check for lifetime purchase
+            if (subscription.plan === 'lifetime' || subData.plan === 'lifetime') {
+                planType = 'lifetime';
+                planStatus = 'active';
+            } else if (planStatus === 'active' || planStatus === 'trialing') {
+                planType = subscription.plan || subData.plan || 'pro';
+            }
+
+            // Calculate days remaining in trial
+            let trialDaysRemaining = 0;
+            if (subscription.trial_active && subscription.trial_end) {
+                const trialEnd = subscription.trial_end.toDate();
+                trialDaysRemaining = Math.max(0, Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24)));
+            }
+
+            return {
+                success: true,
+                subscription: {
+                    plan: planType,
+                    status: planStatus,
+                    trialActive: subscription.trial_active || false,
+                    trialDaysRemaining,
+                    currentPeriodEnd: subData.current_period_end?.toDate?.()?.toISOString() || null,
+                    customerId: subscription.stripe_customer_id || null,
+                    hasPaymentMethod: !!subscription.stripe_customer_id
+                }
+            };
+        } catch (error) {
+            console.error('Get subscription error:', error);
+            if (error instanceof functions.https.HttpsError) throw error;
+            throw new functions.https.HttpsError('internal', `Failed to get subscription: ${error.message}`);
+        }
+    });
+

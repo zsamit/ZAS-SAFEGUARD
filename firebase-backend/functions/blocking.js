@@ -8,10 +8,16 @@ const admin = require('firebase-admin');
 
 const db = admin.firestore();
 
+// Runtime config for memory-intensive functions
+const runtimeOpts = {
+    timeoutSeconds: 60,
+    memory: '512MB'
+};
+
 /**
  * Get active block policy for a device
  */
-exports.getBlockPolicy = functions.https.onCall(async (data, context) => {
+exports.getBlockPolicy = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -133,6 +139,16 @@ exports.getBlockPolicy = functions.https.onCall(async (data, context) => {
         return {
             success: true,
             policy,
+            // Include subscription info so extension knows user's plan
+            subscription: {
+                plan: userData?.subscription?.plan || 'free',
+                status: userData?.subscription?.status || 'trial'
+            },
+            // Include lock status for command execution
+            commands: {
+                childLocked: userData?.childLocked || false,
+                lockTime: userData?.childLockTime?.toDate?.()?.toISOString() || null
+            }
         };
     } catch (error) {
         console.error('Get block policy error:', error);

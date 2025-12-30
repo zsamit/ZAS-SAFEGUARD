@@ -23,7 +23,7 @@
                     "order": "ASCENDING"
                 },
                 {
-                    "fieldPath": "type",
+                    "fieldPath": "action",
                     "order": "ASCENDING"
                 },
                 {
@@ -33,7 +33,7 @@
             ]
         },
         {
-            "collectionGroup": "devices",
+            "collectionGroup": "alerts",
             "queryScope": "COLLECTION",
             "fields": [
                 {
@@ -41,13 +41,13 @@
                     "order": "ASCENDING"
                 },
                 {
-                    "fieldPath": "lastSeen",
+                    "fieldPath": "createdAt",
                     "order": "DESCENDING"
                 }
             ]
         },
         {
-            "collectionGroup": "override_requests",
+            "collectionGroup": "alerts",
             "queryScope": "COLLECTION",
             "fields": [
                 {
@@ -55,21 +55,21 @@
                     "order": "ASCENDING"
                 },
                 {
-                    "fieldPath": "requestedAt",
-                    "order": "DESCENDING"
+                    "fieldPath": "read",
+                    "order": "ASCENDING"
                 }
             ]
         },
         {
-            "collectionGroup": "children",
+            "collectionGroup": "alerts",
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "parentUid",
+                    "fieldPath": "userId",
                     "order": "ASCENDING"
                 },
                 {
-                    "fieldPath": "created_at",
+                    "fieldPath": "dedupeKey",
                     "order": "ASCENDING"
                 }
             ]

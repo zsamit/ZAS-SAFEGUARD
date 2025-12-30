@@ -206,3 +206,106 @@ exports.initializeDevice = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'Failed to initialize device');
     }
 });
+
+/**
+ * Delete user account completely
+ * Deletes: Firebase Auth, Firestore user doc, devices, alerts, security_events, logs
+ * IRREVERSIBLE
+ */
+exports.deleteAccount = functions
+    .runWith({ memory: '512MB', timeoutSeconds: 120 })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const uid = context.auth.uid;
+        const { confirmDelete } = data;
+
+        // Require explicit confirmation
+        if (confirmDelete !== 'DELETE_MY_ACCOUNT') {
+            throw new functions.https.HttpsError(
+                'failed-precondition',
+                'Must confirm deletion with confirmDelete: "DELETE_MY_ACCOUNT"'
+            );
+        }
+
+        console.log(`[deleteAccount] Starting deletion for user: ${uid}`);
+
+        try {
+            const batch = db.batch();
+            const BATCH_SIZE = 400; // Leave room in 500 batch limit
+            let deletedCounts = { devices: 0, alerts: 0, securityEvents: 0, logs: 0 };
+
+            // 1. Delete user's devices
+            const devicesSnap = await db.collection('devices')
+                .where('userId', '==', uid)
+                .limit(BATCH_SIZE)
+                .get();
+            devicesSnap.docs.forEach(doc => {
+                batch.delete(doc.ref);
+                deletedCounts.devices++;
+            });
+
+            // 2. Delete user's alerts
+            const alertsSnap = await db.collection('alerts')
+                .where('userId', '==', uid)
+                .limit(BATCH_SIZE)
+                .get();
+            alertsSnap.docs.forEach(doc => {
+                batch.delete(doc.ref);
+                deletedCounts.alerts++;
+            });
+
+            // 3. Delete security_events subcollections
+            const secEventsRef = db.collection(`security_events/${uid}`);
+            // Get all device subcollections
+            const deviceCollections = await db.collectionGroup('events')
+                .where('userId', '==', uid)
+                .limit(BATCH_SIZE)
+                .get();
+            deviceCollections.docs.forEach(doc => {
+                batch.delete(doc.ref);
+                deletedCounts.securityEvents++;
+            });
+
+            // 4. Delete user's logs
+            const logsSnap = await db.collection('logs')
+                .where('userId', '==', uid)
+                .limit(BATCH_SIZE)
+                .get();
+            logsSnap.docs.forEach(doc => {
+                batch.delete(doc.ref);
+                deletedCounts.logs++;
+            });
+
+            // 5. Delete alert_settings
+            batch.delete(db.doc(`alert_settings/${uid}`));
+
+            // 6. Delete family_profiles
+            batch.delete(db.doc(`family_profiles/${uid}`));
+
+            // 7. Delete owner_profiles
+            batch.delete(db.doc(`owner_profiles/${uid}`));
+
+            // 8. Delete user document
+            batch.delete(db.doc(`users/${uid}`));
+
+            // Commit batch
+            await batch.commit();
+            console.log(`[deleteAccount] Firestore data deleted:`, deletedCounts);
+
+            // 9. Delete Firebase Auth user
+            await admin.auth().deleteUser(uid);
+            console.log(`[deleteAccount] Auth user deleted: ${uid}`);
+
+            return {
+                success: true,
+                message: 'Account permanently deleted',
+                deleted: deletedCounts
+            };
+        } catch (error) {
+            console.error('[deleteAccount] Error:', error);
+            throw new functions.https.HttpsError('internal', `Account deletion failed: ${error.message}`);
+        }
+    });

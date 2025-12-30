@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "ZAS Safeguard",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "description": "Protect yourself and your family from harmful content with ZAS Safeguard - the ultimate digital blocker.",
     "permissions": [
         "storage",
@@ -49,6 +49,31 @@
                 "id": "ruleset_block",
                 "enabled": true,
                 "path": "rules/block_rules.json"
+            },
+            {
+                "id": "adblock_ads",
+                "enabled": true,
+                "path": "rules/adblock_ads.json"
+            },
+            {
+                "id": "adblock_trackers",
+                "enabled": true,
+                "path": "rules/adblock_trackers.json"
+            },
+            {
+                "id": "adblock_malware",
+                "enabled": true,
+                "path": "rules/adblock_malware.json"
+            },
+            {
+                "id": "adblock_annoyances",
+                "enabled": false,
+                "path": "rules/adblock_annoyances.json"
+            },
+            {
+                "id": "adblock_social",
+                "enabled": false,
+                "path": "rules/adblock_social.json"
             }
         ]
     },
@@ -74,6 +99,7 @@
     },
     "externally_connectable": {
         "matches": [
+            "https://zassafeguard.com/*",
             "https://zasgloballlc.com/*",
             "https://zas-safeguard.web.app/*",
             "https://zas-global-llc.web.app/*",

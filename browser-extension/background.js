@@ -8,13 +8,28 @@
  * - Device ID management
  * - Offline fallback blocking
  * - Version management
+ * - Ad Blocker Engine (NEW)
  */
+
+// Import Ad Blocker modules (inline for service worker compatibility)
+// Note: Service workers don't support ES modules well, so we use inline loading
+let AdBlockEngine = null;
+let AdBlockStats = null;
+let AdBlockAntiBreakage = null;
+let FilterListParser = null;
+let FilterListManager = null;
+
+// Filter list modules will be loaded inline during init
+// (ES modules with "type": "module" don't support importScripts)
 
 // ============================================
 // CONFIGURATION
 // ============================================
 const CONFIG = {
     FIREBASE_API_ENDPOINT: 'https://us-central1-zas-safeguard.cloudfunctions.net',
+    FIREBASE_FUNCTIONS_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net',
+    // 2nd gen Cloud Run function URLs
+    UPDATE_DEVICE_STATUS_URL: 'https://updatedevicestatus-xwlk3qzrrq-uc.a.run.app',
     SYNC_INTERVAL_MINUTES: 15,
     OFFLINE_BLOCKLIST_KEY: 'offline_blocklist',
     DEVICE_ID_KEY: 'device_id',
@@ -91,13 +106,16 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
         // Redirect to dashboard for TOS agreement
         chrome.tabs.create({
-            url: 'https://zasgloballlc.com/safeguard/app/?install=true&ext=zas-safeguard'
+            url: 'https://zassafeguard.com/app/?install=true&ext=' + chrome.runtime.id
         });
     }
 
     // Set up periodic sync
     chrome.alarms.create('syncBlocklist', { periodInMinutes: CONFIG.SYNC_INTERVAL_MINUTES });
     chrome.alarms.create('heartbeat', { periodInMinutes: 1 });
+
+    // Initialize Ad Blocker Engine
+    initAdBlockEngine();
 });
 
 // Listen for TOS agreement from landing page
@@ -108,21 +126,48 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         console.log('TOS agreed by user');
     }
     if (message.type === 'PLAN_UPDATE') {
-        chrome.storage.local.set({ planType: message.plan });
+        chrome.storage.local.set({
+            planType: message.plan,
+            subscriptionStatus: message.status || message.plan
+        });
         sendResponse({ success: true });
-        console.log('Plan updated:', message.plan);
+        console.log('Plan updated:', message.plan, 'Status:', message.status);
+    }
+    // Handle LOGIN from dashboard - store Firebase auth token
+    if (message.type === 'LOGIN') {
+        console.log('[Auth] Received LOGIN from dashboard');
+        if (message.token) {
+            chrome.storage.local.set({
+                [CONFIG.USER_TOKEN_KEY]: message.token,
+                loggedInUserId: message.userId
+            }).then(() => {
+                // Sync immediately after login
+                syncWithFirebase();
+                sendResponse({ success: true });
+            });
+        } else {
+            sendResponse({ success: false, error: 'No token provided' });
+        }
+    }
+    // Handle LOGOUT from dashboard
+    if (message.type === 'LOGOUT') {
+        console.log('[Auth] Received LOGOUT from dashboard');
+        chrome.storage.local.remove([CONFIG.USER_TOKEN_KEY, CONFIG.POLICY_KEY, 'loggedInUserId']).then(() => {
+            sendResponse({ success: true });
+        });
     }
     if (message.type === 'STUDY_MODE_START') {
-        console.log('[StudyMode] Received start message:', message.session);
-        // Save to local storage
+        console.log('[StudyMode] Received start message from dashboard:', message.session);
         chrome.storage.local.set({
             activeStudySession: message.session,
             studyBlockCategories: message.session.blockCategories
-        }).then(() => {
-            // Apply blocking immediately
-            updateBlockingWithCategories(message.session.blockCategories);
+        }).then(async () => {
+            // Apply blocking immediately!
+            await updateBlockingWithCategories(message.session.blockCategories);
+            console.log('[StudyMode] Focus Mode blocking ACTIVE for:', message.session.blockCategories);
             sendResponse({ success: true });
         });
+        return true; // Keep channel open for async
     }
     if (message.type === 'STUDY_MODE_STOP') {
         console.log('[StudyMode] Received stop message');
@@ -149,6 +194,69 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         chrome.storage.local.set({ userSettings: message.settings });
         sendResponse({ success: true });
     }
+    if (message.type === 'CHILD_LOCK') {
+        console.log('[ChildLock] Received lock command:', message.locked);
+        chrome.storage.local.set({
+            childLocked: message.locked,
+            childLockTime: new Date().toISOString()
+        }).then(() => {
+            if (message.locked) {
+                // Lock everything - only allow essential sites
+                const ESSENTIAL_SITES = [
+                    '*://*.google.com/*', '*://*.google.com/*',
+                    '*://*.zasgloballlc.com/*', '*://*.zas-safeguard.web.app/*'
+                ];
+                // Block all by redirecting all URLs except essential
+                applyChildLock(true);
+            } else {
+                // Unlock - restore normal blocking
+                applyChildLock(false);
+            }
+            sendResponse({ success: true });
+        });
+    }
+    if (message.type === 'GET_EXTENSION_ID') {
+        // Return extension ID for dashboard to use
+        sendResponse({ extensionId: chrome.runtime.id });
+    }
+
+    // ============================================
+    // AD BLOCKER HANDLERS
+    // ============================================
+
+    if (message.type === 'ADBLOCK_GET_STATS') {
+        handleAdBlockGetStats()
+            .then(stats => sendResponse({ stats }))
+            .catch(error => sendResponse({ error: error.message }));
+        return true; // Async response
+    }
+
+    if (message.type === 'ADBLOCK_SET_CATEGORY') {
+        (async () => {
+            const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+            const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+            config.categories[message.category] = message.enabled;
+            await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
+            await applyAdBlockConfig(config);
+            sendResponse({ success: true, config });
+        })();
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_ADD_ALLOWLIST') {
+        handleAdBlockAddAllowlist(message.domain)
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ error: error.message }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_REMOVE_ALLOWLIST') {
+        handleAdBlockRemoveAllowlist(message.domain)
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ error: error.message }));
+        return true;
+    }
+
     return true;
 });
 
@@ -159,6 +267,153 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     } else if (alarm.name === 'heartbeat') {
         await sendHeartbeat();
     }
+});
+
+// ============================================
+// INTERNAL MESSAGE HANDLER (from content scripts)
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[Background] Received internal message:', message.type);
+
+    if (message.type === 'CHILD_LOCK') {
+        console.log('[ChildLock] Lock command from content script:', message.locked);
+        chrome.storage.local.set({
+            childLocked: message.locked,
+            childLockTime: new Date().toISOString()
+        }).then(() => {
+            applyChildLock(message.locked);
+            sendResponse({ success: true });
+        });
+        return true; // Keep channel open for async response
+    }
+
+    if (message.type === 'STUDY_MODE_START') {
+        console.log('[StudyMode] Start from content script:', message.session);
+        chrome.storage.local.set({
+            activeStudySession: message.session,
+            studyBlockCategories: message.session.blockCategories
+        }).then(async () => {
+            // Directly apply blocking NOW - don't wait for debounced listener
+            await updateBlockingWithCategories(message.session.blockCategories);
+            console.log('[StudyMode] Blocking applied for categories:', message.session.blockCategories);
+            sendResponse({ success: true });
+        });
+        return true;
+    }
+
+    if (message.type === 'STUDY_MODE_STOP') {
+        console.log('[StudyMode] Stop from content script');
+        chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']).then(() => {
+            updateBlockingRules(DEFAULT_BLOCKLIST);
+            sendResponse({ success: true });
+        });
+        return true;
+    }
+
+    // Handle DevTools detection from content script
+    if (message.type === 'DEV_TOOLS_OPENED') {
+        console.log('[Security] DevTools opened detected on:', message.url);
+        logSecurityEvent('DEVTOOLS_OPENED', {
+            url: message.url,
+            reason: 'Developer tools were opened on a monitored page',
+            severity: 'medium'
+        });
+        sendResponse({ received: true });
+        return false;
+    }
+
+    if (message.type === 'PING') {
+        sendResponse({ status: 'alive', version: EXTENSION_VERSION });
+        return false;
+    }
+
+    // ============================================
+    // AD BLOCKER MESSAGE HANDLERS
+    // ============================================
+
+    if (message.type === 'ADBLOCK_ENABLE') {
+        handleAdBlockEnable().then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_DISABLE') {
+        handleAdBlockDisable().then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_SET_CATEGORY') {
+        handleAdBlockSetCategory(message.category, message.enabled)
+            .then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_ADD_ALLOWLIST') {
+        handleAdBlockAddAllowlist(message.domain)
+            .then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_REMOVE_ALLOWLIST') {
+        handleAdBlockRemoveAllowlist(message.domain)
+            .then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_GET_ALLOWLIST') {
+        handleAdBlockGetAllowlist().then(list => sendResponse({ allowlist: list }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_SET_SITE_MODE') {
+        handleAdBlockSetSiteMode(message.domain, message.mode)
+            .then(() => sendResponse({ success: true }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_GET_STATS') {
+        handleAdBlockGetStats().then(stats => sendResponse({ stats }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_GET_CONFIG') {
+        handleAdBlockGetConfig().then(config => sendResponse({ config }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_BREAKAGE') {
+        console.log('[AdBlock] Breakage reported for:', message.domain);
+        logSecurityEvent('ADBLOCK_BREAKAGE', {
+            domain: message.domain,
+            timestamp: message.timestamp,
+            severity: 'low'
+        });
+        sendResponse({ received: true });
+        return false;
+    }
+
+    // Handle cosmetic filter stats from content script
+    if (message.type === 'ADBLOCK_COSMETIC_STATS') {
+        console.log('[AdBlock] Cosmetic stats from', message.domain, ':', message.count, 'elements blocked');
+        // Increment stats by the count of hidden elements
+        (async () => {
+            for (let i = 0; i < Math.min(message.count, 100); i++) {
+                await incrementAdBlockStat('ads');
+            }
+        })();
+        sendResponse({ received: true });
+        return false;
+    }
+
+    // Handle URL scan from popup
+    if (message.type === 'SCAN_URL') {
+        console.log('[URLScanner] Popup scan request for:', message.url);
+        scanUrlForThreats(message.url)
+            .then(result => sendResponse(result))
+            .catch(error => sendResponse({ safe: true, error: error.message }));
+        return true; // Async response
+    }
+
+    return false;
 });
 
 // ============================================
@@ -191,7 +446,39 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
     const url = details.url;
 
-    // Skip internal URLs
+    // TAMPER DETECTION: Detect navigation to chrome://extensions (potential disable/uninstall attempt)
+    if (url.startsWith('chrome://extensions') || url.startsWith('edge://extensions')) {
+        console.log('[Tamper] User navigated to extensions page - potential tamper attempt');
+
+        // Log as security event (sends alert to parent/dashboard)
+        const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY, 'loggedInUserId']);
+        if (storage[CONFIG.USER_TOKEN_KEY] && storage[CONFIG.DEVICE_ID_KEY]) {
+            try {
+                await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEvent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${storage[CONFIG.USER_TOKEN_KEY]}`
+                    },
+                    body: JSON.stringify({
+                        deviceId: storage[CONFIG.DEVICE_ID_KEY],
+                        eventType: 'TAMPER_ATTEMPT',
+                        details: {
+                            action: 'extensions_page_opened',
+                            message: 'User opened browser extensions page - may attempt to disable protection'
+                        }
+                    })
+                });
+                console.log('[Tamper] Alert sent to dashboard');
+            } catch (err) {
+                console.error('[Tamper] Failed to send alert:', err);
+            }
+        }
+        // Don't block - just alert
+        return;
+    }
+
+    // Skip other internal URLs
     if (url.startsWith('chrome://') ||
         url.startsWith('chrome-extension://') ||
         url.startsWith('about:') ||
@@ -207,15 +494,28 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return;
     }
 
-    // Check if user has Pro plan for URL scanning
-    const { planType } = await chrome.storage.local.get('planType');
-    const isProPlan = ['pro_monthly', 'pro_yearly', 'pro', 'lifetime'].includes(planType);
+    // Check if user has Pro plan for URL scanning (check multiple storage keys)
+    const stored = await chrome.storage.local.get(['planType', 'subscriptionPlan', 'subscriptionStatus']);
+    const planType = stored.planType || stored.subscriptionPlan || '';
+    const status = stored.subscriptionStatus || '';
 
-    if (!isProPlan) {
-        // Essential users don't get URL safety scanning
-        console.log('[ZAS] Essential plan - URL scanning is Pro feature');
-        return;
-    }
+    // Be flexible with plan matching
+    const isProPlan =
+        planType === 'lifetime' ||
+        planType === 'pro' ||
+        planType.includes('pro') ||
+        status === 'lifetime' ||
+        ['pro_monthly', 'pro_yearly', 'essential_monthly', 'essential_yearly'].includes(planType);
+
+    console.log('[URLScanner] Plan check:', { planType, status, isProPlan });
+
+    // if (!isProPlan) {
+    //     // Free users don't get URL safety scanning
+    //     console.log('[ZAS] Free plan - URL scanning is Pro feature (Check disabled for testing)');
+    //     // return;
+    // }
+
+    console.log('[URLScanner] Scanning:', url);
 
     // Check URL safety (Pro feature)
     const scanResult = await scanUrlForThreats(url);
@@ -300,6 +600,28 @@ async function scanUrlForThreats(url) {
             return result;
         }
 
+        // Layer D: Cloud Function API (Google Safe Browsing + AI) - REAL detection
+        try {
+            const cloudResult = await checkUrlViaCloudFunction(url);
+            if (cloudResult && !cloudResult.safe) {
+                result = {
+                    ...result,
+                    safe: false,
+                    blocked: cloudResult.category === 'malware' || cloudResult.category === 'phishing',
+                    suspicious: true,
+                    category: cloudResult.category,
+                    confidence: cloudResult.confidence || 90,
+                    source: cloudResult.source || 'api',
+                    reason: cloudResult.reason || `Detected by ${cloudResult.source}`
+                };
+                cacheUrlResult(cacheKey, result);
+                return result;
+            }
+        } catch (apiError) {
+            console.log('[URLScanner] Cloud API check failed, using local only:', apiError.message);
+            // Continue with local-only result if API fails
+        }
+
         // Clean URL
         cacheUrlResult(cacheKey, result);
         return result;
@@ -307,6 +629,48 @@ async function scanUrlForThreats(url) {
     } catch (error) {
         console.error('[URLScanner] Error:', error);
         return result;
+    }
+}
+
+/**
+ * Layer D: Call Cloud Function for Google Safe Browsing API + AI detection
+ */
+async function checkUrlViaCloudFunction(url) {
+    // Get stored auth token
+    const stored = await chrome.storage.local.get(['userToken', 'loggedInUserId']);
+    if (!stored.userToken || !stored.loggedInUserId) {
+        console.log('[URLScanner] Not logged in, skipping cloud check');
+        return null;
+    }
+
+    try {
+        const response = await fetch(
+            'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${stored.userToken}`
+                },
+                body: JSON.stringify({
+                    data: { url }
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Cloud API returned ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('[URLScanner] Cloud API result:', result);
+
+        // Cloud Functions wrap response in { result: ... }
+        return result.result || result;
+
+    } catch (error) {
+        console.error('[URLScanner] Cloud API error:', error);
+        return null;
     }
 }
 
@@ -373,7 +737,8 @@ function checkMaliciousPatterns(url) {
         /claim-airdrop/i, /binance-verify/i, /coinbase-verify/i, /metamask-verify/i,
         /steam-gift/i, /free-robux/i, /free-vbucks/i, /iphone-winner/i,
         /prize-claim/i, /lottery-winner/i, /virus-detected/i, /your-pc-infected/i,
-        /grabify/i, /iplogger/i, /download-now-free/i,
+        /grabify/i, /iplogger/i, /download-now-free/i, /malware_test/i,
+        /malware/i, /ransomware/i, /trojan/i, /keylogger/i, /spyware/i,
         /paypa[l1].*\.(tk|ml|ga|cf)/i, /amaz[o0]n.*\.(tk|ml|ga)/i,
         /g[o0]{2}gle.*\.(tk|ml|ga)/i, /faceb[o0]{2}k.*\.(tk|ml|ga)/i
     ];
@@ -397,6 +762,7 @@ function checkMaliciousPatterns(url) {
     // Check patterns
     for (const pattern of MALICIOUS_PATTERNS) {
         if (pattern.test(url)) {
+            console.log('[URLScanner] MATCHED PATTERN:', pattern, 'for URL:', url);
             return {
                 blocked: true,
                 safe: false,
@@ -615,21 +981,84 @@ async function syncStudyMode() {
 async function updateBlockingWithCategories(categories) {
     try {
         // Start with default adult blocklist (always active)
-        let allBlockedDomains = [...DEFAULT_BLOCKLIST];
+        let adultDomains = [...DEFAULT_BLOCKLIST];
+        let studyDomains = [];
 
-        // Add category-specific blocks
+        // Add category-specific blocks (these are Study Mode blocks)
         for (const category of categories) {
             if (CATEGORY_BLOCKLISTS[category]) {
-                allBlockedDomains = allBlockedDomains.concat(CATEGORY_BLOCKLISTS[category]);
+                studyDomains = studyDomains.concat(CATEGORY_BLOCKLISTS[category]);
             }
         }
 
         // Remove duplicates
-        allBlockedDomains = [...new Set(allBlockedDomains)];
+        studyDomains = [...new Set(studyDomains)];
 
-        console.log('[StudyMode] Blocking', allBlockedDomains.length, 'domains');
-        await updateBlockingRules(allBlockedDomains);
+        console.log('[StudyMode] Blocking', studyDomains.length, 'study domains +', adultDomains.length, 'adult domains');
 
+        // Clear existing dynamic rules
+        const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+        const existingIds = existingRules.map(rule => rule.id);
+
+        if (existingIds.length > 0) {
+            await chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: existingIds
+            });
+        }
+
+        // Create rules for adult content (default reason)
+        // Start at 1000 to avoid conflict with static rules (1-100 reserved)
+        const adultRules = adultDomains.map((domain, index) => {
+            let urlFilter = domain;
+            if (!domain.includes('*')) {
+                urlFilter = `*://*.${domain}/*`;
+            }
+            return {
+                id: 1000 + index, // Start at 1000 to avoid static rule conflicts
+                priority: 1,
+                action: {
+                    type: 'redirect',
+                    redirect: {
+                        extensionPath: '/blocked/blocked.html'
+                    }
+                },
+                condition: {
+                    urlFilter,
+                    resourceTypes: ['main_frame', 'sub_frame']
+                }
+            };
+        });
+
+        // Create rules for Study Mode (custom reason)
+        const studyRules = studyDomains.map((domain, index) => {
+            let urlFilter = domain;
+            if (!domain.includes('*')) {
+                urlFilter = `*://*.${domain}/*`;
+            }
+            return {
+                id: 5000 + index, // Start at 5000 to avoid conflict with adult rules
+                priority: 1,
+                action: {
+                    type: 'redirect',
+                    redirect: {
+                        extensionPath: '/blocked/blocked.html?reason=Study%20Mode%20-%20Focus%20Session%20Active'
+                    }
+                },
+                condition: {
+                    urlFilter,
+                    resourceTypes: ['main_frame', 'sub_frame']
+                }
+            };
+        });
+
+        // Add all rules
+        const allRules = [...adultRules, ...studyRules];
+        const maxRules = Math.min(allRules.length, 4999);
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            addRules: allRules.slice(0, maxRules)
+        });
+
+        console.log('[StudyMode] Applied', maxRules, 'total blocking rules');
         return true;
     } catch (error) {
         console.error('[StudyMode] Failed to apply category blocking:', error);
@@ -665,11 +1094,20 @@ async function applyCurrentCategorySettings() {
 }
 
 // Listen for study mode activation from dashboard
+// Debounce to prevent multiple rapid calls
+let studyModeSyncTimeout = null;
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local') {
         if (changes.activeStudySession || changes.studyBlockCategories) {
-            console.log('[StudyMode] Settings changed, syncing...');
-            syncStudyMode();
+            console.log('[StudyMode] Settings changed, syncing (debounced)...');
+            // Debounce: wait 500ms before syncing to avoid duplicate calls
+            if (studyModeSyncTimeout) {
+                clearTimeout(studyModeSyncTimeout);
+            }
+            studyModeSyncTimeout = setTimeout(() => {
+                syncStudyMode();
+                studyModeSyncTimeout = null;
+            }, 500);
         }
     }
 });
@@ -677,7 +1115,89 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // Check study mode on startup
 chrome.runtime.onStartup.addListener(() => {
     syncStudyMode();
+    checkChildLock(); // Also check child lock on startup
 });
+
+// ============================================
+// CHILD LOCK (Parent-controlled device lock)
+// ============================================
+
+// Whitelist for when device is child-locked (only essential sites allowed)
+const CHILD_LOCK_WHITELIST = [
+    'google.com', 'www.google.com', 'classroom.google.com', 'docs.google.com',
+    'drive.google.com', 'meet.google.com', 'calendar.google.com',
+    'zasgloballlc.com', 'zas-safeguard.web.app', 'zassafeguard.com',
+    'khanacademy.org', 'wikipedia.org', 'britannica.com',
+    'coursera.org', 'edx.org', 'duolingo.com'
+];
+
+// Apply child lock - blocks everything except whitelist
+async function applyChildLock(locked) {
+    if (locked) {
+        console.log('[ChildLock] Activating device lock');
+
+        // Create rules to block everything EXCEPT whitelisted domains
+        // This uses a "block all then allow specific" approach
+        const blockAllRule = {
+            id: 99999, // High ID for the block-all rule
+            priority: 1,
+            action: {
+                type: 'redirect',
+                redirect: {
+                    extensionPath: '/blocked/blocked.html?reason=Device%20locked%20by%20parent'
+                }
+            },
+            condition: {
+                urlFilter: '*://*/*',
+                resourceTypes: ['main_frame']
+            }
+        };
+
+        // Clear existing dynamic rules
+        const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+        const existingIds = existingRules.map(rule => rule.id);
+
+        if (existingIds.length > 0) {
+            await chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: existingIds
+            });
+        }
+
+        // Add whitelist rules with higher priority
+        // Using requestDomains for reliable domain matching (includes all paths like /app)
+        const whitelistRules = CHILD_LOCK_WHITELIST.map((domain, index) => ({
+            id: 10000 + index,
+            priority: 2, // Higher priority than block-all (priority 1)
+            action: { type: 'allow' },
+            condition: {
+                requestDomains: [domain],
+                resourceTypes: ['main_frame']
+            }
+        }));
+
+        console.log('[ChildLock] Adding', whitelistRules.length, 'whitelist rules + 1 block-all rule');
+
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            addRules: [blockAllRule, ...whitelistRules]
+        });
+
+        console.log('[ChildLock] Device locked - only', CHILD_LOCK_WHITELIST.length, 'sites allowed');
+
+    } else {
+        console.log('[ChildLock] Deactivating device lock');
+        // Restore normal blocking
+        await updateBlockingRules(DEFAULT_BLOCKLIST);
+    }
+}
+
+// Check child lock status on startup
+async function checkChildLock() {
+    const result = await chrome.storage.local.get(['childLocked']);
+    if (result.childLocked) {
+        console.log('[ChildLock] Device is locked, applying lock');
+        await applyChildLock(true);
+    }
+}
 
 // ============================================
 // FIREBASE SYNC
@@ -695,20 +1215,23 @@ async function syncWithFirebase() {
         }
 
         // Call Firebase function to get block policy
+        // Note: onCall functions expect {data: {...}} format
         const response = await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/getBlockPolicy`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ deviceId })
+            body: JSON.stringify({ data: { deviceId } })
         });
 
         if (!response.ok) {
             throw new Error(`Sync failed: ${response.status}`);
         }
 
-        const data = await response.json();
+        const responseData = await response.json();
+        // onCall functions return {result: ...} wrapper
+        const data = responseData.result || responseData;
 
         if (data.success && data.policy) {
             // Update blocking rules
@@ -718,6 +1241,32 @@ async function syncWithFirebase() {
             await chrome.storage.local.set({
                 [CONFIG.POLICY_KEY]: data.policy
             });
+
+            // IMPORTANT: Save subscription plan for URL scanning feature
+            if (data.subscription) {
+                await chrome.storage.local.set({
+                    planType: data.subscription.plan,
+                    subscriptionStatus: data.subscription.status
+                });
+                console.log('[Sync] Subscription plan saved:', data.subscription.plan, data.subscription.status);
+            }
+
+            // COMMAND EXECUTION: Process server-side commands
+            if (data.commands) {
+                const currentLockState = await chrome.storage.local.get(['childLocked']);
+                const serverLocked = data.commands.childLocked;
+
+                // Only apply if state changed from server
+                if (serverLocked !== currentLockState.childLocked) {
+                    console.log('[Sync] Command received: childLocked =', serverLocked);
+                    await chrome.storage.local.set({
+                        childLocked: serverLocked,
+                        childLockTime: data.commands.lockTime || new Date().toISOString()
+                    });
+                    await applyChildLock(serverLocked);
+                    console.log('[Sync] Lock command executed:', serverLocked ? 'LOCKED' : 'UNLOCKED');
+                }
+            }
 
             console.log('Firebase sync successful');
             return true;
@@ -745,6 +1294,15 @@ async function ensureOfflineBlocking() {
 // HEARTBEAT & MONITORING
 // ============================================
 
+// Get user timezone for quiet hours calculation
+function getUserTimezone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (e) {
+        return 'America/Los_Angeles';
+    }
+}
+
 async function sendHeartbeat() {
     try {
         const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY]);
@@ -753,7 +1311,7 @@ async function sendHeartbeat() {
 
         if (!token) return;
 
-        // This updates lastSeen in Firestore
+        // This updates lastSeen in Firestore with full device status
         await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEvent`, {
             method: 'POST',
             headers: {
@@ -763,13 +1321,89 @@ async function sendHeartbeat() {
             body: JSON.stringify({
                 deviceId,
                 type: 'heartbeat',
-                metadata: { timestamp: Date.now() }
+                metadata: {
+                    timestamp: Date.now(),
+                    timezone: getUserTimezone(),
+                    status: 'online',
+                    extensionVersion: EXTENSION_VERSION
+                }
             })
         });
     } catch (error) {
         // Silently fail heartbeat
     }
 }
+
+/**
+ * Send graceful offline signal to server
+ * This prevents email spam when user closes browser normally
+ */
+async function sendGracefulOffline(reason = 'browser_closed') {
+    try {
+        const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY]);
+        const token = storage[CONFIG.USER_TOKEN_KEY];
+        const deviceId = storage[CONFIG.DEVICE_ID_KEY];
+
+        if (!token || !deviceId) return;
+
+        // Send beacon (works even during page unload)
+        const data = JSON.stringify({
+            data: {
+                deviceId,
+                status: 'offline',
+                offlineReason: 'graceful',
+                hint: reason,
+                timestamp: Date.now(),
+                timezone: getUserTimezone()
+            }
+        });
+
+        // Use sendBeacon for reliability during page unload
+        // Falls back to fetch if sendBeacon unavailable
+        // Using 2nd gen Cloud Run URL for updateDeviceStatus
+        const url = CONFIG.UPDATE_DEVICE_STATUS_URL;
+
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+        } else {
+            // Fallback with keepalive
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: data,
+                keepalive: true
+            }).catch(() => { });
+        }
+
+        console.log('[ZAS] Graceful offline signal sent:', reason);
+    } catch (error) {
+        console.error('[ZAS] Failed to send graceful offline:', error);
+    }
+}
+
+// Listen for service worker suspend (browser closing)
+chrome.runtime.onSuspend.addListener(() => {
+    console.log('[ZAS] Service worker suspending - sending graceful offline');
+    sendGracefulOffline('service_worker_suspend');
+});
+
+// Handle visibility changes via messages from content scripts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'VISIBILITY_CHANGE') {
+        if (message.hidden) {
+            // Tab is hidden, but don't send offline yet - wait for actual unload
+            console.log('[ZAS] Tab hidden:', message.url);
+        }
+    }
+
+    if (message.type === 'PAGE_UNLOAD') {
+        // Page is unloading - this is a graceful close
+        sendGracefulOffline(message.hint || 'page_unload');
+    }
+});
 
 // ============================================
 // TAMPER DETECTION
@@ -778,10 +1412,10 @@ async function sendHeartbeat() {
 // Monitor for extension disable attempts
 chrome.management.onDisabled.addListener((info) => {
     if (info.id === chrome.runtime.id) {
-        // Extension was disabled - log security event for parent alert
-        logSecurityEvent('extension_disabled', {
-            deviceName: 'Browser Extension',
-            action: 'disabled'
+        // Extension was disabled - log security event for parent alert (INSTANT)
+        logSecurityEvent('DISABLE_ATTEMPT', {
+            reason: 'Extension was disabled',
+            severity: 'high'
         });
 
         // Try to re-enable (won't work if user disabled, but logs the attempt)
@@ -809,7 +1443,7 @@ async function logSecurityEvent(type, metadata = {}) {
 
         if (!token || !deviceId) return;
 
-        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEvent`, {
+        const response = await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEvent`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -828,7 +1462,14 @@ async function logSecurityEvent(type, metadata = {}) {
             })
         });
 
-        console.log(`Security event logged: ${type}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Security event failed (${response.status}):`, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json().catch(() => null);
+        console.log(`Security event logged: ${type}`, result);
     } catch (error) {
         console.error('Failed to log security event:', error);
         // Store locally for later sync
@@ -839,10 +1480,17 @@ async function logSecurityEvent(type, metadata = {}) {
 }
 
 // Log blocked URL as security event (for alert threshold)
-async function logBlockedAttempt(domain) {
-    await logSecurityEvent('blocked_attempt', {
-        domain,
-        deviceName: 'Browser Extension'
+async function logBlockedAttempt(url) {
+    // Extract domain from URL
+    let domain = url;
+    try {
+        domain = new URL(url).hostname;
+    } catch (e) { }
+
+    await logSecurityEvent('BLOCKED_SITE', {
+        url: url,
+        reason: `Blocked site: ${domain}`,
+        severity: 'low'
     });
 }
 
@@ -951,6 +1599,12 @@ async function handleMessage(message, sender) {
             await logContentBlock(message.url, message.reason);
             return { logged: true };
 
+        case 'LOG_BLOCKED_SITE':
+            // Called from blocked.html when a site is blocked
+            console.log('[Security] Logging blocked site from blocked.html:', message.url);
+            await logBlockedAttempt(message.url);
+            return { logged: true, url: message.url };
+
         case 'PING':
             return { pong: true };
 
@@ -993,15 +1647,24 @@ async function analyzeContentForAdult(pageData) {
     }
 }
 
-async function logAIBlock(url, classification, confidence) {
+// Log tamper attempts (DevTools, extension disable attempts, etc.)
+async function logTamperAttempt(type) {
     try {
-        const storage = await chrome.storage.local.get(['stats']);
-        const stats = storage.stats || { blockedToday: 0, blockedTotal: 0 };
-        stats.blockedToday++;
-        stats.blockedTotal++;
-        stats.lastAIBlock = { url, classification, confidence, timestamp: Date.now() };
+        const storage = await chrome.storage.local.get(['stats', CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY]);
+        const stats = storage.stats || { blockedToday: 0, blockedTotal: 0, tamperAttempts: 0 };
+        stats.tamperAttempts = (stats.tamperAttempts || 0) + 1;
+        stats.lastTamperAttempt = { type, timestamp: Date.now() };
         await chrome.storage.local.set({ stats });
 
+        console.log('[ZAS] Tamper attempt logged:', type);
+    } catch (error) {
+        console.error('[ZAS] Failed to log tamper attempt:', error);
+    }
+}
+
+async function logAIBlock(url, classification, confidence) {
+    try {
+        await incrementAdBlockStat('sites');
         console.log('[ZAS] AI blocked:', url, classification, confidence);
     } catch (error) {
         console.error('[ZAS] Failed to log AI block:', error);
@@ -1010,12 +1673,7 @@ async function logAIBlock(url, classification, confidence) {
 
 async function logContentBlock(url, reason) {
     try {
-        const storage = await chrome.storage.local.get(['stats']);
-        const stats = storage.stats || { blockedToday: 0, blockedTotal: 0 };
-        stats.blockedToday++;
-        stats.blockedTotal++;
-        await chrome.storage.local.set({ stats });
-
+        await incrementAdBlockStat('sites');
         console.log('[ZAS] Content blocked:', url, reason);
     } catch (error) {
         console.error('[ZAS] Failed to log block:', error);
@@ -1093,11 +1751,617 @@ async function requestUnlock() {
 }
 
 // ============================================
+// AD BLOCKER ENGINE FUNCTIONS
+// ============================================
+
+// Ad blocker configuration storage keys
+const ADBLOCK_CONFIG_KEY = 'adblock_engine_config';
+const ADBLOCK_ALLOWLIST_KEY = 'adblock_allowlist';
+const ADBLOCK_SITE_MODES_KEY = 'adblock_site_modes';
+const ADBLOCK_STATS_KEY = 'adblock_stats';
+const ADBLOCK_DAILY_STATS_KEY = 'adblock_daily_stats';
+
+// Default adblock configuration
+const ADBLOCK_DEFAULT_CONFIG = {
+    enabled: true,
+    categories: {
+        ads: true,
+        trackers: true,
+        malware: true,
+        annoyances: false,
+        social: false
+    },
+    cosmeticEnabled: true,
+    antiBreakageEnabled: true
+};
+
+// Category to ruleset mapping
+const ADBLOCK_CATEGORY_RULESETS = {
+    ads: 'adblock_ads',
+    trackers: 'adblock_trackers',
+    malware: 'adblock_malware',
+    annoyances: 'adblock_annoyances',
+    social: 'adblock_social'
+};
+
+/**
+ * Initialize the ad blocker engine
+ */
+async function initAdBlockEngine() {
+    try {
+        console.log('[AdBlock Engine] Initializing...');
+
+        // Load or create config
+        const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+        const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+
+        // Apply initial ruleset state
+        await applyAdBlockConfig(config);
+
+        // Set up DNR feedback listener for stats
+        setupAdBlockFeedback();
+
+        // Initialize filter lists (EasyList/EasyPrivacy) - inline implementation
+        try {
+            console.log('[AdBlock Engine] Initializing filter lists...');
+            await initFilterLists();
+        } catch (filterError) {
+            console.warn('[AdBlock Engine] Filter list init error:', filterError.message);
+        }
+
+        console.log('[AdBlock Engine] Initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('[AdBlock Engine] Init error:', error);
+        return false;
+    }
+}
+
+// ============================================
+// FILTER LIST MANAGEMENT (EasyList/EasyPrivacy)
+// ============================================
+
+const FILTER_LISTS = {
+    easylist: {
+        name: 'EasyList',
+        url: 'https://easylist.to/easylist/easylist.txt',
+        enabled: true
+    },
+    easyprivacy: {
+        name: 'EasyPrivacy',
+        url: 'https://easylist.to/easylist/easyprivacy.txt',
+        enabled: true
+    },
+    peter_lowe: {
+        name: "Peter Lowe's List",
+        url: 'https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=0',
+        enabled: true
+    }
+};
+
+const FILTER_CACHE_KEY = 'adblock_filter_cache';
+const FILTER_LAST_UPDATE_KEY = 'adblock_filter_last_update';
+const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Initialize filter lists - fetches and applies EasyList/EasyPrivacy
+ */
+async function initFilterLists() {
+    try {
+        // Check if we have cached rules that are recent
+        const storage = await chrome.storage.local.get([FILTER_CACHE_KEY, FILTER_LAST_UPDATE_KEY]);
+        const lastUpdate = storage[FILTER_LAST_UPDATE_KEY] || 0;
+        const cachedRules = storage[FILTER_CACHE_KEY] || [];
+        const now = Date.now();
+
+        // Use cache if recent
+        if (cachedRules.length > 0 && (now - lastUpdate) < UPDATE_INTERVAL_MS) {
+            console.log('[FilterLists] Using cached rules:', cachedRules.length);
+            await applyFilterListRules(cachedRules);
+            return;
+        }
+
+        // Fetch fresh rules
+        console.log('[FilterLists] Fetching fresh filter lists...');
+        const allRules = [];
+
+        for (const [listId, listConfig] of Object.entries(FILTER_LISTS)) {
+            if (!listConfig.enabled) continue;
+
+            try {
+                console.log(`[FilterLists] Fetching ${listConfig.name}...`);
+                const rules = await fetchAndParseFilterList(listConfig.url);
+                console.log(`[FilterLists] ${listConfig.name}: ${rules.length} rules`);
+                allRules.push(...rules);
+            } catch (e) {
+                console.warn(`[FilterLists] Failed to fetch ${listConfig.name}:`, e.message);
+            }
+        }
+
+        // Deduplicate
+        const uniqueRules = deduplicateFilterRules(allRules);
+        console.log('[FilterLists] Total unique rules:', uniqueRules.length);
+
+        // Cache and apply
+        await chrome.storage.local.set({
+            [FILTER_CACHE_KEY]: uniqueRules.slice(0, 5000), // Store up to 5K
+            [FILTER_LAST_UPDATE_KEY]: now
+        });
+
+        await applyFilterListRules(uniqueRules);
+
+    } catch (error) {
+        console.error('[FilterLists] Error:', error);
+    }
+}
+
+/**
+ * Fetch and parse a single filter list
+ */
+async function fetchAndParseFilterList(url) {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const text = await response.text();
+    const lines = text.split('\n');
+    const rules = [];
+    let ruleId = 200000; // Start at 200000 for dynamic filter rules
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        // Skip comments, empty lines, cosmetic rules
+        if (!line || line.startsWith('!') || line.startsWith('[') ||
+            line.includes('##') || line.includes('#@#')) {
+            continue;
+        }
+
+        // Skip exception rules for now
+        if (line.startsWith('@@')) continue;
+
+        // Parse the pattern
+        let pattern = line;
+
+        // Remove options for simplicity
+        const dollarIndex = pattern.lastIndexOf('$');
+        if (dollarIndex > 0) {
+            pattern = pattern.substring(0, dollarIndex);
+        }
+
+        // Handle ||domain^ pattern
+        if (pattern.startsWith('||')) {
+            pattern = pattern.substring(2).replace(/[\^|]+$/, '');
+
+            // Skip very short patterns or patterns with special chars
+            if (pattern.length < 4 || pattern.includes('*') || pattern.includes('/')) {
+                continue;
+            }
+
+            rules.push({
+                id: ruleId++,
+                priority: 1,
+                action: { type: 'block' },
+                condition: {
+                    urlFilter: `||${pattern}`,
+                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other']
+                }
+            });
+
+            // Limit rules per list
+            if (rules.length >= 2000) break;
+        }
+    }
+
+    return rules;
+}
+
+/**
+ * Deduplicate rules by urlFilter
+ */
+function deduplicateFilterRules(rules) {
+    const seen = new Set();
+    const unique = [];
+    let id = 200000;
+
+    for (const rule of rules) {
+        const key = rule.condition?.urlFilter;
+        if (key && !seen.has(key)) {
+            seen.add(key);
+            rule.id = id++;
+            unique.push(rule);
+        }
+    }
+
+    return unique;
+}
+
+/**
+ * Apply parsed filter rules to Chrome DNR
+ */
+let filterListUpdateInProgress = false;
+
+async function applyFilterListRules(rules) {
+    // Prevent concurrent updates
+    if (filterListUpdateInProgress) {
+        console.log('[FilterLists] Update already in progress, skipping');
+        return;
+    }
+
+    filterListUpdateInProgress = true;
+
+    try {
+        // Get existing dynamic rules
+        const existing = await chrome.declarativeNetRequest.getDynamicRules();
+        console.log('[FilterLists] Existing dynamic rules:', existing.length);
+
+        // Find all filter list rule IDs (>= 200000)
+        const toRemove = existing.filter(r => r.id >= 200000).map(r => r.id);
+        console.log('[FilterLists] Rules to remove:', toRemove.length);
+
+        // Chrome limit: 5000 dynamic rules
+        const sourceRules = rules.slice(0, 4500);
+
+        // Build rules with SEQUENTIAL unique IDs starting from 200000
+        const toAdd = [];
+        const seenUrlFilters = new Set();
+        let nextId = 200000;
+
+        for (const rule of sourceRules) {
+            // Skip invalid rules
+            if (!rule.condition?.urlFilter) continue;
+
+            // Skip duplicates
+            const urlFilter = rule.condition.urlFilter;
+            if (seenUrlFilters.has(urlFilter)) continue;
+            seenUrlFilters.add(urlFilter);
+
+            toAdd.push({
+                id: nextId++,
+                priority: 1,
+                action: { type: 'block' },
+                condition: {
+                    urlFilter: urlFilter,
+                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other']
+                }
+            });
+        }
+
+        console.log('[FilterLists] Prepared', toAdd.length, 'unique rules (IDs: 200000 -', nextId - 1, ')');
+
+        // ATOMIC update: remove and add in single call
+        if (toRemove.length > 0 || toAdd.length > 0) {
+            await chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: toRemove,
+                addRules: toAdd
+            });
+            console.log('[FilterLists] Applied', toAdd.length, 'dynamic rules successfully');
+        }
+    } catch (error) {
+        console.error('[FilterLists] Failed to apply rules:', error);
+        // On failure, try to clear cache
+        await chrome.storage.local.remove([FILTER_CACHE_KEY, FILTER_LAST_UPDATE_KEY]);
+        console.log('[FilterLists] Cleared cache due to error');
+    } finally {
+        filterListUpdateInProgress = false;
+    }
+}
+
+/**
+ * Apply adblock configuration to DNR rulesets
+ */
+async function applyAdBlockConfig(config) {
+    try {
+        if (!config.enabled) {
+            // Disable all adblock rulesets
+            const rulesetIds = Object.values(ADBLOCK_CATEGORY_RULESETS);
+            await chrome.declarativeNetRequest.updateEnabledRulesets({
+                disableRulesetIds: rulesetIds
+            });
+            return;
+        }
+
+        const enableIds = [];
+        const disableIds = [];
+
+        for (const [category, enabled] of Object.entries(config.categories)) {
+            const rulesetId = ADBLOCK_CATEGORY_RULESETS[category];
+            if (rulesetId) {
+                if (enabled) {
+                    enableIds.push(rulesetId);
+                } else {
+                    disableIds.push(rulesetId);
+                }
+            }
+        }
+
+        if (enableIds.length > 0 || disableIds.length > 0) {
+            await chrome.declarativeNetRequest.updateEnabledRulesets({
+                enableRulesetIds: enableIds,
+                disableRulesetIds: disableIds
+            });
+        }
+
+        console.log('[AdBlock Engine] Applied config:', { enabled: enableIds, disabled: disableIds });
+    } catch (error) {
+        console.error('[AdBlock Engine] Apply config error:', error);
+    }
+}
+
+/**
+ * Set up DNR feedback listener for tracking blocked requests
+ */
+function setupAdBlockFeedback() {
+    // Listen for matched rules to track stats
+    if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
+        chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (info) => {
+            // Determine category from ruleset ID
+            const rulesetId = info.rule.rulesetId;
+            let category = 'ads';
+
+            for (const [cat, rsId] of Object.entries(ADBLOCK_CATEGORY_RULESETS)) {
+                if (rsId === rulesetId) {
+                    category = cat;
+                    break;
+                }
+            }
+
+            // Increment stats
+            await incrementAdBlockStat(category);
+        });
+
+        console.log('[AdBlock Engine] Stats tracking enabled');
+    } else {
+        console.log('[AdBlock Engine] Stats tracking not available (declarativeNetRequestFeedback permission needed for debug mode)');
+    }
+}
+
+/**
+ * Increment blocked count for a category
+ */
+/**
+ * Increment blocked count for a category
+ */
+async function incrementAdBlockStat(category = 'ads', amount = 1) {
+    try {
+        const todayKey = new Date().toISOString().split('T')[0];
+        const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY, 'stats']);
+
+        // Update total stats
+        const stats = result[ADBLOCK_STATS_KEY] || { totalBlocked: 0, categories: {} };
+        stats.totalBlocked += amount;
+        stats.categories[category] = (stats.categories[category] || 0) + amount;
+        stats.lastUpdated = Date.now();
+
+        // Update daily stats
+        const dailyStats = result[ADBLOCK_DAILY_STATS_KEY] || {};
+        if (!dailyStats[todayKey]) {
+            dailyStats[todayKey] = { ads: 0, trackers: 0, malware: 0, annoyances: 0, social: 0, total: 0 };
+        }
+
+        // Ensure category initialized
+        if (typeof dailyStats[todayKey][category] !== 'number') {
+            dailyStats[todayKey][category] = 0;
+        }
+
+        dailyStats[todayKey][category] += amount;
+        dailyStats[todayKey].total += amount;
+
+        // Update popup stats for compatibility
+        const popupStats = result.stats || { blockedToday: 0, blockedTotal: 0 };
+        popupStats.blockedToday = dailyStats[todayKey].total;
+        popupStats.blockedTotal = stats.totalBlocked;
+
+        await chrome.storage.local.set({
+            [ADBLOCK_STATS_KEY]: stats,
+            [ADBLOCK_DAILY_STATS_KEY]: dailyStats,
+            stats: popupStats
+        });
+
+        console.log(`[AdBlock Engine] Stats updated: +${amount} ${category} (Today: ${dailyStats[todayKey].total})`);
+    } catch (error) {
+        console.error('[AdBlock Engine] Stats error:', error);
+    }
+}
+
+/**
+ * Handle enabling the ad blocker
+ */
+async function handleAdBlockEnable() {
+    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+    config.enabled = true;
+    await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
+    await applyAdBlockConfig(config);
+    console.log('[AdBlock Engine] Enabled');
+}
+
+/**
+ * Handle disabling the ad blocker
+ */
+async function handleAdBlockDisable() {
+    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+    config.enabled = false;
+    await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
+    await applyAdBlockConfig(config);
+    console.log('[AdBlock Engine] Disabled');
+}
+
+/**
+ * Handle setting a category enabled/disabled
+ */
+async function handleAdBlockSetCategory(category, enabled) {
+    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+
+    if (config.categories.hasOwnProperty(category)) {
+        config.categories[category] = enabled;
+        await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
+        await applyAdBlockConfig(config);
+        console.log('[AdBlock Engine] Category', category, enabled ? 'enabled' : 'disabled');
+    }
+}
+
+/**
+ * Handle adding domain to allowlist
+ */
+async function handleAdBlockAddAllowlist(domain) {
+    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
+    const allowlist = result[ADBLOCK_ALLOWLIST_KEY] || [];
+
+    if (!allowlist.includes(domain)) {
+        allowlist.push(domain);
+        await chrome.storage.local.set({ [ADBLOCK_ALLOWLIST_KEY]: allowlist });
+        await applyAdBlockAllowlist(allowlist);
+        console.log('[AdBlock Engine] Added to allowlist:', domain);
+    }
+}
+
+/**
+ * Handle removing domain from allowlist
+ */
+async function handleAdBlockRemoveAllowlist(domain) {
+    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
+    let allowlist = result[ADBLOCK_ALLOWLIST_KEY] || [];
+
+    allowlist = allowlist.filter(d => d !== domain);
+    await chrome.storage.local.set({ [ADBLOCK_ALLOWLIST_KEY]: allowlist });
+    await applyAdBlockAllowlist(allowlist);
+    console.log('[AdBlock Engine] Removed from allowlist:', domain);
+}
+
+/**
+ * Handle getting allowlist
+ */
+async function handleAdBlockGetAllowlist() {
+    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
+    return result[ADBLOCK_ALLOWLIST_KEY] || [];
+}
+
+/**
+ * Apply allowlist as dynamic DNR rules
+ */
+async function applyAdBlockAllowlist(domains) {
+    try {
+        const ALLOWLIST_RULE_START = 50000;
+
+        // Get existing dynamic rules
+        const existing = await chrome.declarativeNetRequest.getDynamicRules();
+
+        // Find allowlist rule IDs to remove
+        const allowlistIds = existing
+            .filter(r => r.id >= ALLOWLIST_RULE_START && r.id < 55000)
+            .map(r => r.id);
+
+        // Generate new allow rules
+        const newRules = domains.map((domain, index) => ({
+            id: ALLOWLIST_RULE_START + index,
+            priority: 100, // Higher priority than block rules
+            action: { type: 'allow' },
+            condition: {
+                requestDomains: [domain.replace(/^www\./, '')],
+                resourceTypes: ['main_frame', 'sub_frame', 'script', 'image', 'stylesheet', 'object', 'xmlhttprequest', 'media', 'font', 'ping', 'other']
+            }
+        }));
+
+        // Apply update
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: allowlistIds,
+            addRules: newRules.slice(0, 500) // Limit to 500
+        });
+
+        console.log('[AdBlock Engine] Applied', newRules.length, 'allowlist rules');
+    } catch (error) {
+        console.error('[AdBlock Engine] Allowlist error:', error);
+    }
+}
+
+/**
+ * Handle setting site mode
+ */
+async function handleAdBlockSetSiteMode(domain, mode) {
+    const result = await chrome.storage.local.get([ADBLOCK_SITE_MODES_KEY]);
+    const modes = result[ADBLOCK_SITE_MODES_KEY] || {};
+
+    if (mode === 'strict') {
+        delete modes[domain];
+    } else {
+        modes[domain] = mode;
+    }
+
+    await chrome.storage.local.set({ [ADBLOCK_SITE_MODES_KEY]: modes });
+
+    // If mode is 'off', add to allowlist
+    if (mode === 'off') {
+        await handleAdBlockAddAllowlist(domain);
+    } else {
+        await handleAdBlockRemoveAllowlist(domain);
+    }
+
+    console.log('[AdBlock Engine] Set site mode:', domain, mode);
+}
+
+/**
+ * Handle getting stats
+ */
+async function handleAdBlockGetStats() {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY]);
+
+    const stats = result[ADBLOCK_STATS_KEY] || { totalBlocked: 0, categories: {} };
+    const dailyStats = result[ADBLOCK_DAILY_STATS_KEY] || {};
+
+    return {
+        blockedToday: dailyStats[todayKey]?.total || 0,
+        blockedTotal: stats.totalBlocked || 0,
+        todayByCategory: dailyStats[todayKey] || {},
+        totalByCategory: stats.categories || {}
+    };
+}
+
+/**
+ * Handle getting config
+ */
+async function handleAdBlockGetConfig() {
+    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
+    return result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
+}
+
+// ============================================
 // STARTUP
 // ============================================
+
+// Track navigation (Removed estimation logic per user request for real data only)
+// Now relying purely on:
+// 1. Cosmetic filter matches (from content script)
+// 2. Navigation errors (blocked sites/frames)
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+    // Listener kept empty to allow for future logic if needed, 
+    // but removed estimation to ensure accuracy.
+});
+
+// Track failed navigations (blocked sites)
+chrome.webNavigation.onErrorOccurred.addListener(async (details) => {
+    // Check for blocked by client (DNR block)
+    if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
+        const hostname = new URL(details.url).hostname;
+        console.log('[ZAS] Navigation blocked by client:', hostname);
+
+        // This is likely a blocked site (or a blocked ad frame)
+        if (details.frameId === 0) {
+            // Main frame blocked -> Site Blocked
+            incrementAdBlockStat('sites');
+        } else {
+            // Subframe blocked -> Ad/Tracker Blocked
+            incrementAdBlockStat('ads');
+        }
+    }
+});
+
 
 // Ensure blocking is active on service worker start
 (async () => {
     await ensureOfflineBlocking();
+    await initAdBlockEngine();
     console.log('ZAS Safeguard background service worker started');
 })();

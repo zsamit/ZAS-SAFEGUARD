@@ -1,0 +1,210 @@
+[
+    {
+        "id": 4001,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||platform.twitter.com/widgets.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4002,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||platform.linkedin.com/in.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4003,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||apis.google.com/js/plusone.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4004,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||connect.facebook.net/*/sdk.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4005,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||connect.facebook.net/*/all.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4006,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||platform.instagram.com/en_US/embeds.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4007,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||assets.pinterest.com/js/pinit.js",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4008,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||www.reddit.com/static/button/button^",
+            "resourceTypes": [
+                "script",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 4009,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||ws.sharethis.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 4010,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||addthis.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 4011,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||addtoany.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 4012,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||sharebutton.co^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 4013,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||socialshareprivacy^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 4014,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||po.st/share/script^",
+            "resourceTypes": [
+                "script"
+            ]
+        }
+    },
+    {
+        "id": 4015,
+        "priority": 1,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||sumome.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "xmlhttprequest"
+            ]
+        }
+    }
+]

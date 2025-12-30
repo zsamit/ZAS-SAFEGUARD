@@ -1,0 +1,341 @@
+=== ZAS SAFEGUARD TERMINAL LOG ===
+Generated: Sun Dec 28 16:08:28 PST 2025
+
+=== 1. EXTENSION STRUCTURE ===
+total 248
+drwxr-xr-x@ 15 zaheerahmadsamit  staff    480 Dec 26 15:09 .
+drwxr-xr-x@ 17 zaheerahmadsamit  staff    544 Dec 26 14:48 ..
+-rw-r--r--@  1 zaheerahmadsamit  staff   6148 Dec 10 18:31 .DS_Store
+drwx------@  3 zaheerahmadsamit  staff     96 Dec 26 15:09 _metadata
+-rw-r--r--@  1 zaheerahmadsamit  staff  82233 Dec 28 16:07 background.js
+drwxr-xr-x@  4 zaheerahmadsamit  staff    128 Dec 14 09:58 blocked
+-rw-r--r--@  1 zaheerahmadsamit  staff  27558 Dec 26 15:17 content.js
+drwxr-xr-x@  7 zaheerahmadsamit  staff    224 Dec 26 14:39 icons
+drwxr-xr-x@  8 zaheerahmadsamit  staff    256 Dec 18 17:39 lib
+-rw-r--r--@  1 zaheerahmadsamit  staff   3017 Dec 26 15:07 manifest.json
+drwxr-xr-x@  5 zaheerahmadsamit  staff    160 Dec  8 16:49 popup
+drwxr-xr-x@  8 zaheerahmadsamit  staff    256 Dec 18 17:45 rules
+drwxr-xr-x@  3 zaheerahmadsamit  staff     96 Dec 10 16:41 shared
+drwxr-xr-x@  8 zaheerahmadsamit  staff    256 Dec 10 17:34 store-assets
+drwxr-xr-x@  5 zaheerahmadsamit  staff    160 Dec 14 16:46 warnings
+
+=== 2. MANIFEST VERSION ===
+    "name": "ZAS Safeguard",
+    "version": "1.2.0",
+
+=== 3. BLOCK RULES COUNT ===
+Adult site block rules:
+50
+Ad block rules:
+50
+Tracker block rules:
+40
+Malware block rules:
+20
+
+=== 4. BLOCKED DOMAINS SAMPLE ===
+            "urlFilter": "*://*.pornhub.com/*",
+            "urlFilter": "*://*.xvideos.com/*",
+            "urlFilter": "*://*.xnxx.com/*",
+            "urlFilter": "*://*.xhamster.com/*",
+            "urlFilter": "*://*.redtube.com/*",
+            "urlFilter": "*://*.youporn.com/*",
+            "urlFilter": "*://*.tube8.com/*",
+            "urlFilter": "*://*.spankbang.com/*",
+            "urlFilter": "*://*.porn.com/*",
+            "urlFilter": "*://*.brazzers.com/*",
+
+=== 5. AD DOMAINS SAMPLE ===
+            "urlFilter": "||doubleclick.net^",
+            "urlFilter": "||googlesyndication.com^",
+            "urlFilter": "||googleadservices.com^",
+            "urlFilter": "||pagead2.googlesyndication.com^",
+            "urlFilter": "||adservice.google.com^",
+            "urlFilter": "||adsserver.com^",
+            "urlFilter": "||adnxs.com^",
+            "urlFilter": "||criteo.com^",
+            "urlFilter": "||criteo.net^",
+            "urlFilter": "||outbrain.com^",
+
+=== 6. CATEGORY BLOCKING EXISTS ===
+61:const CATEGORY_BLOCKLISTS = {
+989:            if (CATEGORY_BLOCKLISTS[category]) {
+990:                studyDomains = studyDomains.concat(CATEGORY_BLOCKLISTS[category]);
+1080:            if (enabled && CATEGORY_BLOCKLISTS[category]) {
+1081:                allBlockedDomains = allBlockedDomains.concat(CATEGORY_BLOCKLISTS[category]);
+62:    social_media: [
+69:    gaming: [
+76:    youtube: [
+77:        '*://*.youtube.com/*', '*://*.youtu.be/*', '*://*.youtube-nocookie.com/*',
+79:    reddit: [
+80:        '*://*.reddit.com/*', '*://*.redd.it/*', '*://*.old.reddit.com/*',
+747:        'google.com', 'youtube.com', 'facebook.com', 'instagram.com',
+749:        'netflix.com', 'github.com', 'reddit.com', 'paypal.com', 'stripe.com',
+
+=== 7. CHILD LOCK EXISTS ===
+210:                applyChildLock(true);
+213:                applyChildLock(false);
+284:            applyChildLock(message.locked);
+1126:const CHILD_LOCK_WHITELIST = [
+1135:async function applyChildLock(locked) {
+1168:        const whitelistRules = CHILD_LOCK_WHITELIST.map((domain, index) => ({
+1184:        console.log('[ChildLock] Device locked - only', CHILD_LOCK_WHITELIST.length, 'sites allowed');
+1198:        await applyChildLock(true);
+1266:                    await applyChildLock(serverLocked);
+
+=== 8. GRACEFUL OFFLINE EXISTS ===
+1341:async function sendGracefulOffline(reason = 'browser_closed') {
+1354:                offlineReason: 'graceful',
+1390:    sendGracefulOffline('service_worker_suspend');
+1404:        sendGracefulOffline(message.hint || 'page_unload');
+
+=== 9. HEARTBEAT SPAM PREVENTION ===
+24:    OFFLINE_COOLDOWN_MS: 6 * 60 * 60 * 1000,  // 6 hours per device
+28:    MAX_EMAILS_PER_DAY: 3,
+251:            if (Date.now() - lastAlert < CONFIG.OFFLINE_COOLDOWN_MS) {
+276:        const quietEnabled = alertSettings.quietHoursEnabled !== false; // Default ON
+279:        const quietStart = alertSettings.quietHoursStart ?? CONFIG.DEFAULT_QUIET_START;
+280:        const quietEnd = alertSettings.quietHoursEnd ?? CONFIG.DEFAULT_QUIET_END;
+312:        return count >= CONFIG.MAX_EMAILS_PER_DAY;
+349:        await db.collection('digest_queue').add({
+381:        const queueSnapshot = await db.collection('digest_queue')
+408:                batch.update(db.doc(`digest_queue/${item.docId}`), { processed: true });
+
+=== 10. ALERT DEDUPLICATION ===
+31:    TAMPER_COOLDOWN_MS: 30 * 60 * 1000,  // 30 minutes
+201:        return Date.now() - lastAlert < SPAM_CONFIG.TAMPER_COOLDOWN_MS;
+297:            const dedupeKey = `${userId}:${deviceId}:BLOCKED_THRESHOLD:${getMinuteKey()}`;
+300:                .where('dedupeKey', '==', dedupeKey)
+384:        const dedupeKey = `${userId}:${deviceId}:${alertData.type}:${getMinuteKey()}`;
+390:                .where('dedupeKey', '==', dedupeKey)
+415:            dedupeKey,
+
+=== 11. COMMAND EXECUTION (NEW) ===
+200:            childLocked: message.locked,
+281:            childLocked: message.locked,
+1195:    const result = await chrome.storage.local.get(['childLocked']);
+1196:    if (result.childLocked) {
+1255:            if (data.commands) {
+1256:                const currentLockState = await chrome.storage.local.get(['childLocked']);
+1257:                const serverLocked = data.commands.childLocked;
+1260:                if (serverLocked !== currentLockState.childLocked) {
+1261:                    console.log('[Sync] Command received: childLocked =', serverLocked);
+1263:                        childLocked: serverLocked,
+
+=== 12. SCANNER FUNCTIONALITY ===
+410:        scanUrlForThreats(message.url)
+521:    const scanResult = await scanUrlForThreats(url);
+554:async function scanUrlForThreats(url) {
+648:            'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
+734:    const MALICIOUS_PATTERNS = [
+763:    for (const pattern of MALICIOUS_PATTERNS) {
+
+=== 13. CLOUD FUNCTIONS LIST ===
+exports.checkUrlReputation = urlReputation.checkUrlReputation;
+exports.logUrlScan = urlReputation.logUrlScan;
+exports.cleanupOldUrlScans = urlReputation.cleanupOldUrlScans;
+exports.onSecurityEvent = alerts.onSecurityEvent;
+exports.checkHeartbeats = alerts.checkHeartbeats;
+exports.logSecurityEvent = alerts.logSecurityEvent;
+exports.getAlerts = alerts.getAlerts;
+exports.updateAlertSettings = alerts.updateAlertSettings;
+exports.markAlertRead = alerts.markAlertRead;
+exports.getVersion = version.getVersion;
+exports.incrementVersion = version.incrementVersion;
+exports.checkVersion = version.checkVersion;
+exports.versionCheck = version.versionCheck;
+exports.cleanupOldLogsV2 = cleanup.cleanupOldLogs;
+exports.checkRateLimit = cleanup.checkRateLimit;
+exports.logErrors = cleanup.logErrors;
+exports.archiveUserData = cleanup.archiveUserData;
+exports.onUserCreate = auth.onUserCreate;
+exports.verifyPhone = auth.verifyPhone;
+exports.initializeDevice = auth.initializeDevice;
+exports.createCheckoutSession = subscription.createCheckoutSession;
+exports.stripeWebhook = subscription.stripeWebhook;
+exports.checkTrialEligibility = subscription.checkTrialEligibility;
+exports.getRegionalPrice = subscription.getRegionalPrice;
+exports.handleTrialEnd = subscription.handleTrialEnd;
+exports.getBlockPolicy = blocking.getBlockPolicy;
+exports.syncBlocklist = blocking.syncBlocklist;
+exports.logBlockEvent = blocking.logBlockEvent;
+exports.updateCustomBlocklist = blocking.updateCustomBlocklist;
+exports.requestUnlock = override.requestUnlock;
+exports.verifyUnlock = override.verifyUnlock;
+exports.syncUnlockStatus = override.syncUnlockStatus;
+exports.getUnlockStatus = override.getUnlockStatus;
+exports.setParentPin = parentPin.setParentPin;
+exports.verifyParentPin = parentPin.verifyParentPin;
+exports.executeLockAction = parentPin.executeLockAction;
+exports.checkParentPinStatus = parentPin.checkParentPinStatus;
+exports.calculateFraudScore = fraud.calculateFraudScore;
+exports.checkDeviceFingerprint = fraud.checkDeviceFingerprint;
+exports.classifyContent = ai.classifyContent;
+exports.generateRiskScore = ai.generateRiskScore;
+exports.generateWeeklyReport = ai.generateWeeklyReport;
+exports.analyzeContentForAdult = ai.analyzeContentForAdult;
+exports.sendWeeklySummary = weeklyReport.sendWeeklySummary;
+exports.checkHeartbeatsV2 = heartbeat.checkHeartbeatsV2;   // NEW - 2nd gen with spam prevention
+exports.updateDeviceStatus = heartbeat.updateDeviceStatus;  // Graceful offline signal
+exports.sendOfflineDigest = heartbeat.sendOfflineDigest;    // Daily digest (not instant spam)
+exports.getAdblockSettings = adblock.getAdblockSettings;
+exports.updateAdblockSettings = adblock.updateAdblockSettings;
+exports.logAdblockStats = adblock.logAdblockStats;
+exports.getAdblockSiteModes = adblock.getAdblockSiteModes;
+exports.updateAdblockSiteMode = adblock.updateAdblockSiteMode;
+exports.getAdblockStatsSummary = adblock.getAdblockStatsSummary;
+exports.checkExpiringTrials = functions.pubsub
+
+=== 14. STATS TRACKING ===
+400:                await incrementAdBlockStat('ads');
+1667:        await incrementAdBlockStat('sites');
+1676:        await incrementAdBlockStat('sites');
+1761:const ADBLOCK_STATS_KEY = 'adblock_stats';
+2109:            await incrementAdBlockStat(category);
+2124:async function incrementAdBlockStat(category = 'ads', amount = 1) {
+2127:        const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY, 'stats']);
+2130:        const stats = result[ADBLOCK_STATS_KEY] || { totalBlocked: 0, categories: {} };
+2155:            [ADBLOCK_STATS_KEY]: stats,
+2309:    const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY]);
+
+=== 15. SUBSCRIPTION ENFORCEMENT ===
+72:exports.createCheckoutSession = subscription.createCheckoutSession;
+73:exports.stripeWebhook = subscription.stripeWebhook;
+76:exports.handleTrialEnd = subscription.handleTrialEnd;
+
+101:            planType: 'free'   // Default to free until they subscribe
+130:            planType: message.plan,
+498:    const stored = await chrome.storage.local.get(['planType', 'subscriptionPlan', 'subscriptionStatus']);
+499:    const planType = stored.planType || stored.subscriptionPlan || '';
+504:        planType === 'lifetime' ||
+
+=== 16. FIREBASE DEPLOY ===
+Deploying getBlockPolicy function...
+
+=== Deploying to 'zas-safeguard'...
+
+i  deploying functions
+Running command: npm --prefix "$RESOURCE_DIR" run lint
+
+> zas-safeguard-functions@1.0.0 lint
+> eslint .
+
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/ai.js
+  7:9   warning  'onCall' is assigned a value but never used      no-unused-vars
+  7:17  warning  'HttpsError' is assigned a value but never used  no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/alerts.js
+  12:9  warning  'onSchedule' is assigned a value but never used  no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/cleanup.js
+  21:57  warning  'event' is defined but never used  no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/heartbeat.js
+   13:9   warning  'onCall' is assigned a value but never used          no-unused-vars
+   14:35  warning  'Timestamp' is assigned a value but never used       no-unused-vars
+   39:7   warning  'TAMPER_EVENTS' is assigned a value but never used   no-unused-vars
+   50:7   warning  'OFFLINE_EVENTS' is assigned a value but never used  no-unused-vars
+   70:56  warning  'timestamp' is assigned a value but never used       no-unused-vars
+  128:66  warning  'event' is defined but never used                    no-unused-vars
+  134:15  warning  'staleTime' is assigned a value but never used       no-unused-vars
+  334:16  warning  'setAlertCooldown' is defined but never used         no-unused-vars
+  371:60  warning  'event' is defined but never used                    no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/index.js
+  146:19  warning  'context' is defined but never used        no-unused-vars
+  158:19  warning  'user' is assigned a value but never used  no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/subscription.js
+  399:62  warning  'context' is defined but never used  no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/version.js
+   9:9   warning  'onDocumentWritten' is assigned a value but never used  no-unused-vars
+  21:36  warning  'request' is defined but never used                     no-unused-vars
+
+/Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions/weeklyReport.js
+  17:19  warning  'context' is defined but never used  no-unused-vars
+
+✖ 19 problems (0 errors, 19 warnings)
+
+✔  functions: Finished running predeploy script.
+i  functions: preparing codebase default for deployment
+i  functions: ensuring required API cloudfunctions.googleapis.com is enabled...
+i  functions: ensuring required API cloudbuild.googleapis.com is enabled...
+i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled...
+⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory.
+⚠  functions: Please note that there will be breaking changes when you upgrade.
+i  functions: Loading and analyzing source code for codebase default to determine what to deploy
+i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8610
+
+i  functions: preparing functions directory for uploading...
+i  functions: packaged /Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions (133.32 KB) for uploading
+i  functions: packaged /Users/zaheerahmadsamit/Downloads/ZAS SAFEGUARD/firebase-backend/functions (133.53 KB) for uploading
+i  functions: ensuring required API cloudscheduler.googleapis.com is enabled...
+i  functions: ensuring required API run.googleapis.com is enabled...
+i  functions: ensuring required API eventarc.googleapis.com is enabled...
+i  functions: ensuring required API pubsub.googleapis.com is enabled...
+i  functions: ensuring required API storage.googleapis.com is enabled...
+i  functions: generating the service identity for pubsub.googleapis.com...
+i  functions: generating the service identity for eventarc.googleapis.com...
+i  functions: ensuring required API secretmanager.googleapis.com is enabled...
+✔  functions: functions source uploaded successfully
+i  functions: updating Node.js 20 (1st Gen) function getBlockPolicy(us-central1)...
+✔  functions[getBlockPolicy(us-central1)] Successful update operation.
+
+✔  Deploy complete!
+
+Project Console: https://console.firebase.google.com/project/zas-safeguard/overview
+
+=== 17. FIREBASE FUNCTIONS LOGS ===
+error: unknown option '--limit'
+
+=== 17. FIREBASE FUNCTIONS LOGS ===
+2025-12-29T00:01:12.974047Z I ext-firestore-send-email-processqueue: Completed execution of extension
+2025-12-29T00:01:13.249843Z I ext-firestore-send-email-processqueue: {"port":465,"tls":"{}","TTLExpireValue":1,"clientSecret":"<omitted>","database":"(default)","mailCollection":"mail","clientId":"<omitted>","smtpPassword":"<omitted>","smtpConnectionUri":"<omitted>","TTLExpireType":"never","authenticationType":"UsernamePassword","databaseRegion":"nam5","secure":true,"location":"us-central1","message":"Initializing extension with configuration","defaultFrom":"ZAS Safeguard Alerts <info@zasgloballlc.com>","testing":false,"refreshToken":"<omitted>","usersCollection":"users"}
+2025-12-29T00:01:13.264605Z I ext-firestore-send-email-processqueue: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2025-12-29T00:02:05.459669Z I checkheartbeatsv2: 
+2025-12-29T00:02:05.473947Z ? checkheartbeatsv2: [Heartbeat] Starting check (spam-safe V2)...
+
+2025-12-29T00:02:05.869318Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for 118898d58a52e7906ad8dbd2d675f98e
+
+2025-12-29T00:02:06.128597Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for c601792e3038ca03b3f4278633cc1e48
+
+2025-12-29T00:02:06.128664Z ? checkheartbeatsv2: [Heartbeat] Checked 2 devices, updated 0
+
+2025-12-29T00:06:05.606290598Z D checkHeartbeats: Function execution started
+2025-12-29T00:06:05.614185Z ? checkHeartbeats: [Heartbeat] Starting heartbeat check...
+2025-12-29T00:06:05.845160Z ? checkHeartbeats: [Heartbeat] Already alerted for device 118898d58a52e7906ad8dbd2d675f98e, skipping
+2025-12-29T00:06:05.971791Z ? checkHeartbeats: [Heartbeat] Already alerted for device c601792e3038ca03b3f4278633cc1e48, skipping
+2025-12-29T00:06:05.971804Z ? checkHeartbeats: [Heartbeat] Check complete. Alerts sent: 0
+2025-12-29T00:06:05.973024407Z D checkHeartbeats: Function execution took 366 ms, finished with status: 'ok'
+2025-12-29T00:07:05.911047Z I checkheartbeatsv2: 
+2025-12-29T00:07:05.928522Z ? checkheartbeatsv2: [Heartbeat] Starting check (spam-safe V2)...
+
+2025-12-29T00:07:06.302144Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for 118898d58a52e7906ad8dbd2d675f98e
+
+2025-12-29T00:07:06.510449Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for c601792e3038ca03b3f4278633cc1e48
+
+2025-12-29T00:07:06.510504Z ? checkheartbeatsv2: [Heartbeat] Checked 2 devices, updated 0
+
+2025-12-29T00:09:57.267528Z I undefined: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"zaheer.samit2006@gmail.com","principalSubject":"user:zaheer.samit2006@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2601:47:2:cdb0:9117:e1da:90a0:2441","callerSuppliedUserAgent":"FirebaseCLI/14.24.1,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2025-12-29T00:09:57.707075Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.GenerateUploadUrl","authorizationInfo":[{"resource":"projects/zas-safeguard/locations/us-central1","permission":"cloudfunctions.functions.sourceCodeSet","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/zas-safeguard/locations/us-central1","request":{"parent":"projects/zas-safeguard/locations/us-central1","@type":"type.googleapis.com/google.cloud.functions.v1.GenerateUploadUrlRequest"},"response":{"@type":"type.googleapis.com/google.cloud.functions.v1.GenerateUploadUrlResponse","uploadUrl":"https://storage.googleapis.com/uploads-781715132004.us-central1.cloudfunctions.appspot.com/92c4ece3-64a1-4925-9add-8f7bab4b35d5.zip?GoogleAccessId=service-559930411646@gcf-admin-robot.iam.gserviceaccount.com&Expires=1766968797&Signature=FuMGC582AST05pPazzWeacYRNN0PtyZFsTXaM7UoimR3vBPc%2F0S8a4F%2FsvckdzvSQhIHfIa%2BAyUllrsSkKFwGCtRnYMDcmEJj0Onrju5BgDhItbZohQ6LOL4z9Wmv3fqL0Kfns795q6%2Bdrn4bvfG6NzwTTTL6paUn%2FjHCmMh%2BG8t0K%2BgiknzTkGSY2T4Z7K1fO4G09HFpXfDLJBSPRALWOlTKs76PHD3teT3gxOnh1MBHe666ngPfC6HXhM3Vmbiheos%2BhrKOzLSDWjZTySx9uR5gv72tkdk3zprnD0OuX6srTs1O%2FPPaF6fj%2BNCjHm2GvyIlD77C%2FEd%2FykD0%2BgKlQ%3D%3D"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2025-12-29T00:09:57.343818Z I undefined: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"zaheer.samit2006@gmail.com","principalSubject":"user:zaheer.samit2006@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{"time":"2025-12-29T00:09:57.688501Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.GenerateUploadUrl","authorizationInfo":[{"resource":"projects/zas-safeguard/locations/us-central1","permission":"cloudfunctions.functions.sourceCodeSet","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/zas-safeguard/locations/us-central1","resourceLocation":{"currentLocations":["us-central1"]}}
+2025-12-29T00:09:58.143114Z N getBlockPolicy: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"zaheer.samit2006@gmail.com","principalSubject":"user:zaheer.samit2006@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2601:47:2:cdb0:9117:e1da:90a0:2441","callerSuppliedUserAgent":"FirebaseCLI/14.24.1,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2025-12-29T00:09:58.603201Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/zas-safeguard/locations/us-central1/functions/getBlockPolicy","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/zas-safeguard/locations/us-central1/functions/getBlockPolicy","request":{"updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,httpsTrigger.securityLevel,minInstances,maxInstances,ingressSettings,environmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables","@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest","function":{"labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"4e14eba702d8a8b9cb319fd9fd236f8b8872b229","deployment-callable":"true"},"runtime":"nodejs20","dockerRegistry":"ARTIFACT_REGISTRY","name":"projects/zas-safeguard/locations/us-central1/functions/getBlockPolicy","sourceUploadUrl":"https://storage.googleapis.com/uploads-781715132004.us-central1.cloudfunctions.appspot.com/92c4ece3-64a1-4925-9add-8f7bab4b35d5.zip?GoogleAccessId=service-559930411646@gcf-admin-robot.iam.gserviceaccount.com&Expires=1766968797&Signature=FuMGC582AST05pPazzWeacYRNN0PtyZFsTXaM7UoimR3vBPc%2F0S8a4F%2FsvckdzvSQhIHfIa%2BAyUllrsSkKFwGCtRnYMDcmEJj0Onrju5BgDhItbZohQ6LOL4z9Wmv3fqL0Kfns795q6%2Bdrn4bvfG6NzwTTTL6paUn%2FjHCmMh%2BG8t0K%2BgiknzTkGSY2T4Z7K1fO4G09HFpXfDLJBSPRALWOlTKs76PHD3teT3gxOnh1MBHe666ngPfC6HXhM3Vmbiheos%2BhrKOzLSDWjZTySx9uR5gv72tkdk3zprnD0OuX6srTs1O%2FPPaF6fj%2BNCjHm2GvyIlD77C%2FEd%2FykD0%2BgKlQ%3D%3D","httpsTrigger":{"securityLevel":"SECURE_ALWAYS"},"entryPoint":"getBlockPolicy"}},"resourceLocation":{"currentLocations":["us-central1"]}}
+2025-12-29T00:11:05.032272449Z D checkHeartbeats: Function execution started
+2025-12-29T00:11:05.035985Z ? checkHeartbeats: [Heartbeat] Starting heartbeat check...
+2025-12-29T00:11:05.437428Z ? checkHeartbeats: [Heartbeat] Already alerted for device 118898d58a52e7906ad8dbd2d675f98e, skipping
+2025-12-29T00:11:05.486386Z ? checkHeartbeats: [Heartbeat] Already alerted for device c601792e3038ca03b3f4278633cc1e48, skipping
+2025-12-29T00:11:05.486404Z ? checkHeartbeats: [Heartbeat] Check complete. Alerts sent: 0
+2025-12-29T00:11:05.487677470Z D checkHeartbeats: Function execution took 455 ms, finished with status: 'ok'
+2025-12-29T00:12:05.778811Z I checkheartbeatsv2: 
+2025-12-29T00:12:05.791318Z ? checkheartbeatsv2: [Heartbeat] Starting check (spam-safe V2)...
+
+2025-12-29T00:12:06.078785Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for 118898d58a52e7906ad8dbd2d675f98e
+
+2025-12-29T00:12:06.287047Z ? checkheartbeatsv2: [Heartbeat] Queued offline digest for c601792e3038ca03b3f4278633cc1e48
+
+2025-12-29T00:12:06.287126Z ? checkheartbeatsv2: [Heartbeat] Checked 2 devices, updated 0
+
+2025-12-29T00:13:32.047798Z E getBlockPolicy: Memory limit of 256 MiB exceeded with 323 MiB used. Consider increasing the memory limit, see https://cloud.google.com/functions/docs/configuring/memory
+2025-12-29T00:13:37.570976Z N getBlockPolicy: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/zas-safeguard/locations/us-central1/functions/getBlockPolicy"}

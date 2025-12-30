@@ -1,0 +1,88 @@
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    transition: all var(--transition-base);
+}
+
+/* ========================================
+   VARIANTS
+   ======================================== */
+
+/* Hoverable */
+.hoverable {
+    cursor: pointer;
+}
+
+.hoverable:hover {
+    border-color: var(--border-hover);
+    background-color: var(--bg-elevated);
+}
+
+.hoverable:active {
+    transform: scale(0.995);
+}
+
+/* Flat - no background, just border */
+.flat {
+    background-color: transparent;
+}
+
+/* Glass - subtle transparency */
+.glass {
+    background-color: rgba(30, 30, 34, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Status variants */
+.success {
+    border-color: rgba(34, 197, 94, 0.3);
+    background: linear-gradient(135deg,
+            rgba(34, 197, 94, 0.05) 0%,
+            transparent 100%);
+}
+
+.warning {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg,
+            rgba(245, 158, 11, 0.05) 0%,
+            transparent 100%);
+}
+
+.danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg,
+            rgba(239, 68, 68, 0.05) 0%,
+            transparent 100%);
+}
+
+/* Info / Brand */
+.info {
+    border-color: rgba(76, 94, 255, 0.3);
+    background: linear-gradient(135deg,
+            rgba(76, 94, 255, 0.05) 0%,
+            transparent 100%);
+}
+
+/* ========================================
+   PADDING OVERRIDES
+   ======================================== */
+
+.noPadding {
+    padding: 0;
+}
+
+.compact {
+    padding: var(--space-4);
+}
+
+/* ========================================
+   INTERACTIVE FOCUS
+   ======================================== */
+
+.card:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+}

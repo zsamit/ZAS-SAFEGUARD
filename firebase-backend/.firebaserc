@@ -1,0 +1,11 @@
+{
+  "projects": {},
+  "targets": {},
+  "etags": {
+    "zas-safeguard": {
+      "extensionInstances": {
+        "firestore-send-email": "da735549ad2a894d961c77a033f1df98476ef67da7d584972c307d7981b3c596"
+      }
+    }
+  }
+}

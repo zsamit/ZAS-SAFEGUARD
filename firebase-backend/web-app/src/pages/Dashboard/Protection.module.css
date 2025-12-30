@@ -1,0 +1,143 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    max-width: 720px;
+}
+
+.header h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.header p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+.savingIndicator {
+    font-size: var(--text-sm);
+    color: var(--zas-indigo);
+    margin-left: auto;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-20);
+    gap: var(--space-4);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   SECTION
+   ======================================== */
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--zas-indigo);
+}
+
+.sectionHeader h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+}
+
+.toggleCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.divider {
+    height: 1px;
+    background: var(--border-subtle);
+}
+
+/* ========================================
+   PROTECTION ITEM
+   ======================================== */
+
+.protectionItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.itemContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.itemHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
+}
+
+.itemIcon {
+    display: flex;
+    color: var(--emerald);
+}
+
+.itemLabel {
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+}
+
+.itemDescription {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+}
+
+.helperText {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+    font-style: italic;
+}
+
+.itemControl {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+}
+
+.lockedLabel {
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+}

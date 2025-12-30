@@ -1,0 +1,289 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    max-width: 640px;
+}
+
+.header h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.header p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-20);
+    gap: var(--space-4);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   SECTION
+   ======================================== */
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.section h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+}
+
+.section h3 svg {
+    color: var(--zas-indigo);
+}
+
+.section.danger h3 svg {
+    color: var(--crimson);
+}
+
+/* ========================================
+   FORM CARD
+   ======================================== */
+
+.formCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+}
+
+.updateBtn {
+    align-self: flex-start;
+    margin-top: var(--space-2);
+}
+
+.selectRow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.selectRow label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+}
+
+.selectRow select {
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    cursor: pointer;
+}
+
+.selectRow select:focus {
+    border-color: var(--zas-indigo);
+    outline: none;
+}
+
+/* ========================================
+   SUBSCRIPTION CARD
+   ======================================== */
+
+.subCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.subHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.planName {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
+}
+
+.planName h4 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+}
+
+.subHeader>div:first-child p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.planPrice {
+    text-align: right;
+}
+
+.price {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+}
+
+.period {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.subActions {
+    display: flex;
+    gap: var(--space-3);
+}
+
+/* ========================================
+   TOGGLE CARD
+   ======================================== */
+
+.toggleCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.divider {
+    height: 1px;
+    background: var(--border-subtle);
+}
+
+.toggleItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.toggleLabel {
+    display: block;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.toggleDesc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   QUIET HOURS
+   ======================================== */
+
+.quietCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.quietHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quietHeader h4 {
+    font-weight: var(--font-medium);
+    margin-bottom: var(--space-1);
+}
+
+.quietHeader p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.quietTimes {
+    display: flex;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.timeInput {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.timeInput label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+}
+
+.timeInput input {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+}
+
+.timeInput input:focus {
+    border-color: var(--zas-indigo);
+    outline: none;
+}
+
+/* ========================================
+   DANGER ZONE
+   ======================================== */
+
+.dangerCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--crimson-subtle);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.dangerCard h4 {
+    font-weight: var(--font-medium);
+    margin-bottom: var(--space-1);
+}
+
+.dangerCard p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}

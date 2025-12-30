@@ -21,6 +21,11 @@ const version = require('./version');
 const cleanup = require('./cleanup');
 const alerts = require('./alerts');
 const urlReputation = require('./urlReputation');
+const weeklyReport = require('./weeklyReport');
+const parentPin = require('./parentPin');
+const heartbeat = require('./heartbeat');
+const adblock = require('./adblock');
+const dataCleanup = require('./dataCleanup');
 
 // ============================================
 // URL REPUTATION FUNCTIONS
@@ -33,7 +38,7 @@ exports.cleanupOldUrlScans = urlReputation.cleanupOldUrlScans;
 // ALERT FUNCTIONS
 // ============================================
 exports.onSecurityEvent = alerts.onSecurityEvent;
-exports.checkHeartbeats = alerts.checkHeartbeats;
+// REMOVED: exports.checkHeartbeats - Legacy spammy heartbeat disabled. Use checkHeartbeatsV2 only.
 exports.logSecurityEvent = alerts.logSecurityEvent;
 exports.getAlerts = alerts.getAlerts;
 exports.updateAlertSettings = alerts.updateAlertSettings;
@@ -61,6 +66,7 @@ exports.archiveUserData = cleanup.archiveUserData;
 exports.onUserCreate = auth.onUserCreate;
 exports.verifyPhone = auth.verifyPhone;
 exports.initializeDevice = auth.initializeDevice;
+exports.deleteAccount = auth.deleteAccount;  // NEW: Delete user + all data
 
 // ============================================
 // SUBSCRIPTION FUNCTIONS
@@ -70,6 +76,9 @@ exports.stripeWebhook = subscription.stripeWebhook;
 exports.checkTrialEligibility = subscription.checkTrialEligibility;
 exports.getRegionalPrice = subscription.getRegionalPrice;
 exports.handleTrialEnd = subscription.handleTrialEnd;
+exports.createPortalSession = subscription.createPortalSession;  // NEW: Stripe customer portal
+exports.getInvoices = subscription.getInvoices;  // NEW: Get user's invoices
+exports.getSubscription = subscription.getSubscription;  // NEW: Get real plan status
 
 // ============================================
 // BLOCKING FUNCTIONS
@@ -88,6 +97,14 @@ exports.syncUnlockStatus = override.syncUnlockStatus;
 exports.getUnlockStatus = override.getUnlockStatus;
 
 // ============================================
+// PARENT PIN FUNCTIONS (Lock Device Security)
+// ============================================
+exports.setParentPin = parentPin.setParentPin;
+exports.verifyParentPin = parentPin.verifyParentPin;
+exports.executeLockAction = parentPin.executeLockAction;
+exports.checkParentPinStatus = parentPin.checkParentPinStatus;
+
+// ============================================
 // FRAUD DETECTION FUNCTIONS
 // ============================================
 exports.calculateFraudScore = fraud.calculateFraudScore;
@@ -99,9 +116,33 @@ exports.checkDeviceFingerprint = fraud.checkDeviceFingerprint;
 exports.classifyContent = ai.classifyContent;
 exports.generateRiskScore = ai.generateRiskScore;
 exports.generateWeeklyReport = ai.generateWeeklyReport;
+exports.analyzeContentForAdult = ai.analyzeContentForAdult;
 
 // ============================================
 // SCHEDULED FUNCTIONS
+// ============================================
+exports.sendWeeklySummary = weeklyReport.sendWeeklySummary;
+
+// ============================================
+// HEARTBEAT & OFFLINE DETECTION (Zero-Spam)
+// ============================================
+// Note: checkHeartbeats (1st gen) is deprecated, use checkHeartbeatsV2
+exports.checkHeartbeatsV2 = heartbeat.checkHeartbeatsV2;   // NEW - 2nd gen with spam prevention
+exports.updateDeviceStatus = heartbeat.updateDeviceStatus;  // Graceful offline signal
+exports.sendOfflineDigest = heartbeat.sendOfflineDigest;    // Daily digest (not instant spam)
+
+// ============================================
+// AD BLOCKER FUNCTIONS
+// ============================================
+exports.getAdblockSettings = adblock.getAdblockSettings;
+exports.updateAdblockSettings = adblock.updateAdblockSettings;
+exports.logAdblockStats = adblock.logAdblockStats;
+exports.getAdblockSiteModes = adblock.getAdblockSiteModes;
+exports.updateAdblockSiteMode = adblock.updateAdblockSiteMode;
+exports.getAdblockStatsSummary = adblock.getAdblockStatsSummary;
+
+// ============================================
+// OTHER SCHEDULED FUNCTIONS
 // ============================================
 
 // Check for expiring trials daily
@@ -136,5 +177,12 @@ exports.checkExpiringTrials = functions.pubsub
         return null;
     });
 
+// ============================================
+// DATA CLEANUP (Cost Optimization)
+// ============================================
+exports.dailyCleanup = dataCleanup.dailyCleanup;           // 3 AM UTC - cleans logs, caps, digest_queue
+exports.weeklyDeepCleanup = dataCleanup.weeklyDeepCleanup; // Sunday 4 AM UTC - deep clean security_events
+
 // Note: cleanupOldLogs is exported from cleanup.js as cleanupOldLogsV2
 // It runs daily at 3 AM UTC and cleans up logs older than 30 days
+

@@ -1,0 +1,210 @@
+.layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+}
+
+/* ========================================
+   SIDEBAR
+   ======================================== */
+
+.sidebar {
+    width: 260px;
+    display: none;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+}
+
+@media (min-width: 768px) {
+    .sidebar {
+        display: flex;
+    }
+}
+
+.sidebarHeader {
+    padding: var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg);
+    color: var(--text-primary);
+}
+
+.logo svg {
+    color: var(--zas-indigo);
+}
+
+/* ========================================
+   NAVIGATION
+   ======================================== */
+
+.nav {
+    flex: 1;
+    padding: var(--space-4) var(--space-3);
+    overflow-y: auto;
+}
+
+.navSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.navItem:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.navItem.active {
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+}
+
+.navItem svg {
+    flex-shrink: 0;
+}
+
+/* ========================================
+   SIDEBAR FOOTER
+   ======================================== */
+
+.sidebarFooter {
+    padding: var(--space-4) var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.userProfile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin-top: var(--space-2);
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--zas-indigo) 0%, #6B7BFF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: white;
+    flex-shrink: 0;
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.userName {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.userPlan {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   MAIN CONTENT
+   ======================================== */
+
+.main {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+}
+
+@media (min-width: 768px) {
+    .main {
+        padding-bottom: 0;
+    }
+}
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-8);
+}
+
+@media (max-width: 768px) {
+    .content {
+        padding: var(--space-4);
+    }
+}
+
+/* ========================================
+   MOBILE NAVIGATION
+   ======================================== */
+
+.mobileNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    padding: var(--space-2) var(--space-2) var(--space-4);
+    z-index: var(--z-sticky);
+}
+
+@media (min-width: 768px) {
+    .mobileNav {
+        display: none;
+    }
+}
+
+.mobileNavItem {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    font-size: 10px;
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+    transition: color var(--transition-base);
+}
+
+.mobileNavItem.active {
+    color: var(--zas-indigo);
+}
+
+.mobileNavItem span {
+    white-space: nowrap;
+}

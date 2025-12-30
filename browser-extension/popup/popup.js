@@ -52,15 +52,55 @@ async function loadLastSync() {
 // Study mode
 async function loadStudyMode() {
     try {
-        const result = await chrome.storage.local.get(['studyMode']);
-        document.getElementById('studyModeToggle').checked = result.studyMode || false;
+        const result = await chrome.storage.local.get(['activeStudySession', 'studyMode']);
+        // Check for active session (used by dashboard) or legacy studyMode flag
+        const isActive = result.activeStudySession || result.studyMode || false;
+        document.getElementById('studyModeToggle').checked = isActive;
     } catch (e) { }
 }
 
 async function toggleStudyMode() {
     const enabled = document.getElementById('studyModeToggle').checked;
-    await chrome.storage.local.set({ studyMode: enabled });
-    chrome.runtime.sendMessage({ action: 'toggleStudyMode', enabled });
+
+    if (enabled) {
+        // Start study mode with default categories (social media + gaming + youtube + reddit)
+        const session = {
+            startTime: new Date().toISOString(),
+            endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour default
+            blockCategories: ['social_media', 'gaming', 'youtube', 'reddit'],
+            source: 'popup'
+        };
+
+        await chrome.storage.local.set({
+            studyMode: true,
+            activeStudySession: session
+        });
+
+        chrome.runtime.sendMessage({
+            type: 'STUDY_MODE_START',
+            session: session
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.log('Study mode start error:', chrome.runtime.lastError.message);
+            } else {
+                console.log('Study mode started:', response);
+            }
+        });
+    } else {
+        // Stop study mode
+        await chrome.storage.local.set({ studyMode: false });
+        await chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']);
+
+        chrome.runtime.sendMessage({
+            type: 'STUDY_MODE_STOP'
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.log('Study mode stop error:', chrome.runtime.lastError.message);
+            } else {
+                console.log('Study mode stopped:', response);
+            }
+        });
+    }
 }
 
 // User
@@ -85,28 +125,147 @@ async function loadUser() {
 
 // Actions
 function openDashboard() {
-    chrome.tabs.create({ url: 'https://zas-safeguard.web.app/app/' });
+    chrome.tabs.create({ url: 'https://zassafeguard.com/app/' });
 }
 
 async function syncNow() {
     const btn = document.getElementById('syncBtn');
-    btn.querySelector('.action-icon').textContent = '⏳';
+    const actionIcon = btn.querySelector('.action-icon');
+    const origIcon = actionIcon.innerHTML;
+    actionIcon.innerHTML = '⏳';
+
     try {
-        chrome.runtime.sendMessage({ action: 'syncNow' });
+        // Send sync message to background script
+        chrome.runtime.sendMessage({ type: 'SYNC_NOW' }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.log('Sync error:', chrome.runtime.lastError.message);
+            }
+        });
+
         await chrome.storage.local.set({ lastSync: Date.now() });
+
+        // Wait a bit for sync to complete, then update UI
         setTimeout(() => {
-            btn.querySelector('.action-icon').textContent = '✅';
+            actionIcon.innerHTML = '✅';
             loadLastSync();
             loadStats();
-            setTimeout(() => btn.querySelector('.action-icon').textContent = '🔄', 1500);
-        }, 1000);
+            setTimeout(() => {
+                actionIcon.innerHTML = origIcon;
+            }, 1500);
+        }, 1500);
     } catch (e) {
-        btn.querySelector('.action-icon').textContent = '❌';
+        actionIcon.innerHTML = '❌';
+        setTimeout(() => {
+            actionIcon.innerHTML = origIcon;
+        }, 2000);
     }
 }
 
 function signIn() {
-    chrome.tabs.create({ url: 'https://zas-safeguard.web.app/app/' });
+    chrome.tabs.create({ url: 'https://zassafeguard.com/app/' });
+}
+
+// Quick URL Scan
+async function quickScan() {
+    const urlInput = document.getElementById('quickScanUrl');
+    const scanBtn = document.getElementById('quickScanBtn');
+    const resultDiv = document.getElementById('quickScanResult');
+    const resultIcon = document.getElementById('scanResultIcon');
+    const resultText = document.getElementById('scanResultText');
+
+    let url = urlInput.value.trim();
+    if (!url) {
+        resultDiv.style.display = 'flex';
+        resultIcon.textContent = '⚠️';
+        resultText.textContent = 'Please enter a URL';
+        resultDiv.className = 'quick-scan-result warning';
+        return;
+    }
+
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+
+    // Validate URL
+    try {
+        new URL(url);
+    } catch (e) {
+        resultDiv.style.display = 'flex';
+        resultIcon.textContent = '❌';
+        resultText.textContent = 'Invalid URL';
+        resultDiv.className = 'quick-scan-result danger';
+        return;
+    }
+
+    // Show scanning state
+    scanBtn.disabled = true;
+    document.getElementById('scanBtnText').textContent = '...';
+    resultDiv.style.display = 'none';
+
+    try {
+        // Call background script to scan URL
+        const response = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({
+                type: 'SCAN_URL',
+                url: url
+            }, (resp) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(resp);
+                }
+            });
+        });
+
+        resultDiv.style.display = 'flex';
+
+        if (response && response.safe === false) {
+            // Dangerous
+            resultIcon.textContent = '🚨';
+            resultText.textContent = response.category || 'Dangerous';
+            resultDiv.className = 'quick-scan-result danger';
+        } else if (response && response.suspicious) {
+            // Suspicious
+            resultIcon.textContent = '⚠️';
+            resultText.textContent = 'Suspicious';
+            resultDiv.className = 'quick-scan-result warning';
+        } else {
+            // Safe
+            resultIcon.textContent = '✓';
+            resultText.textContent = 'Safe';
+            resultDiv.className = 'quick-scan-result safe';
+        }
+    } catch (e) {
+        // Fallback: do basic local check
+        const suspiciousPatterns = [
+            /porn/i, /xxx/i, /adult/i, /sex/i,
+            /phishing/i, /malware/i, /virus/i,
+            /\.(tk|ml|ga|cf|gq)$/i
+        ];
+
+        let isSuspicious = false;
+        for (const pattern of suspiciousPatterns) {
+            if (pattern.test(url)) {
+                isSuspicious = true;
+                break;
+            }
+        }
+
+        resultDiv.style.display = 'flex';
+        if (isSuspicious) {
+            resultIcon.textContent = '⚠️';
+            resultText.textContent = 'Suspicious';
+            resultDiv.className = 'quick-scan-result warning';
+        } else {
+            resultIcon.textContent = '✓';
+            resultText.textContent = 'Appears Safe';
+            resultDiv.className = 'quick-scan-result safe';
+        }
+    }
+
+    scanBtn.disabled = false;
+    document.getElementById('scanBtnText').textContent = 'Scan';
 }
 
 // Init
@@ -122,6 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dashboardBtn').addEventListener('click', openDashboard);
     document.getElementById('syncBtn').addEventListener('click', syncNow);
     document.getElementById('loginBtn').addEventListener('click', signIn);
+
+    // Quick URL scan handlers
+    document.getElementById('quickScanBtn').addEventListener('click', quickScan);
+    document.getElementById('quickScanUrl').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') quickScan();
+    });
 
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {

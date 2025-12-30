@@ -1,0 +1,415 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    max-width: 800px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.header h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.header p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+/* Loading & Empty States */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-20);
+    gap: var(--space-4);
+    color: var(--text-muted);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-12);
+    gap: var(--space-4);
+}
+
+.emptyState svg {
+    color: var(--text-muted);
+    opacity: 0.4;
+}
+
+.emptyState h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+}
+
+.emptyState p {
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+}
+
+/* ========================================
+   SETUP CARD
+   ======================================== */
+
+.setupCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-12);
+    gap: var(--space-4);
+}
+
+.setupCard svg {
+    color: var(--zas-indigo);
+    opacity: 0.5;
+}
+
+.setupCard h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+}
+
+.setupCard p {
+    max-width: 400px;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+/* ========================================
+   SECTION
+   ======================================== */
+
+.section h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-4);
+}
+
+/* ========================================
+   CHILD GRID
+   ======================================== */
+
+.childGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .childGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+}
+
+.childCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.childHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--zas-indigo) 0%, #6B7BFF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: white;
+}
+
+.avatar.attention {
+    background: linear-gradient(135deg, var(--amber) 0%, #FFC107 100%);
+}
+
+.childInfo h4 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-1);
+}
+
+.childInfo span {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.childStats {
+    display: flex;
+    gap: var(--space-6);
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.statValue {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+}
+
+.statLabel {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.childAction {
+    margin-top: auto;
+    justify-content: space-between;
+}
+
+/* ========================================
+   SETTINGS
+   ======================================== */
+
+.settingsCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.divider {
+    height: 1px;
+    background: var(--border-subtle);
+}
+
+.settingItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.settingIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.settingContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.settingLabel {
+    display: block;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.settingDesc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   QUIET HOURS
+   ======================================== */
+
+.quietCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.quietHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quietHeader h4 {
+    font-weight: var(--font-medium);
+    margin-bottom: var(--space-1);
+}
+
+.quietHeader p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.quietTimes {
+    display: flex;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.timeInput {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.timeInput label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+}
+
+.timeInput input {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+}
+
+.timeInput input:focus {
+    border-color: var(--zas-indigo);
+    outline: none;
+}
+
+/* ========================================
+   INFO CARD
+   ======================================== */
+
+.infoCard {
+    display: flex;
+    gap: var(--space-4);
+    align-items: flex-start;
+    background: var(--bg-surface);
+}
+
+.infoCard svg {
+    flex-shrink: 0;
+    color: var(--zas-indigo);
+}
+
+.infoCard p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-relaxed);
+}
+
+/* ========================================
+   MODAL
+   ======================================== */
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-4);
+}
+
+.modal {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+}
+
+.closeBtn {
+    padding: var(--space-2);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.closeBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+/* ========================================
+   CHILD CARD ACTIONS
+   ======================================== */
+
+.childHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.deleteBtn {
+    padding: var(--space-2);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.deleteBtn:hover {
+    background: var(--crimson-subtle);
+    color: var(--crimson);
+}

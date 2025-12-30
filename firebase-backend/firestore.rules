@@ -335,13 +335,17 @@ service cloud.firestore {
     }
 
     // ============================================
-    // ALERTS (Parent notifications)
+    // ALERTS (Parent notifications) - Flat collection with userId field
     // ============================================
     
-    match /alerts/{userId}/{alertId} {
-      allow read: if isOwner(userId);
+    match /alerts/{alertId} {
+      // Users can read their own alerts
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can also list alerts (for queries)
+      allow list: if isAuthenticated();
       allow create: if false; // Only Cloud Functions
-      allow update: if isOwner(userId) && 
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
         // Only allow marking as read
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
       allow delete: if false;

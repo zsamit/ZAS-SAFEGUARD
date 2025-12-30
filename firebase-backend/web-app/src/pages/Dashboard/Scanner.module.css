@@ -1,0 +1,364 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    max-width: 720px;
+}
+
+.header h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.header p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   SCAN CARD
+   ======================================== */
+
+.scanCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.scanInput {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.scanInput>div:first-child {
+    flex: 1;
+}
+
+/* ========================================
+   RESULT
+   ======================================== */
+
+.result {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border-radius: var(--radius-md);
+}
+
+.result.safe {
+    background: var(--emerald-subtle);
+}
+
+.result.danger {
+    background: var(--crimson-subtle);
+}
+
+.resultIcon {
+    flex-shrink: 0;
+}
+
+.result.safe .resultIcon {
+    color: var(--emerald);
+}
+
+.result.danger .resultIcon {
+    color: var(--crimson);
+}
+
+.resultContent h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-1);
+}
+
+.result.safe .resultContent h3 {
+    color: var(--emerald);
+}
+
+.result.danger .resultContent h3 {
+    color: var(--crimson);
+}
+
+.resultContent p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.resultMeta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+/* ========================================
+   RECENT SCANS
+   ======================================== */
+
+.section h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-3);
+}
+
+.recentCard {
+    overflow: hidden;
+}
+
+.scanItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background var(--transition-base);
+}
+
+.scanItem:last-child {
+    border-bottom: none;
+}
+
+.scanItem:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.scanInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.scanIcon {
+    display: flex;
+    color: var(--emerald);
+}
+
+.scanItem:has([class*="danger"]) .scanIcon {
+    color: var(--crimson);
+}
+
+.scanUrl {
+    display: block;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+}
+
+.scanTime {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    gap: var(--space-3);
+    color: var(--text-muted);
+}
+
+.emptyState svg {
+    opacity: 0.3;
+}
+
+/* ========================================
+   INFO CARD
+   ======================================== */
+
+.infoCard {
+    display: flex;
+    gap: var(--space-4);
+    background: var(--bg-surface);
+}
+
+.infoCard svg {
+    flex-shrink: 0;
+    color: var(--zas-indigo);
+}
+
+.infoCard h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    margin-bottom: var(--space-1);
+}
+
+.infoCard p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-relaxed);
+}
+
+/* ========================================
+   SCANNER CARD
+   ======================================== */
+
+.scannerCard {
+    padding: var(--space-5);
+}
+
+.inputRow {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.inputRow>div:first-child {
+    flex: 1;
+}
+
+/* ========================================
+   RESULT CARD
+   ======================================== */
+
+.resultCard {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.resultIcon {
+    flex-shrink: 0;
+}
+
+.resultIcon[data-status="safe"] {
+    color: var(--emerald);
+}
+
+.resultIcon[data-status="warning"] {
+    color: var(--amber);
+}
+
+.resultIcon[data-status="danger"] {
+    color: var(--crimson);
+}
+
+.resultContent {
+    flex: 1;
+}
+
+.resultContent h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin: var(--space-2) 0;
+}
+
+.resultContent p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.threats {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.threats li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--crimson);
+}
+
+/* ========================================
+   SCAN LIST
+   ======================================== */
+
+.scanList {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.scanItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+}
+
+.scanItem:last-child {
+    border-bottom: none;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.statusDot.safe {
+    background: var(--emerald);
+}
+
+.statusDot.warning {
+    background: var(--amber);
+}
+
+.statusDot.danger {
+    background: var(--crimson);
+}
+
+.scanInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.scanDomain {
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+}
+
+.scanTime {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.rescanBtn {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--zas-indigo);
+    background: transparent;
+    border: 1px solid var(--zas-indigo);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.rescanBtn:hover {
+    background: var(--zas-indigo);
+    color: white;
+}
+
+/* Loading */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-8);
+}

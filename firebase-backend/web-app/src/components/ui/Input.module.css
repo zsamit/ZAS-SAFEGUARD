@@ -1,0 +1,107 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
+    margin-left: var(--space-1);
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* ========================================
+   INPUT FIELD
+   ======================================== */
+
+.input {
+    width: 100%;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    transition: all var(--transition-base);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.input:hover:not(:disabled) {
+    border-color: var(--border-hover);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--zas-indigo);
+    box-shadow: 0 0 0 3px var(--zas-indigo-subtle);
+}
+
+.input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* With icon */
+.hasIcon {
+    padding-left: 44px;
+}
+
+.icon {
+    position: absolute;
+    left: var(--space-4);
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color var(--transition-base);
+}
+
+.inputWrapper:focus-within .icon {
+    color: var(--zas-indigo);
+}
+
+/* ========================================
+   STATES
+   ======================================== */
+
+.error .input {
+    border-color: var(--crimson);
+}
+
+.error .input:focus {
+    box-shadow: 0 0 0 3px var(--crimson-subtle);
+}
+
+.errorText {
+    color: var(--crimson);
+    font-size: var(--text-xs);
+    margin-left: var(--space-1);
+}
+
+/* Success state */
+.success .input {
+    border-color: var(--emerald);
+}
+
+/* ========================================
+   SIZES
+   ======================================== */
+
+.sm .input {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.lg .input {
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--text-md);
+}
