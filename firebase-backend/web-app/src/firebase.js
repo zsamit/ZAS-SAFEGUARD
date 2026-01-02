@@ -22,4 +22,4 @@ export const db = getFirestore(app);
 export const signOut = () => firebaseSignOut(auth);
 
 export { onAuthStateChanged };
-export default app;
+export { app };

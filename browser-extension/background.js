@@ -747,7 +747,10 @@ function checkMaliciousPatterns(url) {
         'google.com', 'youtube.com', 'facebook.com', 'instagram.com',
         'twitter.com', 'x.com', 'microsoft.com', 'apple.com', 'amazon.com',
         'netflix.com', 'github.com', 'reddit.com', 'paypal.com', 'stripe.com',
-        'zasgloballlc.com', 'zas-safeguard.web.app', 'firebase.google.com'
+        'zasgloballlc.com', 'zas-safeguard.web.app', 'zassafeguard.com',
+        'firebase.google.com', 'firebaseapp.com', 'googleapis.com',
+        'identitytoolkit.googleapis.com', 'securetoken.googleapis.com',
+        'cloudfunctions.net', 'firebaseio.com', 'firebasestorage.app'
     ];
 
     const urlLower = url.toLowerCase();

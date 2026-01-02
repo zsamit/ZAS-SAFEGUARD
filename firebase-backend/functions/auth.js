@@ -232,12 +232,15 @@ exports.deleteAccount = functions
 
         console.log(`[deleteAccount] Starting deletion for user: ${uid}`);
 
+        let deletedCounts = { devices: 0, alerts: 0, securityEvents: 0, logs: 0 };
+        let firestoreError = null;
+
+        // Step 1: Try to delete Firestore data (non-critical, continue if fails)
         try {
             const batch = db.batch();
-            const BATCH_SIZE = 400; // Leave room in 500 batch limit
-            let deletedCounts = { devices: 0, alerts: 0, securityEvents: 0, logs: 0 };
+            const BATCH_SIZE = 400;
 
-            // 1. Delete user's devices
+            // Delete user's devices
             const devicesSnap = await db.collection('devices')
                 .where('userId', '==', uid)
                 .limit(BATCH_SIZE)
@@ -247,7 +250,7 @@ exports.deleteAccount = functions
                 deletedCounts.devices++;
             });
 
-            // 2. Delete user's alerts
+            // Delete user's alerts
             const alertsSnap = await db.collection('alerts')
                 .where('userId', '==', uid)
                 .limit(BATCH_SIZE)
@@ -257,55 +260,49 @@ exports.deleteAccount = functions
                 deletedCounts.alerts++;
             });
 
-            // 3. Delete security_events subcollections
-            const secEventsRef = db.collection(`security_events/${uid}`);
-            // Get all device subcollections
-            const deviceCollections = await db.collectionGroup('events')
-                .where('userId', '==', uid)
-                .limit(BATCH_SIZE)
-                .get();
-            deviceCollections.docs.forEach(doc => {
-                batch.delete(doc.ref);
-                deletedCounts.securityEvents++;
-            });
+            // Delete user's logs (skip if fails)
+            try {
+                const logsSnap = await db.collection('logs')
+                    .where('userId', '==', uid)
+                    .limit(BATCH_SIZE)
+                    .get();
+                logsSnap.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                    deletedCounts.logs++;
+                });
+            } catch (e) {
+                console.log('[deleteAccount] Skipping logs:', e.message);
+            }
 
-            // 4. Delete user's logs
-            const logsSnap = await db.collection('logs')
-                .where('userId', '==', uid)
-                .limit(BATCH_SIZE)
-                .get();
-            logsSnap.docs.forEach(doc => {
-                batch.delete(doc.ref);
-                deletedCounts.logs++;
-            });
-
-            // 5. Delete alert_settings
+            // Delete known user documents
             batch.delete(db.doc(`alert_settings/${uid}`));
-
-            // 6. Delete family_profiles
             batch.delete(db.doc(`family_profiles/${uid}`));
-
-            // 7. Delete owner_profiles
             batch.delete(db.doc(`owner_profiles/${uid}`));
-
-            // 8. Delete user document
             batch.delete(db.doc(`users/${uid}`));
 
-            // Commit batch
             await batch.commit();
             console.log(`[deleteAccount] Firestore data deleted:`, deletedCounts);
+        } catch (error) {
+            console.error('[deleteAccount] Firestore deletion error (continuing):', error.message);
+            firestoreError = error.message;
+        }
 
-            // 9. Delete Firebase Auth user
+        // Step 2: CRITICAL - Delete Firebase Auth user (must succeed)
+        try {
             await admin.auth().deleteUser(uid);
             console.log(`[deleteAccount] Auth user deleted: ${uid}`);
-
-            return {
-                success: true,
-                message: 'Account permanently deleted',
-                deleted: deletedCounts
-            };
-        } catch (error) {
-            console.error('[deleteAccount] Error:', error);
-            throw new functions.https.HttpsError('internal', `Account deletion failed: ${error.message}`);
+        } catch (authError) {
+            console.error('[deleteAccount] CRITICAL - Auth deletion failed:', authError);
+            throw new functions.https.HttpsError(
+                'internal',
+                `Failed to delete authentication: ${authError.message}. Please contact support.`
+            );
         }
+
+        return {
+            success: true,
+            message: 'Account permanently deleted',
+            deleted: deletedCounts,
+            firestoreWarning: firestoreError
+        };
     });

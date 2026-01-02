@@ -18,15 +18,28 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        console.log('[AuthContext] Setting up auth listener');
+
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+            console.log('[AuthContext] Auth state changed:', firebaseUser ? `UID: ${firebaseUser.uid}` : 'No user');
+
             if (firebaseUser) {
                 setUser(firebaseUser);
                 // Load user profile from Firestore
-                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-                if (userDoc.exists()) {
-                    setUserProfile(userDoc.data());
+                try {
+                    console.log('[AuthContext] Fetching user profile from Firestore...');
+                    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    if (userDoc.exists()) {
+                        console.log('[AuthContext] User profile loaded:', userDoc.data());
+                        setUserProfile(userDoc.data());
+                    } else {
+                        console.warn('[AuthContext] No user profile found in Firestore');
+                    }
+                } catch (error) {
+                    console.error('[AuthContext] Error loading user profile:', error);
                 }
             } else {
+                console.log('[AuthContext] No user - clearing state');
                 setUser(null);
                 setUserProfile(null);
             }
@@ -50,7 +63,14 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     const logout = async () => {
-        await signOut();
+        try {
+            await signOut();
+            setUser(null);
+            setUserProfile(null);
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
     };
 
     return (

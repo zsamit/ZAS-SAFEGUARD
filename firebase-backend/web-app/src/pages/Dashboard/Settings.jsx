@@ -5,8 +5,9 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Toggle } from '../../components/ui/Toggle';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { db, app, auth } from '../../firebase';
+import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
     User,
     CreditCard,
@@ -16,12 +17,15 @@ import {
     Globe,
     ExternalLink,
     Trash2,
-    Loader
+    Loader,
+    LogOut,
+    Save
 } from 'lucide-react';
 import styles from './Settings.module.css';
 
 const Settings = () => {
     const { user, userProfile, logout } = useAuth();
+    const functions = getFunctions(app);
 
     const [notifications, setNotifications] = useState({
         emailAlerts: true,
@@ -36,6 +40,164 @@ const Settings = () => {
     });
 
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [loadingPortal, setLoadingPortal] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState('');
+
+    // Load notification settings from Firestore
+    useEffect(() => {
+        if (user?.uid) {
+            loadSettings();
+        }
+    }, [user?.uid]);
+
+    const loadSettings = async () => {
+        try {
+            const settingsDoc = await getDoc(doc(db, 'alert_settings', user.uid));
+            if (settingsDoc.exists()) {
+                const data = settingsDoc.data();
+                setNotifications({
+                    emailAlerts: data.emailAlerts ?? true,
+                    pushNotifications: data.pushNotifications ?? true,
+                    weeklyReport: data.weeklyReport ?? true,
+                });
+                setQuietHours({
+                    enabled: data.quietHoursEnabled ?? false,
+                    start: data.quietStart || '22:00',
+                    end: data.quietEnd || '07:00',
+                });
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+        }
+    };
+
+    // Save notification settings to Firestore
+    const saveSettings = async () => {
+        if (!user?.uid) return;
+        setSaving(true);
+        try {
+            await setDoc(doc(db, 'alert_settings', user.uid), {
+                emailAlerts: notifications.emailAlerts,
+                pushNotifications: notifications.pushNotifications,
+                weeklyReport: notifications.weeklyReport,
+                quietHoursEnabled: quietHours.enabled,
+                quietStart: quietHours.start,
+                quietEnd: quietHours.end,
+                updatedAt: new Date(),
+            }, { merge: true });
+            alert('Settings saved!');
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            alert('Failed to save settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Handle Manage Subscription - opens Stripe portal
+    const handleManageSubscription = async () => {
+        setLoadingPortal(true);
+        try {
+            // Debug: Check if user is authenticated
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                alert('You are not logged in. Please log in first.');
+                setLoadingPortal(false);
+                return;
+            }
+            console.log('Current user UID:', currentUser.uid);
+
+            // Get fresh ID token to ensure it's valid
+            const idToken = await currentUser.getIdToken(true);
+            console.log('Got fresh ID token, length:', idToken?.length);
+
+            const createPortalSession = httpsCallable(functions, 'createPortalSession');
+            const result = await createPortalSession({ returnUrl: window.location.href });
+            if (result.data?.url) {
+                window.open(result.data.url, '_blank');
+            } else {
+                alert('Could not open billing portal. Please try again.');
+            }
+        } catch (error) {
+            console.error('Portal error:', error);
+            alert('Error opening billing portal: ' + error.message);
+        } finally {
+            setLoadingPortal(false);
+        }
+    };
+
+    // Handle View Invoices
+    const handleViewInvoices = async () => {
+        try {
+            const getInvoices = httpsCallable(functions, 'getInvoices');
+            const result = await getInvoices({ limit: 10 });
+            if (result.data?.invoices?.length > 0) {
+                // Open first invoice PDF or hosted URL
+                const invoice = result.data.invoices[0];
+                window.open(invoice.hostedUrl || invoice.pdfUrl, '_blank');
+            } else {
+                alert('No invoices found.');
+            }
+        } catch (error) {
+            console.error('Invoices error:', error);
+            alert('Error loading invoices: ' + error.message);
+        }
+    };
+
+    // Handle Delete Account
+    const handleDeleteAccount = async () => {
+        if (deleteConfirm !== 'DELETE') {
+            alert('Please type DELETE to confirm');
+            return;
+        }
+
+        // No more window.confirm - typing DELETE is the confirmation
+        setDeleting(true);
+        try {
+            // Verify user is authenticated before calling Cloud Function
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                alert('You are not logged in. Please log in first.');
+                setDeleting(false);
+                return;
+            }
+            console.log('Deleting account for UID:', currentUser.uid);
+
+            // Get fresh ID token to ensure auth is passed to Cloud Function
+            await currentUser.getIdToken(true);
+            console.log('Got fresh ID token for deletion');
+
+            const deleteAccount = httpsCallable(functions, 'deleteAccount');
+            await deleteAccount({ confirmDelete: 'DELETE_MY_ACCOUNT' });
+            alert('Account deleted. Goodbye!');
+
+            // Force sign out directly from auth
+            try {
+                await auth.signOut();
+            } catch (e) {
+                console.log('Already signed out');
+            }
+
+            // Hard redirect to landing page
+            window.location.replace('/');
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting account: ' + error.message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // Handle Logout
+    const handleLogout = async () => {
+        try {
+            await logout();
+            // Redirect handled by AuthContext
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
 
     // Get subscription from user profile
     const subscription = userProfile?.subscription || {};
@@ -65,16 +227,7 @@ const Settings = () => {
         return 'N/A';
     };
 
-    if (!userProfile) {
-        return (
-            <div className={styles.page}>
-                <div className={styles.loadingState}>
-                    <Loader size={32} className={styles.spinner} />
-                    <span>Loading settings...</span>
-                </div>
-            </div>
-        );
-    }
+    // Don't block on userProfile - show settings with defaults if not logged in
 
     return (
         <div className={styles.page}>
@@ -93,11 +246,11 @@ const Settings = () => {
                     <div className={styles.formRow}>
                         <Input
                             label="Display Name"
-                            defaultValue={userProfile.displayName || user?.displayName || ''}
+                            defaultValue={userProfile?.displayName || user?.displayName || ''}
                         />
                         <Input
                             label="Mode"
-                            defaultValue={userProfile.mode?.charAt(0).toUpperCase() + userProfile.mode?.slice(1) || 'Owner'}
+                            defaultValue={userProfile?.mode?.charAt(0).toUpperCase() + userProfile?.mode?.slice(1) || 'Owner'}
                             disabled
                         />
                     </div>
@@ -106,9 +259,15 @@ const Settings = () => {
                         defaultValue={user?.email || ''}
                         disabled
                     />
-                    <Button variant="secondary" className={styles.updateBtn}>
-                        Update Profile
-                    </Button>
+                    <div className={styles.accountActions}>
+                        <Button variant="secondary" className={styles.updateBtn}>
+                            Update Profile
+                        </Button>
+                        <Button variant="ghost" onClick={handleLogout}>
+                            <LogOut size={16} />
+                            Log Out
+                        </Button>
+                    </div>
                 </Card>
             </section>
 
@@ -149,10 +308,15 @@ const Settings = () => {
                     </div>
                     {!isLifetime && (
                         <div className={styles.subActions}>
-                            <Button variant="secondary" size="sm">
-                                Manage Subscription
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleManageSubscription}
+                                disabled={loadingPortal}
+                            >
+                                {loadingPortal ? <Loader size={14} className={styles.spinner} /> : 'Manage Subscription'}
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={handleViewInvoices}>
                                 View Invoices
                                 <ExternalLink size={14} />
                             </Button>
@@ -188,6 +352,12 @@ const Settings = () => {
                         checked={notifications.weeklyReport}
                         onChange={() => setNotifications(n => ({ ...n, weeklyReport: !n.weeklyReport }))}
                     />
+                    <div className={styles.saveRow}>
+                        <Button onClick={saveSettings} disabled={saving}>
+                            {saving ? <Loader size={14} className={styles.spinner} /> : <Save size={14} />}
+                            Save Settings
+                        </Button>
+                    </div>
                 </Card>
             </section>
 
@@ -263,9 +433,21 @@ const Settings = () => {
                     <div>
                         <h4>Delete Account</h4>
                         <p>Permanently delete your account and all associated data.</p>
+                        <div className={styles.deleteConfirm}>
+                            <Input
+                                placeholder="Type DELETE to confirm"
+                                value={deleteConfirm}
+                                onChange={(e) => setDeleteConfirm(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <Button variant="danger" size="sm">
-                        <Trash2 size={16} />
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={handleDeleteAccount}
+                        disabled={deleting || deleteConfirm !== 'DELETE'}
+                    >
+                        {deleting ? <Loader size={16} className={styles.spinner} /> : <Trash2 size={16} />}
                         Delete Account
                     </Button>
                 </Card>

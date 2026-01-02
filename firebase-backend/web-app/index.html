@@ -1,13 +1,55 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web-app</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZAS Safeguard</title>
+  <style>
+    /* Prevent black flash while React loads */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0f;
+      color: #fff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    #root {
+      min-height: 100vh;
+      background: #0a0a0f;
+    }
+
+    /* Loading spinner before React mounts */
+    #root:empty {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #root:empty::after {
+      content: '';
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

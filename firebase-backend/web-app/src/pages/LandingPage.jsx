@@ -29,7 +29,7 @@ const LandingPage = () => {
                 <div className={styles.navLinks}>
                     <a href="#features" className={styles.navLink}>Features</a>
                     <a href="#pricing" className={styles.navLink}>Pricing</a>
-                    <Button size="sm" onClick={() => navigate('/app')}>Dashboard</Button>
+                    <Button size="sm" onClick={() => navigate('/login')}>Dashboard</Button>
                 </div>
             </nav>
 
@@ -45,7 +45,7 @@ const LandingPage = () => {
                         ZAS Safeguard blocks harmful content, ads, trackers, and distractions — quietly and reliably.
                     </p>
                     <div className={styles.heroActions}>
-                        <Button size="lg" onClick={() => navigate('/app')}>
+                        <Button size="lg" onClick={() => navigate('/login')}>
                             Start Protection
                         </Button>
                         <Button variant="secondary" size="lg">
