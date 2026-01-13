@@ -4,7 +4,7 @@ import { Toggle } from '../../components/ui/Toggle';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { Shield, EyeOff, Lock, Zap, Bug, Globe, Loader } from 'lucide-react';
 import styles from './Protection.module.css';
 
@@ -34,7 +34,7 @@ const Protection = () => {
 
     const [saving, setSaving] = useState(false);
 
-    // Sync local state with Firestore data
+    // Sync local state with Firestore data (stabilized dependency)
     useEffect(() => {
         if (categories) {
             setSettings({
@@ -47,7 +47,7 @@ const Protection = () => {
                 violence: categories.violence?.enabled ?? true,
             });
         }
-    }, [categories]);
+    }, [JSON.stringify(categories)]); // Stringify to stabilize dependency
 
     const handleToggle = async (key) => {
         if (key === 'adult' || !user) return; // Locked ON
@@ -71,16 +71,24 @@ const Protection = () => {
         setSaving(false);
     };
 
-    if (!userProfile) {
-        return (
-            <div className={styles.page}>
-                <div className={styles.loadingState}>
-                    <Loader size={32} className={styles.spinner} />
-                    <span>Loading protection settings...</span>
-                </div>
-            </div>
-        );
-    }
+    // Show content even while loading (with default settings if no profile)
+
+    // Protection Mode state (parental vs personal)
+    const protectionMode = userProfile?.protectionMode || 'parental';
+    const [modeLoading, setModeLoading] = useState(false);
+
+    const handleModeChange = async (mode) => {
+        if (!user || modeLoading) return;
+        setModeLoading(true);
+        try {
+            await setDoc(doc(db, 'users', user.uid), {
+                protectionMode: mode
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error updating mode:', error);
+        }
+        setModeLoading(false);
+    };
 
     return (
         <div className={styles.page}>
@@ -89,6 +97,48 @@ const Protection = () => {
                 <p>Configure what to block across all devices.</p>
                 {saving && <span className={styles.savingIndicator}>Saving...</span>}
             </header>
+
+            {/* Protection Mode Toggle */}
+            <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                    <Shield size={20} />
+                    <h3>Protection Mode</h3>
+                </div>
+                <Card className={styles.toggleCard}>
+                    <div className={styles.modeSelector}>
+                        <p className={styles.modeDescription}>
+                            Choose how alerts are handled:
+                        </p>
+                        <div className={styles.modeButtons}>
+                            <button
+                                type="button"
+                                className={`${styles.modeButton} ${protectionMode === 'parental' ? styles.modeActive : ''}`}
+                                onClick={() => handleModeChange('parental')}
+                                disabled={modeLoading || !user}
+                            >
+                                <span className={styles.modeIcon}>👨‍👩‍👧</span>
+                                <span className={styles.modeTitle}>Parental</span>
+                                <span className={styles.modeHint}>Alerts go to parent's email</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.modeButton} ${protectionMode === 'personal' ? styles.modeActive : ''}`}
+                                onClick={() => handleModeChange('personal')}
+                                disabled={modeLoading || !user}
+                            >
+                                <span className={styles.modeIcon}>🔒</span>
+                                <span className={styles.modeTitle}>Personal</span>
+                                <span className={styles.modeHint}>Self-control, minimal alerts</span>
+                            </button>
+                        </div>
+                        <p className={styles.modeCurrentInfo}>
+                            {protectionMode === 'parental'
+                                ? '📧 DevTools, blocked sites, extension disables → Email parent'
+                                : '📧 Only extension disable → Email self'}
+                        </p>
+                    </div>
+                </Card>
+            </section>
 
             {/* Core Security */}
             <section className={styles.section}>

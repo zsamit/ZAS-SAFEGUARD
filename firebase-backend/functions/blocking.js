@@ -226,6 +226,53 @@ exports.logBlockEvent = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Log a block event from extension via HTTP (for fetch calls)
+ */
+exports.logBlockEventHttp = functions.https.onRequest(async (req, res) => {
+    // CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(204).send('');
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        // Verify auth token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const uid = decodedToken.uid;
+
+        const { action, url, category, count } = req.body;
+
+        // Create log entry (simplified - no device check for speed)
+        await db.collection('logs').add({
+            userId: uid,
+            action: action || 'ad_blocked',
+            url: url || 'unknown',
+            category: category || 'ads',
+            count: count || 1,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Log block event HTTP error:', error);
+        return res.status(500).json({ error: 'Failed to log event' });
+    }
+});
+
+/**
  * Update user's custom blocklist
  */
 exports.updateCustomBlocklist = functions.https.onCall(async (data, context) => {

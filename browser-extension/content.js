@@ -12,6 +12,39 @@
     'use strict';
 
     // ============================================
+    // SKIP ALL BLOCKING ON ZAS DASHBOARD DOMAINS
+    // Don't run DevTools detection, content scanning, etc on our own sites
+    // ============================================
+    const hostname = window.location.hostname;
+    const isZasDomain =
+        hostname.includes('zassafeguard.com') ||
+        hostname.includes('zas-safeguard.web.app') ||
+        hostname.includes('zasgloballlc.com') ||
+        hostname === 'localhost';
+
+    if (isZasDomain) {
+        // Only run the extension ID announcement on ZAS domains
+        const announceId = () => {
+            const extensionId = chrome.runtime.id;
+            console.log('[ZAS Content] Dashboard detected, skipping blocking. Extension ID:', extensionId);
+            window.postMessage({
+                source: 'zas-extension',
+                type: 'EXTENSION_ID_ANNOUNCEMENT',
+                extensionId: extensionId
+            }, '*');
+            try {
+                localStorage.setItem('zasExtensionId', extensionId);
+            } catch (e) { }
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', announceId);
+        } else {
+            announceId();
+        }
+        return; // EXIT EARLY - don't run any other content script logic
+    }
+
+    // ============================================
     // DEVELOPER TOOLS DETECTION
     // ============================================
 

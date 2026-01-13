@@ -25,8 +25,10 @@ import {
 } from 'lucide-react';
 import styles from './AdBlocker.module.css';
 
-// Extension communication helper
+// Extension communication helper with timeout safeguards
 const sendToExtension = async (message) => {
+    const TIMEOUT_MS = 3000;
+
     // Try to get extension ID from URL or localStorage
     const urlParams = new URLSearchParams(window.location.search);
     let extensionId = urlParams.get('ext') || localStorage.getItem('zasExtensionId');
@@ -36,16 +38,21 @@ const sendToExtension = async (message) => {
         'anclbiffkkdjjfgpnmmndjoefejdekkf', // User's unpacked extension
     ];
 
-    // If no ID found, try known ones
+    // If no ID found, try known ones (with timeout)
     if (!extensionId && window.chrome?.runtime?.sendMessage) {
         for (const id of KNOWN_EXTENSION_IDS) {
             try {
                 const response = await new Promise((resolve) => {
+                    let resolved = false;
+                    const timeout = setTimeout(() => {
+                        if (!resolved) { resolved = true; resolve(null); }
+                    }, TIMEOUT_MS);
+
                     chrome.runtime.sendMessage(id, { type: 'PING' }, (resp) => {
-                        if (chrome.runtime.lastError) {
-                            resolve(null);
-                        } else {
-                            resolve(resp);
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            resolve(chrome.runtime.lastError ? null : resp);
                         }
                     });
                 });
@@ -68,12 +75,17 @@ const sendToExtension = async (message) => {
 
     if (extensionId && window.chrome?.runtime?.sendMessage) {
         try {
-            return await new Promise((resolve, reject) => {
+            return await new Promise((resolve) => {
+                let resolved = false;
+                const timeout = setTimeout(() => {
+                    if (!resolved) { resolved = true; resolve(null); }
+                }, TIMEOUT_MS);
+
                 window.chrome.runtime.sendMessage(extensionId, message, (response) => {
-                    if (chrome.runtime.lastError) {
-                        reject(chrome.runtime.lastError);
-                    } else {
-                        resolve(response);
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        resolve(chrome.runtime.lastError ? null : response);
                     }
                 });
             });
@@ -144,12 +156,15 @@ const AdBlocker = () => {
     const [reportSubmitted, setReportSubmitted] = useState(false);
     const [reportSaving, setReportSaving] = useState(false);
 
-    // Try to connect to extension on mount
+    // Try to connect to extension on mount (with unmount guard)
     useEffect(() => {
+        let isMounted = true;
+
         const checkExtension = async () => {
             try {
                 const response = await sendToExtension({ type: 'ADBLOCK_GET_STATS' });
-                if (response?.stats) {
+                // Guard: only update state if component is still mounted
+                if (isMounted && response?.stats) {
                     setExtensionStats(response.stats);
                     setExtensionConnected(true);
                     console.log('[AdBlocker] Extension connected, stats:', response.stats);
@@ -162,7 +177,11 @@ const AdBlocker = () => {
 
         // Poll for stats every 30 seconds
         const interval = setInterval(checkExtension, 30000);
-        return () => clearInterval(interval);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
 
     // Sync categories from Firestore when available (one-time sync)
@@ -329,13 +348,13 @@ const AdBlocker = () => {
         setReportSaving(false);
     };
 
-    // Use extension stats if available, otherwise use Firestore stats
-    const displayStats = extensionConnected && extensionStats ? {
-        today: extensionStats.blockedToday ?? 0,
-        week: extensionStats.blockedTotal ?? 0, // Extension doesn't track weekly/monthly yet, show total
-        month: extensionStats.blockedTotal ?? 0,
-        loading: false
-    } : adStats;
+    // ALWAYS use Firestore stats for per-user tracking (extension stats are local/per-browser)
+    const displayStats = {
+        today: adStats.today ?? 0,
+        week: adStats.week ?? 0,
+        month: adStats.month ?? 0,
+        loading: adStats.loading
+    };
 
     return (
         <div className={styles.page}>

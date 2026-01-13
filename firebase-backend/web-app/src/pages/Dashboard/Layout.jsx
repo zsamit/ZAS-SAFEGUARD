@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -12,10 +12,30 @@ import {
     LogOut
 } from 'lucide-react';
 import Logo from '../../components/Logo';
+import { useAuth } from '../../context/AuthContext';
+import OnboardingModal from './OnboardingModal';
 import styles from './Layout.module.css';
 
 const DashboardLayout = () => {
     const location = useLocation();
+    const { user, userProfile } = useAuth();
+    const [showOnboarding, setShowOnboarding] = useState(true);
+
+    // Get display name and plan
+    const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'User';
+    const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const planName = userProfile?.subscription?.plan === 'lifetime' ? 'Lifetime' :
+        userProfile?.subscription?.plan === 'pro' ? 'Pro Plan' :
+            userProfile?.subscription?.status === 'active' ? 'Pro Plan' : 'Free Plan';
+
+    // Check if user needs onboarding (logged in but no protectionMode set)
+    // For new accounts, userProfile might not exist yet, so we check if profile exists AND mode is not set
+    // OR if profile exists but protectionMode is undefined/null
+    const needsOnboarding = showOnboarding && user && (
+        !userProfile ||
+        userProfile.protectionMode === undefined ||
+        userProfile.protectionMode === null
+    );
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
@@ -33,6 +53,11 @@ const DashboardLayout = () => {
 
     return (
         <div className={styles.layout}>
+            {/* Onboarding Modal */}
+            {needsOnboarding && (
+                <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+            )}
+
             {/* Sidebar - Desktop */}
             <aside className={styles.sidebar}>
                 {/* Logo */}
@@ -75,10 +100,10 @@ const DashboardLayout = () => {
 
                     {/* User Profile */}
                     <div className={styles.userProfile}>
-                        <div className={styles.avatar}>ZA</div>
+                        <div className={styles.avatar}>{initials}</div>
                         <div className={styles.userInfo}>
-                            <span className={styles.userName}>Zaheer Ahmad</span>
-                            <span className={styles.userPlan}>Pro Plan</span>
+                            <span className={styles.userName}>{displayName}</span>
+                            <span className={styles.userPlan}>{planName}</span>
                         </div>
                     </div>
                 </div>

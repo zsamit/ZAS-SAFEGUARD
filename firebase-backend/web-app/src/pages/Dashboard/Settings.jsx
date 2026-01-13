@@ -28,9 +28,9 @@ const Settings = () => {
     const functions = getFunctions(app);
 
     const [notifications, setNotifications] = useState({
-        emailAlerts: true,
-        pushNotifications: true,
-        weeklyReport: true,
+        dailyDigestEnabled: true,
+        instantAlertsEnabled: true,
+        weeklyReportEnabled: true,
     });
 
     const [quietHours, setQuietHours] = useState({
@@ -53,18 +53,20 @@ const Settings = () => {
 
     const loadSettings = async () => {
         try {
-            const settingsDoc = await getDoc(doc(db, 'alert_settings', user.uid));
-            if (settingsDoc.exists()) {
-                const data = settingsDoc.data();
+            // Load from user profile (where Cloud Functions check)
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                const settings = data.settings || {};
                 setNotifications({
-                    emailAlerts: data.emailAlerts ?? true,
-                    pushNotifications: data.pushNotifications ?? true,
-                    weeklyReport: data.weeklyReport ?? true,
+                    dailyDigestEnabled: settings.dailyDigestEnabled ?? true,
+                    instantAlertsEnabled: settings.instantAlertsEnabled ?? true,
+                    weeklyReportEnabled: settings.weeklyReportEnabled ?? true,
                 });
                 setQuietHours({
-                    enabled: data.quietHoursEnabled ?? false,
-                    start: data.quietStart || '22:00',
-                    end: data.quietEnd || '07:00',
+                    enabled: settings.quietHoursEnabled ?? false,
+                    start: settings.quietStart || '22:00',
+                    end: settings.quietEnd || '07:00',
                 });
             }
         } catch (error) {
@@ -72,19 +74,22 @@ const Settings = () => {
         }
     };
 
-    // Save notification settings to Firestore
+    // Save notification settings to Firestore (user profile)
     const saveSettings = async () => {
         if (!user?.uid) return;
         setSaving(true);
         try {
-            await setDoc(doc(db, 'alert_settings', user.uid), {
-                emailAlerts: notifications.emailAlerts,
-                pushNotifications: notifications.pushNotifications,
-                weeklyReport: notifications.weeklyReport,
-                quietHoursEnabled: quietHours.enabled,
-                quietStart: quietHours.start,
-                quietEnd: quietHours.end,
-                updatedAt: new Date(),
+            // Save to user profile settings (where Cloud Functions check)
+            await setDoc(doc(db, 'users', user.uid), {
+                settings: {
+                    dailyDigestEnabled: notifications.dailyDigestEnabled,
+                    instantAlertsEnabled: notifications.instantAlertsEnabled,
+                    weeklyReportEnabled: notifications.weeklyReportEnabled,
+                    quietHoursEnabled: quietHours.enabled,
+                    quietStart: quietHours.start,
+                    quietEnd: quietHours.end,
+                    updatedAt: new Date(),
+                }
             }, { merge: true });
             alert('Settings saved!');
         } catch (error) {
@@ -333,24 +338,24 @@ const Settings = () => {
                 </h3>
                 <Card className={styles.toggleCard}>
                     <ToggleItem
-                        label="Email Alerts"
-                        description="Receive security alerts via email"
-                        checked={notifications.emailAlerts}
-                        onChange={() => setNotifications(n => ({ ...n, emailAlerts: !n.emailAlerts }))}
+                        label="Daily Digest"
+                        description="Receive a morning summary email of yesterday's activity"
+                        checked={notifications.dailyDigestEnabled}
+                        onChange={() => setNotifications(n => ({ ...n, dailyDigestEnabled: !n.dailyDigestEnabled }))}
                     />
                     <div className={styles.divider} />
                     <ToggleItem
-                        label="Push Notifications"
-                        description="Browser and mobile push notifications"
-                        checked={notifications.pushNotifications}
-                        onChange={() => setNotifications(n => ({ ...n, pushNotifications: !n.pushNotifications }))}
+                        label="Instant Alerts"
+                        description="Get notified immediately for security events"
+                        checked={notifications.instantAlertsEnabled}
+                        onChange={() => setNotifications(n => ({ ...n, instantAlertsEnabled: !n.instantAlertsEnabled }))}
                     />
                     <div className={styles.divider} />
                     <ToggleItem
                         label="Weekly Report"
-                        description="Summary of your protection activity"
-                        checked={notifications.weeklyReport}
-                        onChange={() => setNotifications(n => ({ ...n, weeklyReport: !n.weeklyReport }))}
+                        description="Comprehensive weekly protection summary (Sundays)"
+                        checked={notifications.weeklyReportEnabled}
+                        onChange={() => setNotifications(n => ({ ...n, weeklyReportEnabled: !n.weeklyReportEnabled }))}
                     />
                     <div className={styles.saveRow}>
                         <Button onClick={saveSettings} disabled={saving}>

@@ -26,6 +26,7 @@ const parentPin = require('./parentPin');
 const heartbeat = require('./heartbeat');
 const adblock = require('./adblock');
 const dataCleanup = require('./dataCleanup');
+const dailyDigest = require('./dailyDigest');
 
 // ============================================
 // URL REPUTATION FUNCTIONS
@@ -40,6 +41,8 @@ exports.cleanupOldUrlScans = urlReputation.cleanupOldUrlScans;
 exports.onSecurityEvent = alerts.onSecurityEvent;
 // REMOVED: exports.checkHeartbeats - Legacy spammy heartbeat disabled. Use checkHeartbeatsV2 only.
 exports.logSecurityEvent = alerts.logSecurityEvent;
+exports.logSecurityEventHttp = alerts.logSecurityEventHttp;  // HTTP version for extension
+exports.testEmail = alerts.testEmail;  // Test email endpoint
 exports.getAlerts = alerts.getAlerts;
 exports.updateAlertSettings = alerts.updateAlertSettings;
 exports.markAlertRead = alerts.markAlertRead;
@@ -72,6 +75,7 @@ exports.deleteAccount = auth.deleteAccount;  // NEW: Delete user + all data
 // SUBSCRIPTION FUNCTIONS
 // ============================================
 exports.createCheckoutSession = subscription.createCheckoutSession;
+exports.createSubscriptionIntent = subscription.createSubscriptionIntent;
 exports.stripeWebhook = subscription.stripeWebhook;
 exports.checkTrialEligibility = subscription.checkTrialEligibility;
 exports.getRegionalPrice = subscription.getRegionalPrice;
@@ -86,6 +90,7 @@ exports.getSubscription = subscription.getSubscription;  // NEW: Get real plan s
 exports.getBlockPolicy = blocking.getBlockPolicy;
 exports.syncBlocklist = blocking.syncBlocklist;
 exports.logBlockEvent = blocking.logBlockEvent;
+exports.logBlockEventHttp = blocking.logBlockEventHttp;  // HTTP version for extension
 exports.updateCustomBlocklist = blocking.updateCustomBlocklist;
 
 // ============================================
@@ -122,6 +127,8 @@ exports.analyzeContentForAdult = ai.analyzeContentForAdult;
 // SCHEDULED FUNCTIONS
 // ============================================
 exports.sendWeeklySummary = weeklyReport.sendWeeklySummary;
+exports.sendDailyDigest = dailyDigest.sendDailyDigest;  // Daily morning summary
+exports.testDailyDigest = dailyDigest.testDailyDigest;  // Test endpoint
 
 // ============================================
 // HEARTBEAT & OFFLINE DETECTION (Zero-Spam)

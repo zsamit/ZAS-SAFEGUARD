@@ -79,48 +79,67 @@ export const useDashboardStats = () => {
 
         const unsubscribes = [];
 
-        // Listen to logs
+        // Listen to logs with error handling
         unsubscribes.push(
-            onSnapshot(logsQuery, (snapshot) => {
-                let adsBlocked = 0;
-                let sitesBlocked = 0;
+            onSnapshot(
+                logsQuery,
+                (snapshot) => {
+                    let adsBlocked = 0;
+                    let sitesBlocked = 0;
 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.action === 'ad_blocked') {
-                        adsBlocked++;
-                    } else if (data.action === 'navigate_blocked') {
-                        sitesBlocked++;
-                    }
-                });
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.action === 'ad_blocked') {
+                            adsBlocked++;
+                        } else if (data.action === 'navigate_blocked') {
+                            sitesBlocked++;
+                        }
+                    });
 
-                setStats(prev => ({
-                    ...prev,
-                    adsBlockedToday: adsBlocked,
-                    sitesBlockedToday: sitesBlocked,
-                    loading: false
-                }));
-            })
+                    setStats(prev => ({
+                        ...prev,
+                        adsBlockedToday: adsBlocked,
+                        sitesBlockedToday: sitesBlocked,
+                        loading: false
+                    }));
+                },
+                (error) => {
+                    console.error('[useDashboardStats] Logs query error:', error.message);
+                    setStats(prev => ({ ...prev, loading: false }));
+                }
+            )
         );
 
-        // Listen to devices
+        // Listen to devices with error handling
         unsubscribes.push(
-            onSnapshot(devicesQuery, (snapshot) => {
-                setStats(prev => ({
-                    ...prev,
-                    activeDevices: snapshot.size
-                }));
-            })
+            onSnapshot(
+                devicesQuery,
+                (snapshot) => {
+                    setStats(prev => ({
+                        ...prev,
+                        activeDevices: snapshot.size
+                    }));
+                },
+                (error) => {
+                    console.error('[useDashboardStats] Devices query error:', error.message);
+                }
+            )
         );
 
-        // Listen to alerts
+        // Listen to alerts with error handling
         unsubscribes.push(
-            onSnapshot(alertsQuery, (snapshot) => {
-                setStats(prev => ({
-                    ...prev,
-                    alertsCount: snapshot.size
-                }));
-            })
+            onSnapshot(
+                alertsQuery,
+                (snapshot) => {
+                    setStats(prev => ({
+                        ...prev,
+                        alertsCount: snapshot.size
+                    }));
+                },
+                (error) => {
+                    console.error('[useDashboardStats] Alerts query error:', error.message);
+                }
+            )
         );
 
         return () => unsubscribes.forEach(unsub => unsub());
@@ -188,15 +207,24 @@ export const useAlerts = (limitCount = 50) => {
             limit(limitCount)
         );
 
-        const unsubscribe = onSnapshot(alertsQuery, (snapshot) => {
-            const alertsList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                timestamp: doc.data().timestamp?.toDate() || null
-            }));
-            setAlerts(alertsList);
-            setLoading(false);
-        });
+        const unsubscribe = onSnapshot(
+            alertsQuery,
+            (snapshot) => {
+                const alertsList = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    timestamp: doc.data().timestamp?.toDate() || null
+                }));
+                setAlerts(alertsList);
+                setLoading(false);
+            },
+            (error) => {
+                // Handle index errors gracefully
+                console.error('[useAlerts] Query error:', error.message);
+                setAlerts([]);
+                setLoading(false);
+            }
+        );
 
         return () => unsubscribe();
     }, [user, limitCount]);
@@ -226,15 +254,24 @@ export const useActivityLogs = (limitCount = 50) => {
             limit(limitCount)
         );
 
-        const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
-            const logsList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                timestamp: doc.data().timestamp?.toDate() || null
-            }));
-            setLogs(logsList);
-            setLoading(false);
-        });
+        const unsubscribe = onSnapshot(
+            logsQuery,
+            (snapshot) => {
+                const logsList = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    timestamp: doc.data().timestamp?.toDate() || null
+                }));
+                setLogs(logsList);
+                setLoading(false);
+            },
+            (error) => {
+                // Handle index errors gracefully
+                console.error('[useActivityLogs] Query error:', error.message);
+                setLogs([]);
+                setLoading(false);
+            }
+        );
 
         return () => unsubscribe();
     }, [user, limitCount]);

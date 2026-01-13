@@ -85,6 +85,83 @@ const CATEGORY_BLOCKLISTS = {
 let activeStudySession = null;
 
 // ============================================
+// SUBSCRIPTION STATUS CHECK
+// ============================================
+
+/**
+ * Check if user has an active subscription or trial
+ * Returns true if features should be enabled, false otherwise
+ */
+async function checkSubscriptionStatus() {
+    try {
+        const stored = await chrome.storage.local.get([
+            'planType',
+            'subscriptionPlan',
+            'subscriptionStatus',
+            'trialEndDate',
+            'subscriptionEndDate'
+        ]);
+
+        const planType = stored.planType || stored.subscriptionPlan || '';
+        const status = stored.subscriptionStatus || '';
+
+        // Lifetime users always have access
+        if (planType === 'lifetime' || status === 'lifetime') {
+            console.log('[Subscription] Lifetime access');
+            return true;
+        }
+
+        // Check if status is active
+        const activeStatuses = ['active', 'trialing', 'trial'];
+        if (activeStatuses.includes(status)) {
+            console.log('[Subscription] Active subscription:', status);
+            return true;
+        }
+
+        // Check if subscription is past_due but still in grace period
+        if (status === 'past_due') {
+            console.log('[Subscription] Past due - allowing grace period');
+            return true;
+        }
+
+        // Check trial end date
+        if (stored.trialEndDate) {
+            const trialEnd = new Date(stored.trialEndDate);
+            if (trialEnd > new Date()) {
+                console.log('[Subscription] Trial still active until:', trialEnd);
+                return true;
+            }
+        }
+
+        // Check subscription end date
+        if (stored.subscriptionEndDate) {
+            const subEnd = new Date(stored.subscriptionEndDate);
+            if (subEnd > new Date()) {
+                console.log('[Subscription] Subscription still active until:', subEnd);
+                return true;
+            }
+        }
+
+        // Check for active pro plans
+        const proPlanTypes = ['pro_monthly', 'pro_yearly', 'essential_monthly', 'essential_yearly'];
+        if (proPlanTypes.includes(planType)) {
+            // If they have a plan type but no status, check with sync
+            console.log('[Subscription] Has plan type but unclear status, allowing');
+            return true;
+        }
+
+        // No valid subscription found
+        console.log('[Subscription] No active subscription found:', { planType, status });
+        return false;
+
+    } catch (error) {
+        console.error('[Subscription] Error checking status:', error);
+        // On error, default to allowing (don't lock out users due to bugs)
+        return true;
+    }
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -97,16 +174,16 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         const deviceId = generateDeviceId();
         await chrome.storage.local.set({
             [CONFIG.DEVICE_ID_KEY]: deviceId,
-            tosAgreed: false,  // Require TOS agreement
+            tosAgreed: false,  // Require TOS + Privacy Policy agreement
             planType: 'free'   // Default to free until they subscribe
         });
 
         // Set up default blocking rules
         await updateBlockingRules(DEFAULT_BLOCKLIST);
 
-        // Redirect to dashboard for TOS agreement
+        // Open welcome page for Terms of Service & Privacy Policy agreement
         chrome.tabs.create({
-            url: 'https://zassafeguard.com/app/?install=true&ext=' + chrome.runtime.id
+            url: chrome.runtime.getURL('welcome/welcome.html')
         });
     }
 
@@ -487,7 +564,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return;
     }
 
-    // Check if TOS is agreed
+    // Check if TOS + Privacy Policy is agreed
     const { tosAgreed } = await chrome.storage.local.get('tosAgreed');
     if (!tosAgreed) {
         console.log('[ZAS] TOS not agreed, skipping URL scan');
@@ -893,6 +970,21 @@ async function getDeviceId() {
 
 async function updateBlockingRules(blockedDomains) {
     try {
+        // ============================================
+        // SUBSCRIPTION CHECK - Disable features if not subscribed
+        // ============================================
+        const isSubscribed = await checkSubscriptionStatus();
+        if (!isSubscribed) {
+            console.log('[Blocking] Subscription inactive - disabling all blocking rules');
+            // Clear all existing rules
+            const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+            const existingIds = existingRules.map(rule => rule.id);
+            if (existingIds.length > 0) {
+                await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existingIds });
+            }
+            return false;
+        }
+
         // Convert domains to declarativeNetRequest rules
         const rules = blockedDomains.map((domain, index) => {
             // Clean domain pattern
@@ -1446,7 +1538,7 @@ async function logSecurityEvent(type, metadata = {}) {
 
         if (!token || !deviceId) return;
 
-        const response = await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEvent`, {
+        const response = await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logSecurityEventHttp`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1508,6 +1600,23 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
     const url = new URL(details.url);
     const hostname = url.hostname.replace('www.', '');
+
+    // NEVER block these critical domains (Google Auth, Firebase, ZAS)
+    const SAFE_DOMAINS = [
+        'accounts.google.com',
+        'apis.google.com',
+        'securetoken.googleapis.com',
+        'identitytoolkit.googleapis.com',
+        'zas-safeguard.firebaseapp.com',
+        'zas-safeguard.web.app',
+        'zassafeguard.com',
+        'firebaseinstallations.googleapis.com',
+        'firebaselogging.googleapis.com'
+    ];
+
+    if (SAFE_DOMAINS.some(safe => hostname.includes(safe) || safe.includes(hostname))) {
+        return; // Never block auth domains
+    }
 
     // Check against local blocklist
     const storage = await chrome.storage.local.get(CONFIG.OFFLINE_BLOCKLIST_KEY);
@@ -1812,6 +1921,10 @@ async function initAdBlockEngine() {
             console.warn('[AdBlock Engine] Filter list init error:', filterError.message);
         }
 
+        // Apply critical allowlist (Firebase Auth domains, etc.) at startup
+        const existingAllowlist = await handleAdBlockGetAllowlist();
+        await applyAdBlockAllowlist(existingAllowlist);
+
         console.log('[AdBlock Engine] Initialized successfully');
         return true;
     } catch (error) {
@@ -2024,7 +2137,15 @@ async function applyFilterListRules(rules) {
                 action: { type: 'block' },
                 condition: {
                     urlFilter: urlFilter,
-                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other']
+                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other'],
+                    excludedRequestDomains: [
+                        'identitytoolkit.googleapis.com',
+                        'securetoken.googleapis.com',
+                        'zassafeguard.com',
+                        'zas-safeguard.web.app',
+                        'firebaseapp.com',
+                        'cloudfunctions.net'
+                    ]
                 }
             });
         }
@@ -2094,9 +2215,30 @@ async function applyAdBlockConfig(config) {
  * Set up DNR feedback listener for tracking blocked requests
  */
 function setupAdBlockFeedback() {
+    // Domains to exclude from ad block counting (our own sites)
+    const EXCLUDE_FROM_COUNTING = [
+        'zassafeguard.com',
+        'zas-safeguard.web.app',
+        'zasgloballlc.com',
+        'localhost'
+    ];
+
     // Listen for matched rules to track stats
     if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
         chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (info) => {
+            // Skip counting for ZAS domains
+            try {
+                const url = new URL(info.request.url);
+                const initiator = info.request.initiator ? new URL(info.request.initiator).hostname : '';
+
+                // Don't count blocks that are FROM or TO our own sites
+                if (EXCLUDE_FROM_COUNTING.some(d => url.hostname.includes(d) || initiator.includes(d))) {
+                    return; // Skip counting
+                }
+            } catch (e) {
+                // URL parsing failed, skip
+            }
+
             // Determine category from ruleset ID
             const rulesetId = info.rule.rulesetId;
             let category = 'ads';
@@ -2127,7 +2269,7 @@ function setupAdBlockFeedback() {
 async function incrementAdBlockStat(category = 'ads', amount = 1) {
     try {
         const todayKey = new Date().toISOString().split('T')[0];
-        const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY, 'stats']);
+        const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY, 'stats', CONFIG.USER_TOKEN_KEY, 'adblock_pending_log']);
 
         // Update total stats
         const stats = result[ADBLOCK_STATS_KEY] || { totalBlocked: 0, categories: {} };
@@ -2154,13 +2296,43 @@ async function incrementAdBlockStat(category = 'ads', amount = 1) {
         popupStats.blockedToday = dailyStats[todayKey].total;
         popupStats.blockedTotal = stats.totalBlocked;
 
+        // Track pending count for Firestore batch logging
+        let pendingLog = result.adblock_pending_log || 0;
+        pendingLog += amount;
+
         await chrome.storage.local.set({
             [ADBLOCK_STATS_KEY]: stats,
             [ADBLOCK_DAILY_STATS_KEY]: dailyStats,
-            stats: popupStats
+            stats: popupStats,
+            adblock_pending_log: pendingLog
         });
 
         console.log(`[AdBlock Engine] Stats updated: +${amount} ${category} (Today: ${dailyStats[todayKey].total})`);
+
+        // Log to Firestore every 10 blocks (batch to reduce API calls)
+        const token = result[CONFIG.USER_TOKEN_KEY];
+        if (token && pendingLog >= 10) {
+            try {
+                await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEventHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'ad_blocked',
+                        category: category,
+                        count: pendingLog,
+                        url: 'batch'
+                    })
+                });
+                // Reset pending counter
+                await chrome.storage.local.set({ adblock_pending_log: 0 });
+                console.log('[AdBlock Engine] Synced', pendingLog, 'blocks to Firestore');
+            } catch (e) {
+                // Silent fail - will retry next batch
+            }
+        }
     } catch (error) {
         console.error('[AdBlock Engine] Stats error:', error);
     }
@@ -2244,9 +2416,22 @@ async function handleAdBlockGetAllowlist() {
 /**
  * Apply allowlist as dynamic DNR rules
  */
+// Critical domains that must NEVER be blocked (Firebase Auth, etc.)
+const CRITICAL_ALLOWLIST = [
+    'identitytoolkit.googleapis.com',
+    'securetoken.googleapis.com',
+    'zassafeguard.com',
+    'zas-safeguard.web.app',
+    'firebaseapp.com',
+    'cloudfunctions.net'
+];
+
 async function applyAdBlockAllowlist(domains) {
     try {
         const ALLOWLIST_RULE_START = 50000;
+
+        // Merge user domains with critical domains (Firebase Auth, etc.)
+        const allDomains = [...new Set([...CRITICAL_ALLOWLIST, ...domains])];
 
         // Get existing dynamic rules
         const existing = await chrome.declarativeNetRequest.getDynamicRules();
@@ -2257,7 +2442,7 @@ async function applyAdBlockAllowlist(domains) {
             .map(r => r.id);
 
         // Generate new allow rules
-        const newRules = domains.map((domain, index) => ({
+        const newRules = allDomains.map((domain, index) => ({
             id: ALLOWLIST_RULE_START + index,
             priority: 100, // Higher priority than block rules
             action: { type: 'allow' },
@@ -2273,7 +2458,7 @@ async function applyAdBlockAllowlist(domains) {
             addRules: newRules.slice(0, 500) // Limit to 500
         });
 
-        console.log('[AdBlock Engine] Applied', newRules.length, 'allowlist rules');
+        console.log('[AdBlock Engine] Applied', newRules.length, 'allowlist rules (including', CRITICAL_ALLOWLIST.length, 'critical domains)');
     } catch (error) {
         console.error('[AdBlock Engine] Allowlist error:', error);
     }

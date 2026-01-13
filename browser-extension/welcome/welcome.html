@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to ZAS Safeguard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 48px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            color: #d4d4d8;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .welcome-text {
+            color: #d4d4d8;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .feature-desc {
+            color: #a1a1aa;
+            font-size: 12px;
+        }
+
+        .legal-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .legal-box p {
+            color: #d4d4d8;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .legal-box a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .legal-box a:hover {
+            text-decoration: underline;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            accent-color: #6366f1;
+        }
+
+        .checkbox-row label {
+            color: #f4f4f5;
+            font-size: 14px;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer-text {
+            margin-top: 24px;
+            color: #a1a1aa;
+            font-size: 12px;
+        }
+
+        .footer-text a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+
+        @media (max-width: 480px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">ZAS</div>
+            <div class="tagline">SAFEGUARD</div>
+
+            <h1>Welcome! 🎉</h1>
+            <p class="welcome-text">
+                ZAS Safeguard is now installed and ready to protect you.
+                Before we begin, please review our terms and privacy policy.
+            </p>
+
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🛡️</div>
+                    <div class="feature-title">Content Blocking</div>
+                    <div class="feature-desc">Block harmful sites and adult content</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🚫</div>
+                    <div class="feature-title">Ad Blocking</div>
+                    <div class="feature-desc">Remove ads and trackers</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">Malware Protection</div>
+                    <div class="feature-desc">Scan URLs for threats</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Dashboard</div>
+                    <div class="feature-desc">Track your protection stats</div>
+                </div>
+            </div>
+
+            <div class="legal-box">
+                <p>
+                    By using ZAS Safeguard, you agree to our
+                    <a href="https://zassafeguard.com/terms-of-use" target="_blank">Terms of Service</a>
+                    and acknowledge our
+                    <a href="https://zassafeguard.com/privacy-policy" target="_blank">Privacy Policy</a>.
+                    We collect minimal data only to provide protection features.
+                </p>
+            </div>
+
+            <div class="checkbox-row">
+                <input type="checkbox" id="agreeCheckbox">
+                <label for="agreeCheckbox">
+                    I agree to the Terms of Service and Privacy Policy, and I am at least 13 years old.
+                </label>
+            </div>
+
+            <button class="btn-primary btn-disabled" id="continueBtn">
+                Get Protected →
+            </button>
+
+            <p class="footer-text">
+                © 2026 <a href="https://zasgloballlc.com" target="_blank">ZAS Global LLC</a>. All rights reserved.
+            </p>
+        </div>
+    </div>
+
+    <script src="welcome.js"></script>
+</body>
+
+</html>

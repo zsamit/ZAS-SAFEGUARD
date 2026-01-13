@@ -1,0 +1,196 @@
+[
+    {
+        "id": 10001,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||pagead2.googlesyndication.com^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "sub_frame",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 10002,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||googleadservices.com^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "sub_frame",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 10003,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||doubleclick.net^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "sub_frame",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 10004,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/api/stats/ads",
+            "resourceTypes": [
+                "xmlhttprequest",
+                "ping"
+            ]
+        }
+    },
+    {
+        "id": 10005,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/pagead/",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 10006,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/ptracking",
+            "resourceTypes": [
+                "xmlhttprequest",
+                "ping"
+            ]
+        }
+    },
+    {
+        "id": 10007,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/get_midroll_info",
+            "resourceTypes": [
+                "xmlhttprequest"
+            ]
+        }
+    },
+    {
+        "id": 10008,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/api/stats/qoe?adformat",
+            "resourceTypes": [
+                "xmlhttprequest",
+                "ping"
+            ]
+        }
+    },
+    {
+        "id": 10009,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||youtube.com/api/stats/watchtime?adformat",
+            "resourceTypes": [
+                "xmlhttprequest",
+                "ping"
+            ]
+        }
+    },
+    {
+        "id": 10010,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||yt.moatads.com^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 10011,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||static.doubleclick.net^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "image"
+            ]
+        }
+    },
+    {
+        "id": 10012,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||ad.youtube.com^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "image",
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 10013,
+        "priority": 10,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||ads.youtube.com^",
+            "resourceTypes": [
+                "script",
+                "xmlhttprequest",
+                "image",
+                "sub_frame"
+            ]
+        }
+    }
+]

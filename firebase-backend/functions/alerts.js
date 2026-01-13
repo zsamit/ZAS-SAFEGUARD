@@ -366,9 +366,54 @@ async function sendAlert(userId, deviceId, alertData) {
             }
         }
 
-        // Get user data for email
+        // Get user data for email and mode check
         const userDoc = await db.doc(`users/${userId}`).get();
         const user = userDoc.data() || {};
+
+        // ===========================================
+        // INSTANT ALERTS CHECK (User preference)
+        // ===========================================
+        const instantAlertsEnabled = user.settings?.instantAlertsEnabled !== false; // Default true
+        if (!instantAlertsEnabled) {
+            console.log('[sendAlert] Instant alerts disabled by user, saving but not emailing');
+            await db.collection('alerts').add({
+                ...alertData,
+                userId,
+                deviceId,
+                read: false,
+                emailSent: false,
+                skippedReason: 'instant_alerts_disabled',
+                createdAt: FieldValue.serverTimestamp()
+            });
+            return;
+        }
+
+        // ===========================================
+        // PROTECTION MODE CHECK (Parental vs Personal)
+        // ===========================================
+        const protectionMode = user.protectionMode || 'parental'; // Default to parental
+
+        // Personal Mode: Only email for EXTENSION_DISABLED/DISABLE_ATTEMPT - skip DevTools/blocked sites
+        if (protectionMode === 'personal') {
+            const personalModeAlerts = ['DISABLE_ATTEMPT', 'EXTENSION_DISABLED', 'EXTENSION_UNINSTALLED'];
+            if (!personalModeAlerts.includes(alertData.type)) {
+                console.log(`[sendAlert] Personal mode - skipping ${alertData.type} (not critical)`);
+                // Still save alert to Firestore for history, but don't email
+                await db.collection('alerts').add({
+                    ...alertData,
+                    userId,
+                    deviceId,
+                    read: false,
+                    emailSent: false,
+                    skippedReason: 'personal_mode',
+                    createdAt: FieldValue.serverTimestamp()
+                });
+                return;
+            }
+            // In personal mode, email goes to SELF, not parent
+            console.log('[sendAlert] Personal mode - alerting self only');
+        }
+        // Parental Mode: Email parent for all security events (DevTools, blocked sites, etc.)
 
         // SPAM PREVENTION: Check quiet hours
         const timezone = user.timezone || 'America/Los_Angeles';
@@ -378,15 +423,24 @@ async function sendAlert(userId, deviceId, alertData) {
             return;
         }
 
-        // Try family_profiles first for parent email
-        const familyDoc = await db.doc(`family_profiles/${userId}`).get();
-        const parentEmail = familyDoc.data()?.parentEmail || user.email;
+        // Try family_profiles first for parent email (only in parental mode)
+        let recipientEmail;
+        if (protectionMode === 'personal') {
+            // Personal mode: email goes to user's own email
+            recipientEmail = user.email;
+            console.log('[sendAlert] Personal mode - emailing self');
+        } else {
+            // Parental mode: email goes to parent's email
+            const familyDoc = await db.doc(`family_profiles/${userId}`).get();
+            recipientEmail = familyDoc.data()?.parentEmail || user.email;
+            console.log('[sendAlert] Parental mode - emailing parent');
+        }
 
-        if (!parentEmail) {
+        if (!recipientEmail) {
             console.log('[sendAlert] No email for user, skipping alert');
             return;
         }
-        console.log(`[sendAlert] Sending to: ${parentEmail}`);
+        console.log(`[sendAlert] Sending to: ${recipientEmail}`);
 
         // Generate dedupe key
         const dedupeKey = `${userId}:${deviceId}:${alertData.type}:${getMinuteKey()}`;
@@ -475,7 +529,7 @@ You're receiving this because you have ZAS Safeguard alerts enabled.
 
         // Queue email via Firebase Email Extension (mail collection)
         await db.collection('mail').add({
-            to: parentEmail,
+            to: recipientEmail,
             message: {
                 subject: `ZAS Safeguard: ${alertData.title}`,
                 text: emailText,
@@ -494,7 +548,7 @@ You're receiving this because you have ZAS Safeguard alerts enabled.
             await setAlertCooldown(userId, deviceId, alertData.type);
         }
 
-        console.log(`Alert sent to ${parentEmail}: ${alertData.title}`);
+        console.log(`Alert sent to ${recipientEmail}: ${alertData.title}`);
 
     } catch (error) {
         console.error('Error sending alert:', error);
@@ -670,5 +724,113 @@ exports.markAlertRead = onCall(async (request) => {
     } catch (error) {
         console.error('Error marking alert as read:', error);
         throw error;
+    }
+});
+
+// ============================================
+// TEST EMAIL (Manual trigger for debugging)
+// ============================================
+
+const { onRequest } = require('firebase-functions/v2/https');
+
+exports.testEmail = onRequest({ cors: true, memory: '512MiB' }, async (req, res) => {
+    const { email, message } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'email required' });
+    }
+
+    try {
+        await db.collection('mail').add({
+            to: email,
+            message: {
+                subject: 'ZAS Safeguard Test Email',
+                text: message || 'This is a test email from ZAS Safeguard. If you received this, emails are working!',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px;">
+                        <h1 style="color: #6366f1;">📧 ZAS Safeguard Test Email</h1>
+                        <p>${message || 'This is a test email. If you received this, your email alerts are working!'}</p>
+                        <p style="color: gray; font-size: 12px;">Sent at: ${new Date().toISOString()}</p>
+                    </div>
+                `
+            }
+        });
+
+        return res.json({ success: true, message: `Test email queued to ${email}` });
+    } catch (error) {
+        console.error('Test email error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
+// LOG SECURITY EVENT (HTTP Version for extension)
+// ============================================
+
+exports.logSecurityEventHttp = onRequest({ cors: true }, async (req, res) => {
+    try {
+        // Verify auth token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const idToken = authHeader.split('Bearer ')[1];
+        const admin = require('firebase-admin');
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
+        const { data } = req.body;
+        const { deviceId, type, metadata = {} } = data || {};
+
+        if (!deviceId || !type) {
+            return res.status(400).json({ error: 'deviceId and type are required' });
+        }
+
+        console.log(`[logSecurityEventHttp] ${type} from ${userId}/${deviceId}`);
+
+        // COST GUARD
+        const canWrite = await costGuard.shouldWriteSecurityEvent(userId, deviceId);
+        if (!canWrite) {
+            return res.json({ success: true, skipped: true });
+        }
+
+        // Get device info
+        const deviceDoc = await db.doc(`devices/${deviceId}`).get();
+        let deviceName = 'Unknown Device';
+
+        if (!deviceDoc.exists) {
+            // Auto-create device
+            await db.doc(`devices/${deviceId}`).set({
+                userId,
+                deviceId,
+                deviceName: metadata.deviceName || 'Browser Extension',
+                status: 'active',
+                lastSeen: FieldValue.serverTimestamp(),
+                createdAt: FieldValue.serverTimestamp()
+            });
+        } else {
+            deviceName = deviceDoc.data().deviceName || 'Unknown Device';
+            await db.doc(`devices/${deviceId}`).update({
+                lastSeen: FieldValue.serverTimestamp()
+            });
+        }
+
+        // Log the security event
+        const eventRef = await db.collection(`security_events/${userId}/${deviceId}`).add({
+            type,
+            deviceName,
+            severity: metadata.severity || 'medium',
+            ...metadata,
+            createdAt: FieldValue.serverTimestamp()
+        });
+
+        console.log(`[logSecurityEventHttp] Created event: ${eventRef.id}`);
+
+        return res.json({ success: true, eventId: eventRef.id });
+
+    } catch (error) {
+        console.error('[logSecurityEventHttp] Error:', error);
+        return res.status(500).json({ error: error.message });
     }
 });

@@ -21,6 +21,10 @@ import styles from './LandingPage.module.css';
 const LandingPage = () => {
     const navigate = useNavigate();
 
+    const handleSubscribe = (plan) => {
+        navigate(`/app/checkout?plan=${plan}`);
+    };
+
     return (
         <div className={styles.page}>
             {/* Navigation */}
@@ -107,34 +111,16 @@ const LandingPage = () => {
                     <Card className={styles.pricingCard}>
                         <h3>Pro Monthly</h3>
                         <div className={styles.price}>
-                            $5.99<span>/month</span>
+                            $4.99<span>/month</span>
                         </div>
                         <p className={styles.pricingDesc}>
                             Flexible protection for everyone.
                         </p>
-                        <Button variant="secondary" fullWidth>
-                            Start Monthly
-                        </Button>
-                        <ul className={styles.featureList}>
-                            <li><Check size={16} /> Adult content blocking (Always on)</li>
-                            <li><Check size={16} /> Ad & Tracker blocking</li>
-                            <li><Check size={16} /> Unlimited devices</li>
-                            <li><Check size={16} /> Focus Mode</li>
-                        </ul>
-                    </Card>
-
-                    {/* Yearly - Best Value */}
-                    <Card className={styles.pricingCardFeatured} variant="info">
-                        <Badge variant="success" className={styles.bestValue}>Best Value</Badge>
-                        <h3>Pro Yearly</h3>
-                        <div className={styles.price}>
-                            $59.99<span>/year</span>
-                        </div>
-                        <p className={styles.pricingDesc}>
-                            Save 17% with annual billing.
-                        </p>
-                        <Button fullWidth>
-                            Start Yearly Plan
+                        <Button
+                            fullWidth
+                            onClick={() => handleSubscribe('monthly')}
+                        >
+                            Start Monthly Plan
                         </Button>
                         <ul className={styles.featureList}>
                             <li><Check size={16} /> Adult content blocking (Always on)</li>
@@ -143,6 +129,31 @@ const LandingPage = () => {
                             <li><Check size={16} /> Focus Mode</li>
                             <li><Check size={16} /> Priority support</li>
                             <li><Check size={16} /> Family sharing (up to 5)</li>
+                        </ul>
+                    </Card>
+
+                    {/* Pro Yearly */}
+                    <Card className={styles.pricingCard}>
+                        <h3>Pro Yearly</h3>
+                        <div className={styles.price}>
+                            $59.99<span>/year</span>
+                        </div>
+                        <p className={styles.pricingDesc}>
+                            Save 17% with annual billing.
+                        </p>
+                        <Button
+                            fullWidth
+                            onClick={() => handleSubscribe('yearly')}
+                        >
+                            Start Yearly Plan
+                        </Button>
+                        <ul className={styles.featureList}>
+                            <li><Check size={16} /> Everything in Monthly</li>
+                            <li><Check size={16} /> 2 months free</li>
+                            <li><Check size={16} /> Priority support</li>
+                            <li><Check size={16} /> Early access to new features</li>
+                            <li><Check size={16} /> Family sharing (up to 5)</li>
+                            <li><Check size={16} /> Advanced AI protection</li>
                         </ul>
                     </Card>
                 </div>
@@ -159,13 +170,13 @@ const LandingPage = () => {
                         <Logo size="sm" variant="white" />
                     </div>
                     <div className={styles.footerLinks}>
-                        <a href="#">Privacy</a>
-                        <a href="#">Terms</a>
-                        <a href="#">Contact</a>
+                        <a href="/privacy-policy">Privacy</a>
+                        <a href="/terms-of-use">Terms</a>
+                        <a href="mailto:info@zasgloballlc.com">Contact</a>
                     </div>
                 </div>
                 <p className={styles.copyright}>
-                    © 2025 ZAS Safeguard. All rights reserved.
+                    © 2026 ZAS Safeguard. All rights reserved.
                 </p>
             </footer>
         </div>

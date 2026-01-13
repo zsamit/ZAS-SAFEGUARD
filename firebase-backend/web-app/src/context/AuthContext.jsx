@@ -53,11 +53,17 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (!user) return;
 
-        const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-            if (doc.exists()) {
-                setUserProfile(doc.data());
+        const unsubscribe = onSnapshot(
+            doc(db, 'users', user.uid),
+            (doc) => {
+                if (doc.exists()) {
+                    setUserProfile(doc.data());
+                }
+            },
+            (error) => {
+                console.error('[AuthContext] Profile listener error:', error.message);
             }
-        });
+        );
 
         return () => unsubscribe();
     }, [user]);

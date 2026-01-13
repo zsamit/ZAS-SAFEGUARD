@@ -8,14 +8,24 @@ import { useState, useEffect, useCallback } from 'react';
 // Cache for extension ID
 let cachedExtensionId = null;
 
-// Listen for extension ID announcements from content script
-if (typeof window !== 'undefined') {
+// Flag to ensure listener is only registered once
+let listenerRegistered = false;
+
+// Listen for extension ID announcements from content script (single registration)
+if (typeof window !== 'undefined' && !listenerRegistered) {
+    listenerRegistered = true;
     window.addEventListener('message', (event) => {
+        // Guard: only handle messages from the same window origin
+        if (event.source !== window) return;
+
         if (event.data?.source === 'zas-extension' && event.data?.type === 'EXTENSION_ID_ANNOUNCEMENT') {
             const id = event.data.extensionId;
-            console.log('[Extension Hook] Received extension ID announcement:', id);
-            cachedExtensionId = id;
-            localStorage.setItem('zasExtensionId', id);
+            // Only update if different to avoid unnecessary writes
+            if (id && id !== cachedExtensionId) {
+                console.log('[Extension Hook] Received extension ID announcement:', id);
+                cachedExtensionId = id;
+                localStorage.setItem('zasExtensionId', id);
+            }
         }
     });
 }
@@ -56,7 +66,7 @@ const getStoredExtensionId = () => {
 };
 
 /**
- * Send a message to the extension
+ * Send a message to the extension with timeout safeguard
  */
 export const sendMessageToExtension = async (message) => {
     const extensionId = getStoredExtensionId();
@@ -71,19 +81,40 @@ export const sendMessageToExtension = async (message) => {
         return null;
     }
 
+    // Timeout to prevent hanging callbacks
+    const TIMEOUT_MS = 3000;
+
     return new Promise((resolve) => {
+        let resolved = false;
+
+        // Timeout safeguard - resolve to null if no response
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                resolve(null);
+            }
+        }, TIMEOUT_MS);
+
         try {
             window.chrome.runtime.sendMessage(extensionId, message, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.log('[Extension] Communication error:', chrome.runtime.lastError.message);
-                    resolve(null);
-                } else {
-                    resolve(response);
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeout);
+                    if (chrome.runtime.lastError) {
+                        console.log('[Extension] Communication error:', chrome.runtime.lastError.message);
+                        resolve(null);
+                    } else {
+                        resolve(response);
+                    }
                 }
             });
         } catch (error) {
-            console.log('[Extension] Send error:', error);
-            resolve(null);
+            if (!resolved) {
+                resolved = true;
+                clearTimeout(timeout);
+                console.log('[Extension] Send error:', error);
+                resolve(null);
+            }
         }
     });
 };
@@ -97,26 +128,37 @@ export const useExtensionStatus = () => {
     const [checking, setChecking] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         const checkExtension = async () => {
             const id = getStoredExtensionId();
 
             if (id) {
                 // Try to ping the extension
                 const response = await sendMessageToExtension({ type: 'PING' });
-                if (response?.status === 'alive') {
-                    setExtensionId(id);
-                    setIsInstalled(true);
-                    console.log('[Extension] Connected, version:', response.version);
-                } else {
-                    // Extension ID stored but not responding
-                    setIsInstalled(false);
+                // Guard: only update state if component is still mounted
+                if (isMounted) {
+                    if (response?.status === 'alive') {
+                        setExtensionId(id);
+                        setIsInstalled(true);
+                        console.log('[Extension] Connected, version:', response.version);
+                    } else {
+                        // Extension ID stored but not responding
+                        setIsInstalled(false);
+                    }
                 }
             }
 
-            setChecking(false);
+            if (isMounted) {
+                setChecking(false);
+            }
         };
 
         checkExtension();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return { isInstalled, extensionId, checking };
@@ -306,16 +348,21 @@ export const useAdBlockStats = () => {
     });
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchStats = async () => {
             const response = await sendMessageToExtension({ type: 'ADBLOCK_GET_STATS' });
 
-            if (response?.stats) {
-                setStats({
-                    ...response.stats,
-                    loading: false
-                });
-            } else {
-                setStats(prev => ({ ...prev, loading: false }));
+            // Guard: only update state if component is still mounted
+            if (isMounted) {
+                if (response?.stats) {
+                    setStats({
+                        ...response.stats,
+                        loading: false
+                    });
+                } else {
+                    setStats(prev => ({ ...prev, loading: false }));
+                }
             }
         };
 
@@ -323,7 +370,11 @@ export const useAdBlockStats = () => {
 
         // Refresh every 30 seconds
         const interval = setInterval(fetchStats, 30000);
-        return () => clearInterval(interval);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
 
     return stats;

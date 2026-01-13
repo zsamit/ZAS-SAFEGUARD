@@ -154,26 +154,50 @@ else if (reason && reason.includes('locked')) {
 async function loadStats() {
     try {
         const result = await chrome.storage.local.get(['stats', 'streak']);
+        const today = new Date().toDateString();
+
         if (result.stats) {
-            document.getElementById('blocksToday').textContent = result.stats.blockedToday || 0;
+            // Check if it's a new day - reset if needed
+            if (result.stats.date !== today) {
+                // New day, reset blockedToday
+                document.getElementById('blocksToday').textContent = '1';
+            } else {
+                document.getElementById('blocksToday').textContent = result.stats.blockedToday || 0;
+            }
+        } else {
+            document.getElementById('blocksToday').textContent = '0';
         }
+
         if (result.streak) {
             document.getElementById('daysStreak').textContent = result.streak || 0;
         }
     } catch (e) {
-        // Not running as extension
+        // Not running as extension - show 0
+        document.getElementById('blocksToday').textContent = '0';
+        document.getElementById('daysStreak').textContent = '0';
     }
 }
 loadStats();
 
-// Increment block counter
+// Increment block counter with daily reset
 async function incrementBlockCounter() {
     try {
+        const today = new Date().toDateString();
         const result = await chrome.storage.local.get(['stats']);
-        const stats = result.stats || { blockedToday: 0, blockedTotal: 0 };
+        let stats = result.stats || { blockedToday: 0, blockedTotal: 0, date: today };
+
+        // Reset if it's a new day
+        if (stats.date !== today) {
+            stats.blockedToday = 0;
+            stats.date = today;
+        }
+
         stats.blockedToday++;
         stats.blockedTotal++;
         await chrome.storage.local.set({ stats });
+
+        // Update display
+        document.getElementById('blocksToday').textContent = stats.blockedToday;
     } catch (e) {
         // Not running as extension
     }
@@ -209,22 +233,15 @@ async function logSecurityEventToBackground() {
 logSecurityEventToBackground();
 
 function goBack() {
-    // Try to go back in history
-    try {
-        if (window.history.length > 2) {
-            // Go back twice to skip the blocked URL
-            window.history.go(-2);
-        } else {
-            // No history, go to Google
-            window.location.href = 'https://google.com';
-        }
-    } catch (e) {
-        // If history navigation fails, go to Google
-        window.location.href = 'https://google.com';
-    }
-
-    // Fallback after 500ms if nothing happened
-    setTimeout(() => {
-        window.location.href = 'https://google.com';
-    }, 500);
+    // Simply go to Google - the safest option
+    // History navigation doesn't work well in extension pages
+    window.location.href = 'https://google.com';
 }
+
+// Attach event listener (CSP-compliant - no inline handlers)
+document.addEventListener('DOMContentLoaded', () => {
+    const goBackBtn = document.getElementById('goBackBtn');
+    if (goBackBtn) {
+        goBackBtn.addEventListener('click', goBack);
+    }
+});

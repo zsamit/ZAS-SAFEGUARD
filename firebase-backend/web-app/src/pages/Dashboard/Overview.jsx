@@ -66,16 +66,29 @@ const Overview = () => {
     const [showDurationPicker, setShowDurationPicker] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
 
-    // Fetch extension stats
+    // Fetch extension stats with unmount guard and timeout
     useEffect(() => {
+        let isMounted = true;
+        const TIMEOUT_MS = 3000;
+
         const fetchExtensionStats = async () => {
             try {
                 // Get extension ID
                 const extId = localStorage.getItem('zasExtensionId');
                 if (extId && window.chrome?.runtime?.sendMessage) {
+                    // Use timeout to prevent hanging callbacks
+                    let responded = false;
+                    const timeout = setTimeout(() => {
+                        responded = true; // Just mark as responded, don't update state
+                    }, TIMEOUT_MS);
+
                     window.chrome.runtime.sendMessage(extId, { type: 'ADBLOCK_GET_STATS' }, (response) => {
-                        if (!chrome.runtime.lastError && response?.stats) {
-                            setExtensionStats(response.stats);
+                        if (!responded) {
+                            clearTimeout(timeout);
+                            // Guard: only update state if component is still mounted
+                            if (isMounted && !chrome.runtime.lastError && response?.stats) {
+                                setExtensionStats(response.stats);
+                            }
                         }
                     });
                 }
@@ -86,7 +99,11 @@ const Overview = () => {
 
         fetchExtensionStats();
         const interval = setInterval(fetchExtensionStats, 30000);
-        return () => clearInterval(interval);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
 
     // Calculate time remaining
@@ -208,23 +225,23 @@ const Overview = () => {
                 </Badge>
             </Card>
 
-            {/* Stats Grid - REAL DATA */}
+            {/* Stats Grid - REAL DATA FROM FIRESTORE */}
             <div className={styles.statsGrid}>
                 <StatCard
                     icon={<Ban />}
                     label="Ads Blocked"
-                    value={extensionStats?.blockedToday ?? (stats.loading ? '—' : stats.adsBlockedToday.toLocaleString())}
+                    value={stats.loading ? '—' : stats.adsBlockedToday.toLocaleString()}
                     subtext="Today"
                     iconColor="var(--zas-indigo)"
-                    loading={stats.loading && !extensionStats}
+                    loading={stats.loading}
                 />
                 <StatCard
                     icon={<AlertCircle />}
                     label="Sites Blocked"
-                    value={extensionStats?.todayByCategory?.sites ?? (stats.loading ? '—' : stats.sitesBlockedToday.toLocaleString())}
+                    value={stats.loading ? '—' : stats.sitesBlockedToday.toLocaleString()}
                     subtext="Today"
                     iconColor="var(--crimson)"
-                    loading={stats.loading && !extensionStats}
+                    loading={stats.loading}
                 />
                 <StatCard
                     icon={<Smartphone />}

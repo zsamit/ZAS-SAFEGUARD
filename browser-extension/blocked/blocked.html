@@ -237,11 +237,10 @@
     <div class="container">
         <!-- UI-native state block: structural containment -->
         <div class="state-block">
-            <!-- Shield mark -->
-            <div class="state-mark">
-                <svg viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L3 6v7c0 6.075 4.026 11.157 9 13 4.974-1.843 9-6.925 9-13V6l-9-4z" />
-                </svg>
+            <!-- ZAS Logo text -->
+            <div class="state-mark" style="width: auto; height: auto;">
+                <span
+                    style="font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;">ZAS</span>
             </div>
             <!-- Rhythm lines - system order indicators -->
             <div class="state-lines">
@@ -264,7 +263,7 @@
         </div>
 
         <div class="actions">
-            <button class="btn btn-primary" onclick="goBack()">
+            <button class="btn btn-primary" id="goBackBtn">
                 ← Go Back
             </button>
             <a href="https://google.com" class="btn btn-secondary">

@@ -17,6 +17,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+import { getFunctions } from 'firebase/functions';
+export const functions = getFunctions(app);
 
 // Auth helpers
 export const signOut = () => firebaseSignOut(auth);

@@ -22,9 +22,9 @@ const REGION_TO_TIER = {
  */
 const STRIPE_PRICE_IDS = {
     essential_monthly: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || 'price_essential_monthly',
-    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
+    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_1Sm14ZRwbGN3ywzEIfFE81W6',
     essential_yearly: process.env.STRIPE_PRICE_ESSENTIAL_YEARLY || 'price_essential_yearly',
-    pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
+    pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY || 'price_1Sm15iRwbGN3ywzEZTQ8GZJ7',
 };
 
 const VALID_PLANS = ['essential_monthly', 'pro_monthly', 'essential_yearly', 'pro_yearly', 'monthly', 'yearly'];
@@ -119,8 +119,6 @@ exports.createCheckoutSession = functions
                     quantity: 1,
                 }],
                 mode: 'subscription',
-                success_url: successUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=success`,
-                cancel_url: cancelUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=cancelled`,
                 automatic_tax: {
                     enabled: true,
                 },
@@ -137,6 +135,15 @@ exports.createCheckoutSession = functions
                 },
             };
 
+            // Handle embedded vs hosted mode
+            if (data.mode === 'embedded') {
+                sessionParams.ui_mode = 'embedded';
+                sessionParams.return_url = `${data.origin || 'https://zassafeguard.com'}/app/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+            } else {
+                sessionParams.success_url = successUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=success`;
+                sessionParams.cancel_url = cancelUrl || `${data.origin || 'https://zas-safeguard.web.app'}/app/?payment=cancelled`;
+            }
+
             // Add trial if eligible
             if (trialEligible.eligible) {
                 sessionParams.subscription_data = {
@@ -151,6 +158,7 @@ exports.createCheckoutSession = functions
                 success: true,
                 sessionId: session.id,
                 sessionUrl: session.url,
+                clientSecret: session.client_secret,
                 trialEligible: trialEligible.eligible,
             };
         } catch (error) {
@@ -614,3 +622,116 @@ exports.getSubscription = functions
         }
     });
 
+/**
+ * Create subscription intent for custom PaymentElement checkout
+ * Returns clientSecret for frontend to confirm payment
+ */
+exports.createSubscriptionIntent = functions
+    .runWith({
+        memory: '512MB',
+        timeoutSeconds: 60,
+        secrets: ['STRIPE_SECRET_KEY']
+    })
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+
+        const uid = context.auth.uid;
+        const { plan } = data;
+
+        // Validate plan
+        if (!plan || !VALID_PLANS.includes(plan)) {
+            throw new functions.https.HttpsError('invalid-argument', 'Invalid plan selected');
+        }
+
+        // Normalize legacy plan names
+        let normalizedPlan = plan;
+        if (plan === 'monthly') normalizedPlan = 'pro_monthly';
+        if (plan === 'yearly') normalizedPlan = 'pro_yearly';
+
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new functions.https.HttpsError('failed-precondition', 'Stripe secret key not configured');
+        }
+
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+        try {
+            // Get user data
+            const userDoc = await db.doc(`users/${uid}`).get();
+            const userData = userDoc.exists ? userDoc.data() : {};
+
+            // Get price ID
+            const priceId = STRIPE_PRICE_IDS[normalizedPlan];
+            if (!priceId || priceId.includes('price_essential') || priceId.includes('price_pro_monthly') && !priceId.startsWith('price_1')) {
+                throw new functions.https.HttpsError('failed-precondition', 'Stripe price not configured');
+            }
+
+            // Get or create Stripe customer
+            let stripeCustomerId = userData.subscription?.stripe_customer_id;
+
+            if (!stripeCustomerId) {
+                const customer = await stripe.customers.create({
+                    email: userData.email || context.auth.token?.email,
+                    metadata: { firebaseUid: uid },
+                });
+                stripeCustomerId = customer.id;
+
+                await db.doc(`users/${uid}`).set({
+                    subscription: { stripe_customer_id: stripeCustomerId },
+                }, { merge: true });
+            }
+
+            // Check trial eligibility
+            const trialEligible = await checkTrialEligibilityInternal(uid);
+
+            // Create subscription with payment_behavior: default_incomplete
+            const subscriptionParams = {
+                customer: stripeCustomerId,
+                items: [{ price: priceId }],
+                payment_behavior: 'default_incomplete',
+                payment_settings: {
+                    save_default_payment_method: 'on_subscription',
+                },
+                metadata: {
+                    userId: uid,
+                    plan: normalizedPlan,
+                },
+            };
+
+            // Add trial if eligible - also need to expand pending_setup_intent
+            if (trialEligible.eligible) {
+                subscriptionParams.trial_period_days = 7;
+                subscriptionParams.expand = ['pending_setup_intent'];
+            } else {
+                subscriptionParams.expand = ['latest_invoice.payment_intent'];
+            }
+
+            const subscription = await stripe.subscriptions.create(subscriptionParams);
+
+            // Get client secret - from setup_intent for trials, payment_intent otherwise
+            let clientSecret;
+            if (trialEligible.eligible) {
+                clientSecret = subscription.pending_setup_intent?.client_secret;
+            } else {
+                clientSecret = subscription.latest_invoice?.payment_intent?.client_secret;
+            }
+
+            if (!clientSecret) {
+                throw new functions.https.HttpsError('internal', 'Failed to get client secret for payment');
+            }
+
+            return {
+                success: true,
+                subscriptionId: subscription.id,
+                clientSecret: clientSecret,
+                trialEligible: trialEligible.eligible,
+                requiresPayment: true, // Always require payment info collection
+                isSetupIntent: trialEligible.eligible, // Frontend needs to know which type
+            };
+        } catch (error) {
+            console.error('Create subscription intent error:', error);
+            if (error instanceof functions.https.HttpsError) throw error;
+            throw new functions.https.HttpsError('internal', `Subscription failed: ${error.message}`);
+        }
+    });

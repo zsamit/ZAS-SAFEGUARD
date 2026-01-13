@@ -28,6 +28,25 @@
                 "content.js"
             ],
             "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
+                "content-scripts/youtube-adblock.js"
+            ],
+            "run_at": "document_end"
+        },
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
+                "content-scripts/youtube-interceptor.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
         }
     ],
     "action": {
@@ -74,6 +93,11 @@
                 "id": "adblock_social",
                 "enabled": false,
                 "path": "rules/adblock_social.json"
+            },
+            {
+                "id": "adblock_youtube",
+                "enabled": true,
+                "path": "rules/adblock_youtube.json"
             }
         ]
     },
