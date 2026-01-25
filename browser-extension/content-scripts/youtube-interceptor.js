@@ -16,44 +16,19 @@
     // Anti-Detection: Prevent YouTube from detecting ad blocker
     // ========================================
 
-    // Spoof ad blocker detection checks
-    Object.defineProperty(window, 'google_ad_status', {
-        get: () => 1,
-        set: () => { },
-        configurable: false
-    });
+    // Spoof ad blocker detection checks (safe approach)
+    try {
+        Object.defineProperty(window, 'google_ad_status', {
+            get: () => 1,
+            set: () => { },
+            configurable: false
+        });
+    } catch (e) {
+        // May already be defined, ignore
+    }
 
-    // Note: Trusted Types policy prevents injecting fake scripts
-
-    // Hook into YouTube's ad blocker detection
-    const originalDefineProperty = Object.defineProperty;
-    Object.defineProperty = function (obj, prop, descriptor) {
-        // Intercept detection of blocked ads
-        if (prop === 'adBlockerDetected' || prop === 'adBlockDetected') {
-            console.log('[YouTube Interceptor] Blocked ad-blocker detection');
-            return obj;
-        }
-        return originalDefineProperty.apply(this, arguments);
-    };
-
-    // Spoof ytInitialData to remove ad blocker warnings
-    const checkAndFixYtData = () => {
-        if (window.ytInitialData) {
-            try {
-                // Remove ad blocker warning overlays
-                if (window.ytInitialData.overlay?.enforcementMessageViewModel) {
-                    delete window.ytInitialData.overlay.enforcementMessageViewModel;
-                }
-                // Remove any ad-blocker-related popup data
-                if (window.ytInitialData.topbar?.notificationTopbarButtonRenderer?.icon?.iconType === 'ENFORCEMENT') {
-                    delete window.ytInitialData.topbar.notificationTopbarButtonRenderer;
-                }
-            } catch (e) { }
-        }
-    };
-
-    // Check periodically and on mutations
-    setInterval(checkAndFixYtData, 1000);
+    // NOTE: Removed global Object.defineProperty override as it breaks YouTube's internal code
+    // This was causing the search bar and home button to disappear
 
     // Also remove the ad-blocker warning overlay via CSS
     const antiDetectStyles = document.createElement('style');
@@ -72,7 +47,12 @@
         #search,
         #search-form,
         ytd-searchbox,
-        #container.ytd-searchbox {
+        #container.ytd-searchbox,
+        #masthead #center,
+        ytd-masthead #center,
+        #guide-button,
+        ytd-topbar-logo-renderer,
+        #logo-icon {
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -81,40 +61,37 @@
     document.documentElement.appendChild(antiDetectStyles);
 
     // ========================================
-    // Intercept ytInitialPlayerResponse
+    // Intercept ytInitialPlayerResponse (safe approach)
     // ========================================
 
-    // Store original property descriptor
-    const originalDescriptor = Object.getOwnPropertyDescriptor(window, 'ytInitialPlayerResponse');
+    // Clean ad data from player response
+    function cleanPlayerResponse(data) {
+        if (!data || typeof data !== 'object') return data;
 
-    // Override ytInitialPlayerResponse to remove ads
-    Object.defineProperty(window, 'ytInitialPlayerResponse', {
-        configurable: true,
-        get() {
-            return this._ytInitialPlayerResponse;
-        },
-        set(value) {
-            if (value && typeof value === 'object') {
-                // Remove ad-related properties
-                try {
-                    delete value.adPlacements;
-                    delete value.adSlots;
-                    delete value.playerAds;
-                    delete value.adBreakParams;
-
-                    if (value.playbackTracking) {
-                        delete value.playbackTracking.videostatsPlaybackUrl;
-                        delete value.playbackTracking.videostatsWatchtimeUrl;
-                    }
-
-                    console.log('[YouTube Interceptor] Removed ad placements from initial response');
-                } catch (e) {
-                    // Ignore errors
-                }
-            }
-            this._ytInitialPlayerResponse = value;
+        try {
+            delete data.adPlacements;
+            delete data.adSlots;
+            delete data.playerAds;
+            delete data.adBreakParams;
+        } catch (e) {
+            // Ignore errors
         }
-    });
+
+        return data;
+    }
+
+    // Check and clean ytInitialPlayerResponse periodically
+    const checkPlayerResponse = () => {
+        if (window.ytInitialPlayerResponse) {
+            cleanPlayerResponse(window.ytInitialPlayerResponse);
+        }
+    };
+
+    // Run every 500ms
+    setInterval(checkPlayerResponse, 500);
+
+    // Also run on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', checkPlayerResponse);
 
     // ========================================
     // Intercept Fetch for player API
@@ -134,11 +111,7 @@
 
                 // Remove ad data
                 if (data) {
-                    delete data.adPlacements;
-                    delete data.adSlots;
-                    delete data.playerAds;
-                    delete data.adBreakParams;
-
+                    cleanPlayerResponse(data);
                     console.log('[YouTube Interceptor] Filtered ads from player API');
 
                     // Return modified response
@@ -159,49 +132,9 @@
     };
 
     // ========================================
-    // Intercept XHR for legacy support
+    // XHR Interception removed - was too aggressive
+    // The fetch interception is sufficient for modern YouTube
     // ========================================
 
-    const originalXHROpen = XMLHttpRequest.prototype.open;
-    const originalXHRSend = XMLHttpRequest.prototype.send;
-
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        this._zasUrl = url;
-        return originalXHROpen.apply(this, [method, url, ...rest]);
-    };
-
-    XMLHttpRequest.prototype.send = function (...args) {
-        if (this._zasUrl && this._zasUrl.includes('/youtubei/v1/player')) {
-            const originalOnReadyStateChange = this.onreadystatechange;
-
-            this.onreadystatechange = function () {
-                if (this.readyState === 4 && this.status === 200) {
-                    try {
-                        const data = JSON.parse(this.responseText);
-                        delete data.adPlacements;
-                        delete data.adSlots;
-                        delete data.playerAds;
-
-                        // Override response
-                        Object.defineProperty(this, 'responseText', {
-                            value: JSON.stringify(data),
-                            writable: false
-                        });
-
-                        console.log('[YouTube Interceptor] Filtered ads from XHR');
-                    } catch (e) {
-                        // Ignore parsing errors
-                    }
-                }
-
-                if (originalOnReadyStateChange) {
-                    originalOnReadyStateChange.apply(this, arguments);
-                }
-            };
-        }
-
-        return originalXHRSend.apply(this, args);
-    };
-
-    console.log('[YouTube Interceptor] Injection complete');
+    console.log('[YouTube Interceptor] Injection complete (safe mode)');
 })();

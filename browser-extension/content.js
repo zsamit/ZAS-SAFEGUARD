@@ -453,7 +453,12 @@
      */
     function getCosmeticSelectors() {
         const hostname = getCosmeticHostname();
-        let selectors = [...COSMETIC_SELECTORS];
+
+        // Sites that should NOT use generic selectors (they have specific handling)
+        const excludeGenericSites = ['youtube.com', 'youtu.be'];
+        const useGeneric = !excludeGenericSites.some(site => hostname.includes(site));
+
+        let selectors = useGeneric ? [...COSMETIC_SELECTORS] : [];
 
         // Add site-specific selectors
         for (const [site, siteSelectors] of Object.entries(SITE_COSMETIC_SELECTORS)) {

@@ -273,6 +273,14 @@
     color: #a0a0b0;
 }
 
+.stripeLogo {
+    margin-left: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #635BFF;
+    letter-spacing: -0.5px;
+}
+
 /* Loading State */
 .loadingContainer {
     display: flex;

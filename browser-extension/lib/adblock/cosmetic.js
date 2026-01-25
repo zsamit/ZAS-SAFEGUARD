@@ -132,7 +132,12 @@ function getHostname() {
  */
 async function getSelectorsForSite() {
     const hostname = getHostname();
-    let selectors = [...GENERIC_SELECTORS];
+
+    // Sites that should NOT use generic selectors (they have specific handling)
+    const excludeGenericSites = ['youtube.com', 'youtu.be'];
+    const useGeneric = !excludeGenericSites.some(site => hostname.includes(site));
+
+    let selectors = useGeneric ? [...GENERIC_SELECTORS] : [];
 
     // Add site-specific selectors
     for (const [site, siteSelectors] of Object.entries(SITE_SELECTORS)) {
