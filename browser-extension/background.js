@@ -161,6 +161,71 @@ async function checkSubscriptionStatus() {
     }
 }
 
+/**
+ * Enable or disable ALL extension blocking features based on subscription status
+ * This includes both static and dynamic rulesets
+ */
+async function enforceSubscriptionStatus() {
+    const isSubscribed = await checkSubscriptionStatus();
+
+    console.log('[Subscription] Enforcing status:', isSubscribed ? 'ACTIVE' : 'EXPIRED');
+
+    try {
+        // Get all available static rulesets
+        const availableRulesets = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
+
+        // List of static ruleset IDs from manifest.json
+        const allRulesets = [
+            'ruleset_block',
+            'adblock_ads',
+            'adblock_trackers',
+            'adblock_malware',
+            'adblock_annoyances',
+            'adblock_social',
+            'adblock_youtube'
+        ];
+
+        if (isSubscribed) {
+            // Enable blocking rulesets (use the ones that were enabled in manifest)
+            await chrome.declarativeNetRequest.updateEnabledRulesets({
+                enableRulesetIds: ['ruleset_block', 'adblock_ads', 'adblock_trackers', 'adblock_malware', 'adblock_youtube']
+            });
+            console.log('[Subscription] Blocking rulesets ENABLED');
+        } else {
+            // Disable ALL rulesets when subscription is inactive
+            await chrome.declarativeNetRequest.updateEnabledRulesets({
+                disableRulesetIds: allRulesets
+            });
+
+            // Also clear dynamic rules
+            const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+            const existingIds = existingRules.map(rule => rule.id);
+            if (existingIds.length > 0) {
+                await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existingIds });
+            }
+
+            console.log('[Subscription] ALL blocking DISABLED - subscription inactive');
+        }
+    } catch (error) {
+        console.error('[Subscription] Error enforcing status:', error);
+    }
+}
+
+// Check subscription status periodically (every 5 minutes)
+setInterval(enforceSubscriptionStatus, 5 * 60 * 1000);
+
+// Also check on storage changes (when subscription status updates)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local') {
+        const subscriptionKeys = ['subscriptionStatus', 'planType', 'subscriptionPlan', 'trialEndDate'];
+        const hasSubscriptionChange = subscriptionKeys.some(key => key in changes);
+        if (hasSubscriptionChange) {
+            console.log('[Subscription] Status changed, enforcing...');
+            enforceSubscriptionStatus();
+        }
+    }
+});
+
 // ============================================
 // INITIALIZATION
 // ============================================

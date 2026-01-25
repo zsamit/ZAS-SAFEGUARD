@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboardStats, useProtectionStatus } from '../../hooks/useFirestore';
 import { useFocusMode, useInternetLock } from '../../hooks/useExtension';
+import TrialExpiredModal from './TrialExpiredModal';
 import {
     ShieldCheck,
     ShieldAlert,
@@ -65,6 +66,35 @@ const Overview = () => {
     // Duration picker modal
     const [showDurationPicker, setShowDurationPicker] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
+
+    // Trial expired modal state
+    const [showTrialExpired, setShowTrialExpired] = useState(false);
+
+    // Check if trial/subscription is expired on mount
+    useEffect(() => {
+        if (userProfile?.subscription) {
+            const status = userProfile.subscription.status;
+            const expiredStatuses = ['canceled', 'unpaid', 'past_due', 'incomplete_expired'];
+
+            // Check if trial ended without converting
+            const trialEnded = userProfile.subscription.trial_end &&
+                new Date(userProfile.subscription.trial_end.toDate ? userProfile.subscription.trial_end.toDate() : userProfile.subscription.trial_end) < new Date() &&
+                status !== 'active';
+
+            if (expiredStatuses.includes(status) || trialEnded) {
+                // Check if user already dismissed (don't show again for 24 hours)
+                const dismissedAt = localStorage.getItem('trialExpiredDismissed');
+                if (!dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000) {
+                    setShowTrialExpired(true);
+                }
+            }
+        }
+    }, [userProfile]);
+
+    const handleDismissTrialModal = () => {
+        localStorage.setItem('trialExpiredDismissed', Date.now().toString());
+        setShowTrialExpired(false);
+    };
 
     // Fetch extension stats with unmount guard and timeout
     useEffect(() => {
@@ -196,6 +226,13 @@ const Overview = () => {
 
     return (
         <div className={styles.page}>
+            {/* Trial Expired Modal */}
+            <TrialExpiredModal
+                isOpen={showTrialExpired}
+                onClose={handleDismissTrialModal}
+                subscription={userProfile?.subscription}
+            />
+
             <header className={styles.header}>
                 <h1>Dashboard</h1>
                 <p>Overview of your protection status.</p>
