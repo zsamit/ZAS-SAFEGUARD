@@ -72,19 +72,42 @@ const Overview = () => {
 
     // Check if trial/subscription is expired on mount
     useEffect(() => {
+        console.log('[TrialCheck] userProfile:', userProfile);
+        console.log('[TrialCheck] subscription:', userProfile?.subscription);
+
         if (userProfile?.subscription) {
-            const status = userProfile.subscription.status;
-            const expiredStatuses = ['canceled', 'unpaid', 'past_due', 'incomplete_expired'];
+            const sub = userProfile.subscription;
+            // Check both 'status' and 'plan_status' fields (Firestore structure varies)
+            const status = (sub.status || sub.plan_status || '').toLowerCase();
+            const plan = (sub.plan || '').toLowerCase();
+
+            console.log('[TrialCheck] Status:', status, '| Plan:', plan);
+
+            // Show popup for these statuses
+            const expiredStatuses = ['canceled', 'cancelled', 'unpaid', 'past_due', 'incomplete_expired', 'expired', 'inactive'];
+
+            // Check if subscription is expired OR user is on free plan after trial
+            const isExpired = expiredStatuses.includes(status);
+            const isFreeAfterTrial = plan === 'free' && sub.trial_active === false;
 
             // Check if trial ended without converting
-            const trialEnded = userProfile.subscription.trial_end &&
-                new Date(userProfile.subscription.trial_end.toDate ? userProfile.subscription.trial_end.toDate() : userProfile.subscription.trial_end) < new Date() &&
-                status !== 'active';
+            const trialEnd = sub.trial_end;
+            let trialEnded = false;
+            if (trialEnd) {
+                const endDate = trialEnd.toDate ? trialEnd.toDate() : new Date(trialEnd);
+                trialEnded = endDate < new Date() && status !== 'active';
+                console.log('[TrialCheck] Trial end date:', endDate, '| Ended:', trialEnded);
+            }
 
-            if (expiredStatuses.includes(status) || trialEnded) {
+            console.log('[TrialCheck] isExpired:', isExpired, '| isFreeAfterTrial:', isFreeAfterTrial, '| trialEnded:', trialEnded);
+
+            // Show popup if any condition is true
+            if (isExpired || isFreeAfterTrial || trialEnded) {
                 // Check if user already dismissed (don't show again for 24 hours)
                 const dismissedAt = localStorage.getItem('trialExpiredDismissed');
-                if (!dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000) {
+                const shouldShow = !dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000;
+                console.log('[TrialCheck] Should show popup:', shouldShow);
+                if (shouldShow) {
                     setShowTrialExpired(true);
                 }
             }
