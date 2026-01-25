@@ -8,6 +8,61 @@ const admin = require('firebase-admin');
 
 const db = admin.firestore();
 
+/**
+ * Generate HTML email for trial expired notification
+ */
+function generateTrialExpiredEmailHtml(userName) {
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 40px 20px;">
+            <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 40px; text-align: center;">
+                    <h1 style="color: #fff; margin: 0; font-size: 24px;">Your Free Trial Has Ended</h1>
+                </div>
+                <div style="padding: 32px;">
+                    <p style="font-size: 16px; color: #334155; margin-bottom: 24px;">
+                        Hey ${userName},
+                    </p>
+                    <p style="font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 24px;">
+                        Your 7-day free trial of ZAS Safeguard has ended. We hope you enjoyed the peace of mind of protected browsing!
+                    </p>
+                    <p style="font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 32px;">
+                        To continue protecting yourself online with ad-blocking, content filtering, and Focus Mode, subscribe to our Pro plan.
+                    </p>
+                    <div style="text-align: center; margin-bottom: 32px;">
+                        <a href="https://zassafeguard.com/app/checkout?plan=yearly" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                            Upgrade to Pro
+                        </a>
+                    </div>
+                    <div style="background: #f1f5f9; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                        <p style="font-size: 14px; color: #475569; margin: 0 0 12px; font-weight: 600;">What you're missing:</p>
+                        <ul style="margin: 0; padding-left: 20px; color: #64748b; font-size: 14px; line-height: 1.8;">
+                            <li>Block adult content & harmful sites</li>
+                            <li>Remove ads & trackers</li>
+                            <li>Focus Mode for productivity</li>
+                            <li>Unlimited devices</li>
+                        </ul>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; text-align: center;">
+                        Cancel anytime • 7-day money-back guarantee
+                    </p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+                        © 2025 ZAS Safeguard. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
 // Regional pricing map
 const REGION_TO_TIER = {
     'US': 'usa', 'CA': 'usa', 'GB': 'eu', 'DE': 'eu', 'FR': 'eu', 'IT': 'eu', 'ES': 'eu',
@@ -256,9 +311,14 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                 const customer = await stripe.customers.retrieve(subscription.customer);
                 const uid = customer.metadata.firebaseUid;
 
+                // Get user data for email
+                const userDoc = await db.doc(`users/${uid}`).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
+
                 // Update user subscription status
                 await db.doc(`users/${uid}`).update({
                     'subscription.plan_status': 'cancelled',
+                    'subscription.plan': 'free',
                     'subscription.trial_active': false,
                 });
 
@@ -266,6 +326,19 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                     status: 'cancelled',
                     cancelled_at: admin.firestore.FieldValue.serverTimestamp(),
                 });
+
+                // Send trial/subscription expired email
+                if (userData.email) {
+                    const userName = userData.displayName || userData.email.split('@')[0];
+                    await db.collection('mail').add({
+                        to: userData.email,
+                        message: {
+                            subject: 'Your ZAS Safeguard Trial Has Ended',
+                            html: generateTrialExpiredEmailHtml(userName),
+                        },
+                    });
+                    console.log(`[Email] Sent trial expired email to ${userData.email}`);
+                }
 
                 console.log(`Subscription cancelled for user: ${uid}`);
                 break;

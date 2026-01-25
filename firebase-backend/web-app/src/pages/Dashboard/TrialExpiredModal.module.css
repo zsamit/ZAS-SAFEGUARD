@@ -19,7 +19,7 @@
     border: 1px solid rgba(99, 102, 241, 0.2);
     border-radius: 24px;
     padding: 40px;
-    max-width: 440px;
+    max-width: 480px;
     width: 100%;
     text-align: center;
     position: relative;
@@ -71,13 +71,13 @@
     color: #a0a0b0;
     font-size: 15px;
     line-height: 1.6;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
 .features {
     background: rgba(255, 255, 255, 0.03);
     border-radius: 16px;
-    padding: 20px;
+    padding: 16px;
     margin-bottom: 24px;
     text-align: left;
 }
@@ -86,7 +86,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 0;
+    padding: 8px 0;
     color: #d0d0e0;
     font-size: 14px;
 }
@@ -98,6 +98,71 @@
 .feature svg {
     color: #10b981;
     flex-shrink: 0;
+}
+
+/* Plan Toggle */
+.planToggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.planOption {
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.planOption:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.planActive {
+    border-color: #6366f1 !important;
+    background: rgba(99, 102, 241, 0.1) !important;
+}
+
+.planLabel {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.planPrice {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.planMonthly {
+    font-size: 12px;
+    color: #10b981;
+}
+
+.savingsBadge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .pricing {

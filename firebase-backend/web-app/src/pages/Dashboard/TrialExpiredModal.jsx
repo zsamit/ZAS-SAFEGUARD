@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, X, Sparkles, Check } from 'lucide-react';
+import { Shield, X, Sparkles, Check, Star } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import styles from './TrialExpiredModal.module.css';
 
@@ -9,11 +9,18 @@ import styles from './TrialExpiredModal.module.css';
  */
 const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
     const navigate = useNavigate();
+    const [selectedPlan, setSelectedPlan] = useState('yearly'); // Default to yearly (better value)
 
     if (!isOpen) return null;
 
     const handleUpgrade = () => {
-        navigate('/app/checkout?plan=monthly');
+        navigate(`/app/checkout?plan=${selectedPlan}`);
+        onClose();
+    };
+
+    const plans = {
+        monthly: { price: '$4.99', period: '/month', savings: null },
+        yearly: { price: '$39.99', period: '/year', savings: 'Save 33%', monthly: '$3.33/mo' }
     };
 
     return (
@@ -51,9 +58,29 @@ const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
                     </div>
                 </div>
 
-                <div className={styles.pricing}>
-                    <span className={styles.price}>$4.99</span>
-                    <span className={styles.period}>/month</span>
+                {/* Plan Toggle */}
+                <div className={styles.planToggle}>
+                    <button
+                        className={`${styles.planOption} ${selectedPlan === 'monthly' ? styles.planActive : ''}`}
+                        onClick={() => setSelectedPlan('monthly')}
+                    >
+                        <span className={styles.planLabel}>Monthly</span>
+                        <span className={styles.planPrice}>{plans.monthly.price}</span>
+                    </button>
+                    <button
+                        className={`${styles.planOption} ${selectedPlan === 'yearly' ? styles.planActive : ''}`}
+                        onClick={() => setSelectedPlan('yearly')}
+                    >
+                        {plans.yearly.savings && (
+                            <span className={styles.savingsBadge}>
+                                <Star size={12} />
+                                {plans.yearly.savings}
+                            </span>
+                        )}
+                        <span className={styles.planLabel}>Yearly</span>
+                        <span className={styles.planPrice}>{plans.yearly.price}</span>
+                        <span className={styles.planMonthly}>{plans.yearly.monthly}</span>
+                    </button>
                 </div>
 
                 <Button size="lg" fullWidth onClick={handleUpgrade}>
