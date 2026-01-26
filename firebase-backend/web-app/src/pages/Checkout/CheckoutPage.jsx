@@ -19,9 +19,12 @@ const PLANS = {
         period: '/month',
         features: [
             'Adult content blocking',
+            'Malware & phishing protection',
+            'Safe browsing alerts',
             'Ad & tracker blocking',
             'Unlimited devices',
             'Focus Mode',
+            'Real-time threat detection',
             'Priority support'
         ]
     },
@@ -33,12 +36,16 @@ const PLANS = {
         features: [
             'Everything in Monthly',
             'Best value - $4.17/mo',
-            'Priority support',
+            'Malware & phishing protection',
+            'Safe browsing alerts',
+            'Real-time threat detection',
+            'Family sharing (up to 5)',
             'Early access to features',
-            'Family sharing (up to 5)'
+            'Priority support'
         ]
     }
 };
+
 
 // Payment Form Component
 const PaymentForm = ({ plan, isSetupIntent, trialEligible }) => {

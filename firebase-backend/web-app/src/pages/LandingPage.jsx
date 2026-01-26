@@ -124,11 +124,12 @@ const LandingPage = () => {
                         </Button>
                         <ul className={styles.featureList}>
                             <li><Check size={16} /> Adult content blocking (Always on)</li>
+                            <li><Check size={16} /> Malware & phishing protection</li>
+                            <li><Check size={16} /> Safe browsing alerts</li>
                             <li><Check size={16} /> Ad & Tracker blocking</li>
                             <li><Check size={16} /> Unlimited devices</li>
                             <li><Check size={16} /> Focus Mode</li>
-                            <li><Check size={16} /> Priority support</li>
-                            <li><Check size={16} /> Family sharing (up to 5)</li>
+                            <li><Check size={16} /> Real-time threat detection</li>
                         </ul>
                     </Card>
 
@@ -149,11 +150,12 @@ const LandingPage = () => {
                         </Button>
                         <ul className={styles.featureList}>
                             <li><Check size={16} /> Everything in Monthly</li>
-                            <li><Check size={16} /> 2 months free</li>
+                            <li><Check size={16} /> Malware & phishing protection</li>
+                            <li><Check size={16} /> Safe browsing alerts</li>
+                            <li><Check size={16} /> Real-time threat detection</li>
+                            <li><Check size={16} /> Family sharing (up to 5)</li>
                             <li><Check size={16} /> Priority support</li>
                             <li><Check size={16} /> Early access to new features</li>
-                            <li><Check size={16} /> Family sharing (up to 5)</li>
-                            <li><Check size={16} /> Advanced AI protection</li>
                         </ul>
                     </Card>
                 </div>
