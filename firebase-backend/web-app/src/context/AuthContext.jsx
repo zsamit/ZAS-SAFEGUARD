@@ -1,8 +1,43 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db, onAuthStateChanged, signOut } from '../firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { sendMessageToExtension } from '../hooks/useExtension';
 
 const AuthContext = createContext(null);
+
+/**
+ * Sync auth state to extension - sends LOGIN message with token and userId
+ * This triggers device registration in the extension
+ */
+const syncAuthToExtension = async (firebaseUser) => {
+    try {
+        if (!firebaseUser) {
+            console.log('[AuthContext] No user - sending LOGOUT to extension');
+            sendMessageToExtension({ type: 'LOGOUT' });
+            return;
+        }
+
+        // Get the ID token
+        const token = await firebaseUser.getIdToken();
+
+        console.log('[AuthContext] Sending LOGIN to extension for user:', firebaseUser.uid);
+        const response = await sendMessageToExtension({
+            type: 'LOGIN',
+            token: token,
+            userId: firebaseUser.uid,
+            email: firebaseUser.email
+        });
+
+        if (response?.success) {
+            console.log('[AuthContext] Extension auth sync successful');
+        } else {
+            console.log('[AuthContext] Extension auth sync - no response (extension may not be installed)');
+        }
+    } catch (error) {
+        console.error('[AuthContext] Error syncing auth to extension:', error);
+    }
+};
+
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -35,6 +70,10 @@ export const AuthProvider = ({ children }) => {
                     } else {
                         console.warn('[AuthContext] No user profile found in Firestore');
                     }
+
+                    // Sync auth to extension - triggers device registration
+                    syncAuthToExtension(firebaseUser);
+
                 } catch (error) {
                     console.error('[AuthContext] Error loading user profile:', error);
                 }
