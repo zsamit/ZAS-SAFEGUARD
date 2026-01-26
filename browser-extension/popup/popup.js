@@ -55,12 +55,12 @@ async function loadStudyMode() {
         const result = await chrome.storage.local.get(['activeStudySession', 'studyMode']);
         // Check for active session (used by dashboard) or legacy studyMode flag
         const isActive = result.activeStudySession || result.studyMode || false;
-        document.getElementById('studyModeToggle').checked = isActive;
+        document.getElementById('focusModeToggle').checked = isActive;
     } catch (e) { }
 }
 
 async function toggleStudyMode() {
-    const enabled = document.getElementById('studyModeToggle').checked;
+    const enabled = document.getElementById('focusModeToggle').checked;
 
     if (enabled) {
         // Start study mode with default categories (social media + gaming + youtube + reddit)
@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUser();
 
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-    document.getElementById('studyModeToggle').addEventListener('change', toggleStudyMode);
+    document.getElementById('focusModeToggle').addEventListener('change', toggleStudyMode);
     document.getElementById('dashboardBtn').addEventListener('click', openDashboard);
     document.getElementById('syncBtn').addEventListener('click', syncNow);
     document.getElementById('loginBtn').addEventListener('click', signIn);
