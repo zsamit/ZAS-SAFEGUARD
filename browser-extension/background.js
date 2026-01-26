@@ -30,6 +30,7 @@ const CONFIG = {
     FIREBASE_FUNCTIONS_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net',
     // 2nd gen Cloud Run function URLs
     UPDATE_DEVICE_STATUS_URL: 'https://updatedevicestatus-xwlk3qzrrq-uc.a.run.app',
+    REGISTER_DEVICE_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net/registerDevice',
     SYNC_INTERVAL_MINUTES: 15,
     OFFLINE_BLOCKLIST_KEY: 'offline_blocklist',
     DEVICE_ID_KEY: 'device_id',
@@ -282,7 +283,9 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             chrome.storage.local.set({
                 [CONFIG.USER_TOKEN_KEY]: message.token,
                 loggedInUserId: message.userId
-            }).then(() => {
+            }).then(async () => {
+                // Register device with Firebase (creates device in Firestore)
+                await registerDeviceWithFirebase(message.userId, message.token);
                 // Sync immediately after login
                 syncWithFirebase();
                 sendResponse({ success: true });
@@ -1460,6 +1463,87 @@ function getUserTimezone() {
         return Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch (e) {
         return 'America/Los_Angeles';
+    }
+}
+
+// Get device info from browser
+function getDeviceInfo() {
+    const ua = navigator.userAgent;
+    let deviceType = 'unknown';
+    let browser = 'unknown';
+
+    // Detect device type
+    if (/Macintosh|MacIntel|MacPPC|Mac68K/.test(ua)) {
+        deviceType = 'macOS';
+    } else if (/Win32|Win64|Windows|WinCE/.test(ua)) {
+        deviceType = 'Windows';
+    } else if (/Linux/.test(ua)) {
+        deviceType = 'Linux';
+    } else if (/iPad/.test(ua)) {
+        deviceType = 'iPad';
+    } else if (/iPhone/.test(ua)) {
+        deviceType = 'iPhone';
+    } else if (/Android/.test(ua)) {
+        deviceType = 'Android';
+    }
+
+    // Detect browser
+    if (/Chrome/.test(ua) && !/Chromium/.test(ua)) {
+        browser = 'Chrome';
+    } else if (/Firefox/.test(ua)) {
+        browser = 'Firefox';
+    } else if (/Safari/.test(ua) && !/Chrome/.test(ua)) {
+        browser = 'Safari';
+    } else if (/Edg/.test(ua)) {
+        browser = 'Edge';
+    }
+
+    return { deviceType, browser };
+}
+
+/**
+ * Register device with Firebase (creates device document in Firestore)
+ * Called on login to ensure device appears in dashboard
+ */
+async function registerDeviceWithFirebase(userId, token) {
+    try {
+        const storage = await chrome.storage.local.get([CONFIG.DEVICE_ID_KEY]);
+        const deviceId = storage[CONFIG.DEVICE_ID_KEY];
+
+        if (!deviceId || !userId) {
+            console.warn('[RegisterDevice] Missing deviceId or userId');
+            return;
+        }
+
+        const { deviceType, browser } = getDeviceInfo();
+        const deviceName = `${browser} on ${deviceType}`;
+
+        console.log(`[RegisterDevice] Registering ${deviceId} for user ${userId}...`);
+
+        const response = await fetch(CONFIG.REGISTER_DEVICE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                deviceId,
+                userId,
+                deviceName,
+                deviceType,
+                browser,
+                timezone: getUserTimezone()
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[RegisterDevice] Device registered successfully:', result);
+        } else {
+            console.error('[RegisterDevice] Failed to register:', response.status);
+        }
+    } catch (error) {
+        console.error('[RegisterDevice] Error registering device:', error);
     }
 }
 

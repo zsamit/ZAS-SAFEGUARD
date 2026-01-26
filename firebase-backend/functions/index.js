@@ -135,6 +135,7 @@ exports.testDailyDigest = dailyDigest.testDailyDigest;  // Test endpoint
 // ============================================
 // Note: checkHeartbeats (1st gen) is deprecated, use checkHeartbeatsV2
 exports.checkHeartbeatsV2 = heartbeat.checkHeartbeatsV2;   // NEW - 2nd gen with spam prevention
+exports.registerDevice = heartbeat.registerDevice;  // Register device on login
 exports.updateDeviceStatus = heartbeat.updateDeviceStatus;  // Graceful offline signal
 exports.sendOfflineDigest = heartbeat.sendOfflineDigest;    // Daily digest (not instant spam)
 

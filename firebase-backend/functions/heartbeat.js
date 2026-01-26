@@ -57,6 +57,61 @@ const OFFLINE_EVENTS = [
 ];
 
 // ============================================
+// REGISTER DEVICE (Creates device in Firestore)
+// ============================================
+
+/**
+ * Called by extension when user logs in
+ * Creates or updates device document with userId for dashboard display
+ */
+exports.registerDevice = onRequest({ cors: true }, async (req, res) => {
+    try {
+        const data = req.body.data || req.body;
+        const { deviceId, userId, deviceName, deviceType, browser, timezone } = data;
+
+        if (!deviceId || !userId) {
+            return res.status(400).json({ error: 'deviceId and userId required' });
+        }
+
+        console.log(`[RegisterDevice] Registering ${deviceId} for user ${userId}`);
+
+        const deviceRef = db.doc(`devices/${deviceId}`);
+        const deviceDoc = await deviceRef.get();
+
+        const now = new Date();
+        const deviceData = {
+            userId,
+            deviceId,
+            name: deviceName || `${browser || 'Browser'} on ${deviceType || 'Device'}`,
+            type: deviceType || 'unknown',
+            browser: browser || 'unknown',
+            status: 'online',
+            lastSeen: FieldValue.serverTimestamp(),
+            timezone: timezone || 'America/Los_Angeles',
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        if (deviceDoc.exists) {
+            // Update existing device
+            await deviceRef.update(deviceData);
+            console.log(`[RegisterDevice] Updated existing device ${deviceId}`);
+        } else {
+            // Create new device
+            deviceData.createdAt = FieldValue.serverTimestamp();
+            deviceData.protectionPaused = false;
+            deviceData.internetLocked = false;
+            await deviceRef.set(deviceData);
+            console.log(`[RegisterDevice] Created new device ${deviceId}`);
+        }
+
+        return res.json({ success: true, deviceId });
+    } catch (error) {
+        console.error('[RegisterDevice] Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
 // UPDATE DEVICE STATUS (Graceful Offline Signal)
 // ============================================
 
