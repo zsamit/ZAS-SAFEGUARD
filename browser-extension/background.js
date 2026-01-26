@@ -1794,8 +1794,8 @@ async function logBlockedUrl(url, hostname) {
 
         if (!token) return;
 
-        // Log to activity logs
-        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEvent`, {
+        // Log to activity logs (use HTTP endpoint for fetch)
+        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEventHttp`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
