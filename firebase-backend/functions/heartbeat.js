@@ -63,6 +63,7 @@ const OFFLINE_EVENTS = [
 /**
  * Called by extension when user logs in
  * Creates or updates device document with userId for dashboard display
+ * Also cleans up duplicate devices (same browser+deviceType for same user)
  */
 exports.registerDevice = onRequest({ cors: true }, async (req, res) => {
     try {
@@ -75,10 +76,36 @@ exports.registerDevice = onRequest({ cors: true }, async (req, res) => {
 
         console.log(`[RegisterDevice] Registering ${deviceId} for user ${userId}`);
 
+        // Clean up duplicate devices: same user + same browser + same deviceType
+        // This handles extension reinstalls which generate new deviceIds
+        if (browser && deviceType) {
+            const duplicatesQuery = await db.collection('devices')
+                .where('userId', '==', userId)
+                .where('browser', '==', browser)
+                .where('type', '==', deviceType)
+                .get();
+
+            const batch = db.batch();
+            let deletedCount = 0;
+
+            duplicatesQuery.forEach(doc => {
+                // Delete old devices with same browser+type (but different deviceId)
+                if (doc.id !== deviceId) {
+                    batch.delete(doc.ref);
+                    deletedCount++;
+                    console.log(`[RegisterDevice] Deleting duplicate device ${doc.id}`);
+                }
+            });
+
+            if (deletedCount > 0) {
+                await batch.commit();
+                console.log(`[RegisterDevice] Cleaned up ${deletedCount} duplicate device(s)`);
+            }
+        }
+
         const deviceRef = db.doc(`devices/${deviceId}`);
         const deviceDoc = await deviceRef.get();
 
-        const now = new Date();
         const deviceData = {
             userId,
             deviceId,
