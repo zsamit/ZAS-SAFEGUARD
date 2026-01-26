@@ -27,12 +27,12 @@ const PLANS = {
     },
     yearly: {
         name: 'Pro Yearly',
-        price: '$59.99',
+        price: '$49.99',
         period: '/year',
         savings: 'Save 17%',
         features: [
             'Everything in Monthly',
-            '2 months free',
+            'Best value - $4.17/mo',
             'Priority support',
             'Early access to features',
             'Family sharing (up to 5)'

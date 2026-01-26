@@ -136,7 +136,7 @@ const LandingPage = () => {
                     <Card className={styles.pricingCard}>
                         <h3>Pro Yearly</h3>
                         <div className={styles.price}>
-                            $59.99<span>/year</span>
+                            $49.99<span>/year</span>
                         </div>
                         <p className={styles.pricingDesc}>
                             Save 17% with annual billing.

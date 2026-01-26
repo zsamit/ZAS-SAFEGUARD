@@ -302,8 +302,8 @@ const Settings = () => {
                         <div className={styles.planPrice}>
                             <span className={styles.price}>
                                 {isLifetime ? 'Paid' :
-                                    subscription.plan === 'pro_monthly' ? '$5.99' :
-                                        subscription.plan === 'pro_yearly' ? '$59.99' : 'Free'}
+                                    subscription.plan === 'pro_monthly' ? '$4.99' :
+                                        subscription.plan === 'pro_yearly' ? '$49.99' : 'Free'}
                             </span>
                             <span className={styles.period}>
                                 {isLifetime ? '∞' :
