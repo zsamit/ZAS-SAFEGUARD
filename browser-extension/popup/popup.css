@@ -1,42 +1,35 @@
-/* ZAS Safeguard Popup - Matching Web App Design System */
+/* ZAS Safeguard Popup - Matching Web App Dashboard Design EXACTLY */
 
 :root {
-  /* Core Colors - matching web app */
-  --carbon-black: #0B0B0D;
-  --deep-slate: #141416;
-  --soft-charcoal: #1E1E22;
-  --snow-white: #FFFFFF;
-  --cool-gray: #B9BBC6;
+  /* Core Colors - EXACTLY matching dashboard */
+  --bg-app: #0B0B0D;
+  --bg-card: #121214;
+  --bg-card-hover: #18181B;
+  --bg-elevated: #1E1E22;
+
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
 
   /* Brand Colors */
   --zas-indigo: #4C5EFF;
-  --zas-indigo-hover: #3D4FE6;
-  --zas-indigo-subtle: rgba(76, 94, 255, 0.08);
+  --zas-indigo-subtle: rgba(76, 94, 255, 0.12);
 
   /* Status Colors */
   --emerald: #22C55E;
-  --emerald-subtle: rgba(34, 197, 94, 0.1);
+  --emerald-glow: rgba(34, 197, 94, 0.1);
   --amber: #F59E0B;
   --crimson: #EF4444;
 
-  /* Semantic */
-  --bg-app: var(--carbon-black);
-  --bg-surface: var(--deep-slate);
-  --bg-card: var(--soft-charcoal);
-  --bg-elevated: #252529;
-
-  --text-primary: var(--snow-white);
-  --text-secondary: var(--cool-gray);
-  --text-muted: #6B6B76;
-
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  /* Borders - very subtle like dashboard */
+  --border-subtle: rgba(255, 255, 255, 0.05);
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.12);
 
-  /* Gradients */
+  /* Gradient */
   --gradient-primary: linear-gradient(135deg, #4C5EFF, #7C3AED);
 
-  /* Border Radius */
+  /* Border Radius - matching dashboard */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -44,13 +37,13 @@
 
 [data-theme="light"] {
   --bg-app: #FAFAFA;
-  --bg-surface: #FFFFFF;
   --bg-card: #FFFFFF;
+  --bg-card-hover: #F4F4F5;
   --bg-elevated: #FFFFFF;
-  --text-primary: #0B0B0D;
+  --text-primary: #18181B;
   --text-secondary: #52525B;
   --text-muted: #71717A;
-  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-subtle: rgba(0, 0, 0, 0.05);
   --border-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -62,7 +55,7 @@
 
 body {
   width: 340px;
-  min-height: 480px;
+  min-height: 500px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background: var(--bg-app);
   color: var(--text-primary);
@@ -70,7 +63,10 @@ body {
 }
 
 .container {
-  padding: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* Header */
@@ -78,7 +74,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  padding-bottom: 8px;
 }
 
 .logo-area {
@@ -89,13 +85,13 @@ body {
 }
 
 .theme-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   background: var(--bg-card);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,19 +99,16 @@ body {
 }
 
 .theme-btn:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-elevated);
+  background: var(--bg-card-hover);
 }
 
-/* Status Card */
+/* Status Card - Green glow like dashboard */
 .status-card {
-  background: var(--bg-card);
-  border: 1px solid var(--emerald);
+  background: var(--emerald-glow);
+  border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: var(--radius-lg);
   padding: 20px;
   text-align: center;
-  margin-bottom: 16px;
-  box-shadow: 0 0 24px rgba(34, 197, 94, 0.12);
 }
 
 .status-row {
@@ -127,11 +120,11 @@ body {
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: var(--emerald);
   border-radius: 50%;
-  box-shadow: 0 0 10px var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
   animation: pulse 2s infinite;
 }
 
@@ -143,19 +136,19 @@ body {
   }
 
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }
 
 .status-text {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--emerald);
 }
 
 .status-check {
   color: var(--emerald);
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .status-sub {
@@ -163,66 +156,63 @@ body {
   color: var(--text-secondary);
 }
 
-/* Stats Row */
+/* Stats Row - White numbers like dashboard */
 .stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .stat-box {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 16px;
   text-align: center;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .stat-box:hover {
-  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
 }
 
+/* WHITE numbers like dashboard, not gradient */
 .stat-num {
   display: block;
   font-size: 28px;
-  font-weight: 800;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: var(--zas-indigo);
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
+  margin-top: 4px;
 }
 
-/* Feature Row */
+/* Feature Row - Focus Mode */
 .feature-row {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .feature-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .feature-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: var(--zas-indigo-subtle);
   border-radius: var(--radius-sm);
   display: flex;
@@ -232,8 +222,8 @@ body {
 }
 
 .feature-icon i {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .feature-text {
@@ -254,11 +244,11 @@ body {
   color: var(--text-secondary);
 }
 
-/* Toggle */
+/* Toggle - Clean style */
 .toggle {
   position: relative;
-  width: 48px;
-  height: 26px;
+  width: 44px;
+  height: 24px;
 }
 
 .toggle input {
@@ -271,7 +261,7 @@ body {
   position: absolute;
   inset: 0;
   background: #3A3A42;
-  border-radius: 26px;
+  border-radius: 24px;
   cursor: pointer;
   transition: 0.2s ease;
 }
@@ -279,8 +269,8 @@ body {
 .toggle-slider:before {
   content: "";
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   left: 3px;
   bottom: 3px;
   background: white;
@@ -293,24 +283,23 @@ body {
 }
 
 .toggle input:checked+.toggle-slider:before {
-  transform: translateX(22px);
+  transform: translateX(20px);
 }
 
 /* User Row */
 .user-row {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 12px;
 }
 
 .user-avatar img {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   border: 2px solid var(--zas-indigo);
 }
@@ -334,14 +323,14 @@ body {
   font-weight: 500;
 }
 
-/* Login */
+/* Login Button - Gradient like dashboard */
 .login-row {
-  margin-bottom: 16px;
+  /* No margin, gap handles spacing */
 }
 
 .login-btn {
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   background: var(--gradient-primary);
   color: white;
   border: none;
@@ -354,38 +343,36 @@ body {
 
 .login-btn:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 .login-btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
-/* Actions Row */
+/* Actions Row - Translucent like dashboard */
 .actions-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .action-box {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   color: var(--text-primary);
   transition: all 0.15s ease;
 }
 
 .action-box:hover {
-  border-color: var(--zas-indigo);
-  background: var(--zas-indigo-subtle);
+  background: var(--bg-card-hover);
+  border-color: var(--border-color);
 }
 
 .action-icon {
@@ -393,8 +380,8 @@ body {
 }
 
 .action-icon i {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .action-box:hover .action-icon {
@@ -409,10 +396,9 @@ body {
 /* Quick Scan Section */
 .quick-scan-section {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
 }
 
 .quick-scan-header {
@@ -435,12 +421,12 @@ body {
 .quick-scan-input input {
   flex: 1;
   padding: 10px 12px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 13px;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .quick-scan-input input::placeholder {
@@ -450,6 +436,7 @@ body {
 .quick-scan-input input:focus {
   outline: none;
   border-color: var(--zas-indigo);
+  background: rgba(76, 94, 255, 0.05);
 }
 
 .scan-btn {
@@ -485,7 +472,7 @@ body {
 }
 
 .quick-scan-result.safe {
-  background: var(--emerald-subtle);
+  background: var(--emerald-glow);
   color: var(--emerald);
 }
 
@@ -502,10 +489,9 @@ body {
 /* Quote Section */
 .quote-section {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -517,8 +503,8 @@ body {
 }
 
 .quote-icon i {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .quote-content {
@@ -526,10 +512,10 @@ body {
 }
 
 .quote-text {
-  font-size: 13px;
+  font-size: 12px;
   font-style: italic;
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
@@ -544,6 +530,6 @@ body {
   justify-content: space-between;
   font-size: 11px;
   color: var(--text-muted);
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
 }
