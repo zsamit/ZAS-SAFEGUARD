@@ -1788,14 +1788,21 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
 async function logBlockedUrl(url, hostname) {
     try {
+        console.log(`[BlockLog] Logging blocked URL: ${hostname}`);
+
         const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, CONFIG.DEVICE_ID_KEY]);
         const token = storage[CONFIG.USER_TOKEN_KEY];
         const deviceId = storage[CONFIG.DEVICE_ID_KEY];
 
-        if (!token) return;
+        if (!token) {
+            console.log('[BlockLog] No token, skipping log');
+            return;
+        }
+
+        console.log(`[BlockLog] Sending to logBlockEventHttp with token`);
 
         // Log to activity logs (use HTTP endpoint for fetch)
-        await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEventHttp`, {
+        const response = await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logBlockEventHttp`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1809,10 +1816,16 @@ async function logBlockedUrl(url, hostname) {
             })
         });
 
+        console.log(`[BlockLog] Response status: ${response.status}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[BlockLog] Error: ${errorText}`);
+        }
+
         // Also log as security event for parent alert threshold
         await logBlockedAttempt(hostname);
     } catch (error) {
-        // Silent fail
+        console.error('[BlockLog] Error logging blocked URL:', error);
     }
 }
 
