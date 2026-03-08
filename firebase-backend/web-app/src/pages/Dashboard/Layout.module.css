@@ -208,3 +208,74 @@
 .mobileNavItem span {
     white-space: nowrap;
 }
+
+/* ========================================
+   EXPIRED TRIAL BANNER
+   ======================================== */
+
+.expiredBanner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.08) 100%);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+    padding: var(--space-4) var(--space-6);
+}
+
+.expiredBannerContent {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.expiredBannerIcon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: rgba(245, 158, 11, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f59e0b;
+}
+
+.expiredBannerText {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.expiredBannerTitle {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: #f59e0b;
+}
+
+.expiredBannerDesc {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+.expiredBannerBtn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.planExpired {
+    color: #f59e0b !important;
+}
+
+@media (max-width: 640px) {
+    .expiredBannerContent {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-3);
+    }
+
+    .expiredBannerBtn {
+        width: 100%;
+    }
+}

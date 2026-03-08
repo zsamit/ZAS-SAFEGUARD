@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Smartphone,
@@ -9,42 +9,48 @@ import {
     Bell,
     Settings,
     Users,
-    LogOut
+    LogOut,
+    AlertTriangle,
+    Sparkles
 } from 'lucide-react';
 import Logo from '../../components/Logo';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/Button';
 import OnboardingModal from './OnboardingModal';
 import styles from './Layout.module.css';
 
 const DashboardLayout = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { user, userProfile } = useAuth();
     const [showOnboarding, setShowOnboarding] = useState(true);
 
     // Get display name and plan
     const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'User';
     const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const planName = userProfile?.subscription?.plan === 'lifetime' ? 'Lifetime' :
-        userProfile?.subscription?.plan === 'pro' ? 'Pro Plan' :
-            userProfile?.subscription?.status === 'active' ? 'Pro Plan' : 'Free Plan';
 
-    // Check if user needs onboarding (logged in but no protectionMode set)
-    // For new accounts, userProfile might not exist yet, so we check if profile exists AND mode is not set
-    // OR if profile exists but protectionMode is undefined/null
+    // Subscription state
+    const subscription = userProfile?.subscription;
+    const planStatus = subscription?.plan_status || subscription?.status || '';
+    const plan = subscription?.plan || '';
+
+    const isActive = ['trialing', 'active'].includes(planStatus) || plan === 'lifetime';
+    const isExpired = !isActive && user && userProfile;
+
+    const planName = plan === 'lifetime' ? 'Lifetime' :
+        plan === 'pro' || planStatus === 'active' ? 'Pro Plan' :
+            isExpired ? 'Expired' : 'Free Plan';
+
+    // Check if user needs onboarding
     const needsOnboarding = showOnboarding && user && (
         !userProfile ||
         userProfile.protectionMode === undefined ||
         userProfile.protectionMode === null
     );
 
-    // Hide sidebar on checkout page or before trial is activated
+    // Only hide sidebar on checkout page — everything else stays visible
     const isCheckoutPage = location.pathname.includes('/checkout');
-    const hasActiveTrial = userProfile?.subscription?.plan_status === 'trialing' ||
-        userProfile?.subscription?.status === 'trialing' ||
-        userProfile?.subscription?.status === 'active' ||
-        userProfile?.subscription?.plan_status === 'active' ||
-        userProfile?.subscription?.plan === 'lifetime';
-    const hideSidebar = isCheckoutPage || !hasActiveTrial;
+    const hideSidebar = isCheckoutPage;
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
@@ -67,7 +73,7 @@ const DashboardLayout = () => {
                 <OnboardingModal onComplete={() => setShowOnboarding(false)} />
             )}
 
-            {/* Sidebar - Desktop (hidden on checkout or before trial) */}
+            {/* Sidebar - Desktop (always visible except checkout) */}
             {!hideSidebar && (
                 <aside className={styles.sidebar}>
                     {/* Logo */}
@@ -113,7 +119,9 @@ const DashboardLayout = () => {
                             <div className={styles.avatar}>{initials}</div>
                             <div className={styles.userInfo}>
                                 <span className={styles.userName}>{displayName}</span>
-                                <span className={styles.userPlan}>{planName}</span>
+                                <span className={`${styles.userPlan} ${isExpired ? styles.planExpired : ''}`}>
+                                    {planName}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -122,12 +130,39 @@ const DashboardLayout = () => {
 
             {/* Main Content */}
             <main className={styles.main}>
+                {/* Expired Trial Banner */}
+                {isExpired && !isCheckoutPage && (
+                    <div className={styles.expiredBanner}>
+                        <div className={styles.expiredBannerContent}>
+                            <div className={styles.expiredBannerIcon}>
+                                <AlertTriangle size={20} />
+                            </div>
+                            <div className={styles.expiredBannerText}>
+                                <span className={styles.expiredBannerTitle}>
+                                    Your free trial has ended
+                                </span>
+                                <span className={styles.expiredBannerDesc}>
+                                    Protection services are currently disabled. Subscribe to reactivate all features.
+                                </span>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => navigate('/app/checkout?plan=yearly')}
+                                className={styles.expiredBannerBtn}
+                            >
+                                <Sparkles size={14} />
+                                Upgrade Now
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 <div className={styles.content}>
                     <Outlet />
                 </div>
             </main>
 
-            {/* Mobile Bottom Nav (hidden on checkout or before trial) */}
+            {/* Mobile Bottom Nav (always visible except checkout) */}
             {!hideSidebar && (
                 <nav className={styles.mobileNav}>
                     {navItems.slice(0, 4).map((item) => (
