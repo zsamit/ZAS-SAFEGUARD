@@ -589,7 +589,9 @@ exports.cleanupQueuesAndMetrics = onSchedule('0 5 * * *', async () => {
 async function deleteCollectionByUser(collectionName, userId, batchSize = 500) {
     let totalDeleted = 0;
 
-    while (true) {
+    let hasMore = true;
+
+    while (hasMore) {
         const snapshot = await db.collection(collectionName)
             .where('userId', '==', userId)
             .limit(batchSize)
@@ -603,7 +605,7 @@ async function deleteCollectionByUser(collectionName, userId, batchSize = 500) {
 
         totalDeleted += snapshot.size;
 
-        if (snapshot.size < batchSize) break;
+        hasMore = snapshot.size >= batchSize;
     }
 
     if (totalDeleted > 0) {
