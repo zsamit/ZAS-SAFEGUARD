@@ -381,5 +381,38 @@ service cloud.firestore {
       // Only Cloud Functions can write emails
       allow read, write: if false;
     }
+
+    // ============================================
+    // OPERATIONAL COLLECTIONS (Cloud Functions only)
+    // Server-only: Admin SDK bypasses these rules
+    // ============================================
+    
+    match /critical_errors/{errorId} {
+      allow read, write: if false;
+    }
+    
+    match /critical_errors_archive/{errorId} {
+      allow read, write: if false;
+    }
+    
+    match /security_events/{eventId} {
+      allow read, write: if false;
+    }
+    
+    match /metrics/{metricId} {
+      allow read, write: if false;
+    }
+    
+    match /deletion_queue/{jobId} {
+      allow read, write: if false;
+    }
+    
+    match /manual_cleanup_queue/{jobId} {
+      allow read, write: if false;
+    }
+    
+    match /failed_deletions/{failId} {
+      allow read, write: if false;
+    }
   }
 }

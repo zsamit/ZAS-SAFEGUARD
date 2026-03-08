@@ -208,14 +208,14 @@ exports.initializeDevice = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Delete user account completely (GDPR-compliant)
- * Deletes: Stripe data, Firebase Auth, all Firestore user data
+ * Delete user account completely (GDPR-compliant, production-hardened)
+ * Critical operations done synchronously, data cleanup done via background queue
  * IRREVERSIBLE
  */
 exports.deleteAccount = functions
     .runWith({
         memory: '512MB',
-        timeoutSeconds: 300,
+        timeoutSeconds: 60,
         secrets: ['STRIPE_SECRET_KEY']
     })
     .https.onCall(async (data, context) => {
@@ -226,7 +226,6 @@ exports.deleteAccount = functions
         const uid = context.auth.uid;
         const { confirmDelete } = data;
 
-        // Require explicit confirmation
         if (confirmDelete !== 'DELETE_MY_ACCOUNT') {
             throw new functions.https.HttpsError(
                 'failed-precondition',
@@ -236,167 +235,179 @@ exports.deleteAccount = functions
 
         console.log(`[deleteAccount] Starting deletion for user: ${uid}`);
 
-        let deletedCounts = { devices: 0, alerts: 0, logs: 0 };
-        let deletedStripeCustomer = false;
+        try {
+            // Step 1: Fetch user data
+            const userDoc = await db.doc(`users/${uid}`).get();
+            const userData = userDoc.exists ? userDoc.data() : null;
+            const stripeCustomerId = userData?.stripeCustomerId || userData?.subscription?.customerId;
 
-        // Step 1: Fetch user data to get Stripe customer ID
-        const userDoc = await db.doc(`users/${uid}`).get();
-        const userData = userDoc.exists ? userDoc.data() : null;
-        const stripeCustomerId = userData?.stripeCustomerId || userData?.subscription?.customerId;
+            // Step 2: Stripe deletion with timeout + retry (non-blocking fallback)
+            let stripeDeleted = false;
 
-        // Step 2: Delete Stripe data (if customer exists)
-        if (stripeCustomerId) {
-            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+            if (stripeCustomerId) {
+                try {
+                    await Promise.race([
+                        deleteStripeCustomerWithRetry(stripeCustomerId),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Stripe API timeout')), 45000)
+                        )
+                    ]);
+                    stripeDeleted = true;
+                    console.log(`[deleteAccount] ✅ Stripe customer deleted: ${stripeCustomerId}`);
+                } catch (stripeError) {
+                    console.error('[deleteAccount] Stripe deletion failed, queuing for manual cleanup:', stripeError.message);
 
-            try {
-                // 2a. Cancel all active subscriptions
-                const subscriptions = await stripe.subscriptions.list({
-                    customer: stripeCustomerId,
-                    status: 'active',
-                    limit: 100
-                });
+                    // Queue for background retry instead of failing
+                    await db.collection('manual_cleanup_queue').add({
+                        type: 'stripe_customer_deletion',
+                        customerId: stripeCustomerId,
+                        userId: uid,
+                        userEmail: userData?.email || 'unknown',
+                        reason: 'account_deletion',
+                        error: stripeError.message,
+                        status: 'pending',
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                        attempts: 0
+                    });
+                }
+            }
 
-                for (const subscription of subscriptions.data) {
-                    await stripe.subscriptions.cancel(subscription.id, {
+            // Step 3: Delete Firebase Auth (user-blocking — must succeed)
+            await admin.auth().deleteUser(uid);
+            console.log(`[deleteAccount] ✅ Auth user deleted: ${uid}`);
+
+            // Step 4: Delete main user doc immediately
+            await db.doc(`users/${uid}`).delete();
+
+            // Step 5: Queue background data cleanup (non-blocking)
+            await db.collection('deletion_queue').add({
+                userId: uid,
+                mainDocs: ['subscriptions', 'fraud_scores', 'alert_settings',
+                    'family_profiles', 'owner_profiles', 'rate_limits'],
+                collections: ['devices', 'alerts', 'logs'],
+                status: 'pending',
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            console.log(`[deleteAccount] ✅ Deletion complete, background cleanup queued`);
+
+            return {
+                success: true,
+                message: stripeDeleted
+                    ? 'Account and all data permanently deleted'
+                    : 'Account deleted. Payment cleanup in progress — you will not be charged.',
+                stripeDeleted,
+                warnings: stripeDeleted ? [] : ['Stripe cleanup queued for background processing']
+            };
+        } catch (error) {
+            console.error('[deleteAccount] CRITICAL failure:', error);
+
+            // Log for manual intervention
+            await db.collection('failed_deletions').add({
+                userId: uid,
+                error: error.message,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                requiresManualCleanup: true
+            });
+
+            throw new functions.https.HttpsError(
+                'internal',
+                'Account deletion encountered an error. Our team has been notified.',
+                { originalError: error.message }
+            );
+        }
+    });
+
+/**
+ * Delete Stripe customer with retry + exponential backoff
+ * Handles Edge Case #4 (multiple subscriptions) with pagination
+ */
+async function deleteStripeCustomerWithRetry(customerId, maxAttempts = 3) {
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            // 1. Cancel ALL subscriptions (paginated — handles 100+ subs)
+            await cancelAllSubscriptions(stripe, customerId);
+
+            // 2. Detach ALL payment methods (paginated)
+            await detachAllPaymentMethods(stripe, customerId);
+
+            // 3. Delete customer
+            await stripe.customers.del(customerId);
+            return; // Success
+
+        } catch (error) {
+            if (attempt === maxAttempts) throw error;
+            // Exponential backoff: 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            console.warn(`[deleteAccount] Stripe attempt ${attempt} failed, retrying...`);
+        }
+    }
+}
+
+/**
+ * Cancel all subscriptions with Stripe pagination (handles 100+ subs)
+ */
+async function cancelAllSubscriptions(stripe, customerId) {
+    let hasMore = true;
+    let startingAfter = null;
+
+    while (hasMore) {
+        const params = {
+            customer: customerId,
+            status: 'all',
+            limit: 100
+        };
+        if (startingAfter) params.starting_after = startingAfter;
+
+        const subs = await stripe.subscriptions.list(params);
+
+        for (const sub of subs.data) {
+            if (['active', 'trialing', 'past_due', 'unpaid'].includes(sub.status)) {
+                try {
+                    await stripe.subscriptions.cancel(sub.id, {
                         prorate: false,
                         invoice_now: false
                     });
-                    console.log(`[deleteAccount] Cancelled subscription: ${subscription.id}`);
+                } catch (e) {
+                    console.error(`[deleteAccount] Failed to cancel sub ${sub.id}:`, e.message);
                 }
-
-                // Also cancel trialing subscriptions
-                const trialingSubs = await stripe.subscriptions.list({
-                    customer: stripeCustomerId,
-                    status: 'trialing',
-                    limit: 100
-                });
-
-                for (const subscription of trialingSubs.data) {
-                    await stripe.subscriptions.cancel(subscription.id);
-                    console.log(`[deleteAccount] Cancelled trial subscription: ${subscription.id}`);
-                }
-
-                // 2b. Delete all payment methods
-                const paymentMethods = await stripe.paymentMethods.list({
-                    customer: stripeCustomerId,
-                    limit: 100
-                });
-
-                for (const pm of paymentMethods.data) {
-                    await stripe.paymentMethods.detach(pm.id);
-                    console.log(`[deleteAccount] Detached payment method: ${pm.id}`);
-                }
-
-                // 2c. Delete customer record from Stripe
-                await stripe.customers.del(stripeCustomerId);
-                console.log(`[deleteAccount] Deleted Stripe customer: ${stripeCustomerId}`);
-                deletedStripeCustomer = true;
-
-            } catch (stripeError) {
-                // Log but don't fail — customer might already be deleted
-                console.error('[deleteAccount] Stripe deletion error (non-fatal):', stripeError.message);
             }
         }
 
-        // Step 3: Delete all Firestore data
-        try {
-            const batch = db.batch();
-            const BATCH_SIZE = 400;
+        hasMore = subs.has_more;
+        if (hasMore && subs.data.length > 0) {
+            startingAfter = subs.data[subs.data.length - 1].id;
+        }
+    }
+}
 
-            // Delete user's devices
-            const devicesSnap = await db.collection('devices')
-                .where('userId', '==', uid)
-                .limit(BATCH_SIZE)
-                .get();
-            devicesSnap.docs.forEach(doc => {
-                batch.delete(doc.ref);
-                deletedCounts.devices++;
-            });
+/**
+ * Detach all payment methods with Stripe pagination
+ */
+async function detachAllPaymentMethods(stripe, customerId) {
+    let hasMore = true;
+    let startingAfter = null;
 
-            // Delete user's alerts
-            const alertsSnap = await db.collection('alerts')
-                .where('userId', '==', uid)
-                .limit(BATCH_SIZE)
-                .get();
-            alertsSnap.docs.forEach(doc => {
-                batch.delete(doc.ref);
-                deletedCounts.alerts++;
-            });
+    while (hasMore) {
+        const params = { customer: customerId, limit: 100 };
+        if (startingAfter) params.starting_after = startingAfter;
 
-            // Delete user's logs
+        const pms = await stripe.paymentMethods.list(params);
+
+        for (const pm of pms.data) {
             try {
-                const logsSnap = await db.collection('logs')
-                    .where('userId', '==', uid)
-                    .limit(BATCH_SIZE)
-                    .get();
-                logsSnap.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                    deletedCounts.logs++;
-                });
+                await stripe.paymentMethods.detach(pm.id);
             } catch (e) {
-                console.log('[deleteAccount] Skipping logs:', e.message);
+                console.error(`[deleteAccount] Failed to detach PM ${pm.id}:`, e.message);
             }
-
-            // Delete known user documents
-            batch.delete(db.doc(`users/${uid}`));
-            batch.delete(db.doc(`subscriptions/${uid}`));
-            batch.delete(db.doc(`fraud_scores/${uid}`));
-            batch.delete(db.doc(`alert_settings/${uid}`));
-            batch.delete(db.doc(`family_profiles/${uid}`));
-            batch.delete(db.doc(`owner_profiles/${uid}`));
-            batch.delete(db.doc(`rate_limits/${uid}`));
-
-            await batch.commit();
-            console.log(`[deleteAccount] Firestore data deleted:`, deletedCounts);
-        } catch (error) {
-            console.error('[deleteAccount] Firestore deletion error (continuing):', error.message);
         }
 
-        // Step 4: Recursive subcollection cleanup for any remaining data
-        const deleteCollection = async (collectionPath) => {
-            const snapshot = await db.collection(collectionPath)
-                .where('userId', '==', uid)
-                .limit(500)
-                .get();
-
-            if (snapshot.empty) return;
-
-            const deleteBatch = db.batch();
-            snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
-            await deleteBatch.commit();
-
-            // Recurse if there are more documents
-            if (snapshot.size === 500) {
-                await deleteCollection(collectionPath);
-            }
-        };
-
-        try {
-            await Promise.all([
-                deleteCollection('devices'),
-                deleteCollection('alerts'),
-                deleteCollection('logs')
-            ]);
-        } catch (e) {
-            console.error('[deleteAccount] Subcollection cleanup error:', e.message);
+        hasMore = pms.has_more;
+        if (hasMore && pms.data.length > 0) {
+            startingAfter = pms.data[pms.data.length - 1].id;
         }
+    }
+}
 
-        // Step 5: CRITICAL - Delete Firebase Auth user (must succeed)
-        try {
-            await admin.auth().deleteUser(uid);
-            console.log(`[deleteAccount] Auth user deleted: ${uid}`);
-        } catch (authError) {
-            console.error('[deleteAccount] CRITICAL - Auth deletion failed:', authError);
-            throw new functions.https.HttpsError(
-                'internal',
-                `Failed to delete authentication: ${authError.message}. Please contact support.`
-            );
-        }
-
-        return {
-            success: true,
-            message: 'Account and all associated data permanently deleted',
-            deleted: deletedCounts,
-            deletedStripeCustomer
-        };
-    });

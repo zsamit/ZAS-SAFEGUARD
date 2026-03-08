@@ -226,7 +226,31 @@ exports.createCheckoutSession = functions
     });
 
 /**
- * Stripe webhook handler
+ * In-memory rate limiter for webhook endpoint
+ */
+const webhookRateLimits = new Map();
+
+function checkWebhookRateLimit(ip, maxRequests = 100, windowMs = 60000) {
+    const now = Date.now();
+    const limit = webhookRateLimits.get(ip) || { count: 0, resetAt: now + windowMs };
+
+    if (now > limit.resetAt) {
+        limit.count = 0;
+        limit.resetAt = now + windowMs;
+    }
+
+    limit.count++;
+    webhookRateLimits.set(ip, limit);
+
+    return {
+        allowed: limit.count <= maxRequests,
+        remaining: Math.max(0, maxRequests - limit.count),
+        resetAt: limit.resetAt
+    };
+}
+
+/**
+ * Stripe webhook handler (production-hardened)
  */
 exports.stripeWebhook = functions
     .runWith({
@@ -235,6 +259,16 @@ exports.stripeWebhook = functions
         secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
     })
     .https.onRequest(async (req, res) => {
+        // Rate limiting
+        const rateLimit = checkWebhookRateLimit(req.ip);
+        if (!rateLimit.allowed) {
+            console.warn('Webhook rate limit exceeded from IP:', req.ip);
+            return res.status(429).json({
+                error: 'Rate limit exceeded',
+                retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000)
+            });
+        }
+
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
         const sig = req.headers['stripe-signature'];
         const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -244,9 +278,23 @@ exports.stripeWebhook = functions
         try {
             event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
         } catch (err) {
-            console.error('Webhook signature verification failed:', err);
+            console.error('Webhook signature verification failed:', err.message);
+
+            // Track signature failures for security monitoring
+            try {
+                await db.collection('security_events').add({
+                    type: 'webhook_signature_failure',
+                    ip: req.ip,
+                    userAgent: req.headers['user-agent'],
+                    error: err.message,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (_) { /* don't fail on tracking error */ }
+
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
+
+        const startTime = Date.now();
 
         try {
             switch (event.type) {
@@ -288,14 +336,31 @@ exports.stripeWebhook = functions
                         }
                     }
 
-                    // Update subscription status
-                    await db.doc(`users/${uid}`).update({
-                        'subscription.plan': plan,
-                        'subscription.plan_status': 'active',
-                        'subscription.price_tier': priceTier || null,
-                        'subscription.customerId': session.customer,
-                        'subscription.activatedAt': admin.firestore.FieldValue.serverTimestamp(),
-                    });
+                    // Edge case #1: Check if user doc exists (race condition with fast checkout)
+                    const userRef = db.doc(`users/${uid}`);
+                    const userDoc = await userRef.get();
+
+                    if (!userDoc.exists) {
+                        console.warn('[Webhook] User doc not created yet, Stripe will retry:', uid);
+                        return res.status(500).json({
+                            error: 'User document not ready, Stripe will retry',
+                            userId: uid,
+                            retryable: true
+                        });
+                    }
+
+                    // Use set with merge instead of update (Edge case #2: won't crash if doc disappears)
+                    await userRef.set({
+                        subscription: {
+                            plan: plan,
+                            plan_status: 'active',
+                            price_tier: priceTier || null,
+                            customerId: session.customer,
+                            activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        },
+                        stripeCustomerId: session.customer,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    }, { merge: true });
 
                     // Create subscription record
                     await db.doc(`subscriptions/${uid}`).set({
@@ -307,7 +372,14 @@ exports.stripeWebhook = functions
                         created_at: admin.firestore.FieldValue.serverTimestamp(),
                     }, { merge: true });
 
-                    console.log(`Subscription activated for user: ${uid}, plan: ${plan}`);
+                    // Log success metric
+                    await logMetric('subscription_activated', {
+                        success: true, plan, userId: uid,
+                        sessionId: session.id,
+                        duration: Date.now() - startTime
+                    });
+
+                    console.log(`✅ Subscription activated for user: ${uid}, plan: ${plan}`);
                     break;
                 }
 
@@ -321,7 +393,6 @@ exports.stripeWebhook = functions
                         break;
                     }
 
-                    // Send trial ending notification
                     await db.collection('logs').add({
                         userId: uid,
                         type: 'notification',
@@ -337,7 +408,6 @@ exports.stripeWebhook = functions
                     let uid = customer.metadata?.firebaseUid;
 
                     if (!uid) {
-                        // Fallback: find user by Stripe customerId
                         uid = await findUserByCustomerId(subscription.customer);
                         if (!uid) {
                             await sendCriticalAlert({
@@ -350,15 +420,21 @@ exports.stripeWebhook = functions
                         }
                     }
 
-                    // Check if trial just ended
+                    // Use set with merge — won't crash if user doc was deleted concurrently
+                    const updateData = {
+                        subscription: {
+                            plan_status: subscription.status,
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                        },
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    };
+
                     if (subscription.status === 'active' && !subscription.trial_end) {
-                        await db.doc(`users/${uid}`).update({
-                            'subscription.trial_active': false,
-                            'subscription.plan_status': 'active',
-                        });
+                        updateData.subscription.trial_active = false;
                     }
 
-                    // Update subscription record
+                    await db.doc(`users/${uid}`).set(updateData, { merge: true });
+
                     await db.doc(`subscriptions/${uid}`).set({
                         status: subscription.status,
                         current_period_start: admin.firestore.Timestamp.fromMillis(subscription.current_period_start * 1000),
@@ -386,32 +462,40 @@ exports.stripeWebhook = functions
                     }
 
                     // Get user data for email
-                    const userDoc = await db.doc(`users/${uid}`).get();
-                    const userData = userDoc.exists ? userDoc.data() : {};
+                    const userDoc2 = await db.doc(`users/${uid}`).get();
+                    const userData = userDoc2.exists ? userDoc2.data() : {};
 
-                    // Update user subscription status
-                    await db.doc(`users/${uid}`).update({
-                        'subscription.plan_status': 'cancelled',
-                        'subscription.plan': 'free',
-                        'subscription.trial_active': false,
-                    });
+                    // Use set with merge — won't crash if user doc was deleted concurrently
+                    await db.doc(`users/${uid}`).set({
+                        subscription: {
+                            plan_status: 'cancelled',
+                            plan: 'free',
+                            trial_active: false,
+                            cancelledAt: admin.firestore.FieldValue.serverTimestamp()
+                        },
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
 
                     await db.doc(`subscriptions/${uid}`).set({
                         status: 'cancelled',
                         cancelled_at: admin.firestore.FieldValue.serverTimestamp(),
                     }, { merge: true });
 
-                    // Send trial/subscription expired email
-                    if (userData.email) {
-                        const userName = userData.displayName || userData.email.split('@')[0];
-                        await db.collection('mail').add({
-                            to: userData.email,
-                            message: {
-                                subject: 'Your ZAS Safeguard Trial Has Ended',
-                                html: generateTrialExpiredEmailHtml(userName),
-                            },
-                        });
-                        console.log(`[Email] Sent trial expired email to ${userData.email}`);
+                    // Send email wrapped in try-catch so email failure doesn't crash webhook
+                    try {
+                        if (userData.email) {
+                            const userName = userData.displayName || userData.email.split('@')[0];
+                            await db.collection('mail').add({
+                                to: userData.email,
+                                message: {
+                                    subject: 'Your ZAS Safeguard Trial Has Ended',
+                                    html: generateTrialExpiredEmailHtml(userName),
+                                },
+                            });
+                            console.log(`[Email] Sent trial expired email to ${userData.email}`);
+                        }
+                    } catch (emailErr) {
+                        console.error('[Email] Failed to send cancellation email:', emailErr.message);
                     }
 
                     console.log(`Subscription cancelled for user: ${uid}`);
@@ -435,11 +519,15 @@ exports.stripeWebhook = functions
                         }
                     }
 
-                    await db.doc(`users/${uid}`).update({
-                        'subscription.plan_status': 'past_due',
-                    });
+                    // Use set with merge
+                    await db.doc(`users/${uid}`).set({
+                        subscription: {
+                            plan_status: 'past_due',
+                            lastPaymentFailed: admin.firestore.FieldValue.serverTimestamp()
+                        },
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
 
-                    // Log payment failure
                     await db.collection('logs').add({
                         userId: uid,
                         type: 'payment_failed',
@@ -454,13 +542,21 @@ exports.stripeWebhook = functions
         } catch (error) {
             console.error('Webhook processing error:', error);
 
-            // Log critical errors for manual review
             await sendCriticalAlert({
                 type: 'WEBHOOK_PROCESSING_ERROR',
                 eventType: event.type,
                 error: error.message,
                 eventId: event.id
             });
+
+            // Log failure metric
+            try {
+                await logMetric('subscription_activated', {
+                    success: false, error: error.message,
+                    eventType: event.type,
+                    duration: Date.now() - startTime
+                });
+            } catch (_) { /* ignore */ }
 
             res.status(500).json({ error: 'Webhook processing failed' });
         }
@@ -483,10 +579,27 @@ async function sendCriticalAlert(data) {
 }
 
 /**
+ * Log a metric event for monitoring
+ */
+async function logMetric(type, data) {
+    try {
+        await db.collection('metrics').add({
+            type,
+            ...data,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (err) {
+        console.error('Failed to log metric:', err);
+    }
+}
+
+/**
  * Find user by Stripe customer ID (fallback when metadata is missing)
+ * Uses OR-style query for efficiency
  */
 async function findUserByCustomerId(customerId) {
     try {
+        // Try subscription.customerId first (most likely)
         const snapshot = await db.collection('users')
             .where('subscription.customerId', '==', customerId)
             .limit(1)
@@ -497,7 +610,7 @@ async function findUserByCustomerId(customerId) {
             return snapshot.docs[0].id;
         }
 
-        // Also check stripeCustomerId field
+        // Fallback: check stripeCustomerId field
         const snapshot2 = await db.collection('users')
             .where('stripeCustomerId', '==', customerId)
             .limit(1)

@@ -63,6 +63,14 @@ exports.checkRateLimit = cleanup.checkRateLimit;
 exports.logErrors = cleanup.logErrors;
 exports.archiveUserData = cleanup.archiveUserData;
 
+// Background processing & TTL cleanup
+exports.processDeletionQueue = cleanup.processDeletionQueue;
+exports.processManualCleanupQueue = cleanup.processManualCleanupQueue;
+exports.cleanupOrphanedDocs = cleanup.cleanupOrphanedDocs;
+exports.cleanupOldCriticalErrors = cleanup.cleanupOldCriticalErrors;
+exports.cleanupSecurityEvents = cleanup.cleanupSecurityEvents;
+exports.cleanupQueuesAndMetrics = cleanup.cleanupQueuesAndMetrics;
+
 // ============================================
 // AUTH FUNCTIONS
 // ============================================
