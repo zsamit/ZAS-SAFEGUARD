@@ -701,12 +701,16 @@ ${selectors.join(',\n')} {
 
     async function analyzePageForAdultContent() {
         try {
-            // Check if user has Pro plan
-            const storage = await chrome.storage.local.get(['planType', 'aiAnalysisEnabled']);
+            // Check if user has AI analysis entitlement (server-verified only)
+            const storage = await chrome.storage.local.get(['_verifiedSubscription', 'aiAnalysisEnabled']);
 
-            const planType = storage.planType || '';
-            if (!['pro_monthly', 'pro_yearly', 'pro', 'lifetime'].includes(planType.toLowerCase())) {
-                return; // Not a Pro user
+            const verified = storage._verifiedSubscription;
+            const hasSecurityIntel = verified?.verified === true &&
+                verified?.active === true &&
+                verified?.capabilities?.security_intelligence === true;
+
+            if (!hasSecurityIntel) {
+                return; // AI analysis requires server-verified security_intelligence entitlement
             }
 
             // Check if AI analysis is enabled
