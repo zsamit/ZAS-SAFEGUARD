@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -20,6 +21,9 @@ import styles from './LandingPage.module.css';
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+
+    const goToDashboard = () => navigate(isAuthenticated ? '/app/dashboard' : '/login');
 
     const handleSubscribe = (plan) => {
         navigate(`/app/checkout?plan=${plan}`);
@@ -33,7 +37,7 @@ const LandingPage = () => {
                 <div className={styles.navLinks}>
                     <a href="#features" className={styles.navLink}>Features</a>
                     <a href="#pricing" className={styles.navLink}>Pricing</a>
-                    <Button size="sm" onClick={() => navigate('/login')}>Dashboard</Button>
+                    <Button size="sm" onClick={goToDashboard}>Dashboard</Button>
                 </div>
             </nav>
 
@@ -49,7 +53,7 @@ const LandingPage = () => {
                         ZAS Safeguard blocks harmful content, ads, trackers, and distractions — quietly and reliably.
                     </p>
                     <div className={styles.heroActions}>
-                        <Button size="lg" onClick={() => navigate('/login')}>
+                        <Button size="lg" onClick={goToDashboard}>
                             Start Protection
                         </Button>
                         <Button variant="secondary" size="lg">
