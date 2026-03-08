@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Toggle } from '../../components/ui/Toggle';
 import { Button } from '../../components/ui/Button';
@@ -23,6 +24,7 @@ import {
     CheckCircle,
     AlertTriangle
 } from 'lucide-react';
+import LockedFeature from '../../components/LockedFeature';
 import styles from './AdBlocker.module.css';
 
 // Extension communication helper with timeout safeguards
@@ -98,6 +100,9 @@ const sendToExtension = async (message) => {
 };
 
 const AdBlocker = () => {
+    const { isActive } = useOutletContext();
+    if (!isActive) return <LockedFeature feature="security_intelligence" customTitle="Ad & Tracker Blocking" customDescription="Block invasive ads, tracking scripts, video ads, social media widgets, and cookie popups. Manage allowlists and report broken sites — all from one premium panel." />;
+
     const { user, userProfile } = useAuth();
     const adStats = useAdBlockerStats();
 

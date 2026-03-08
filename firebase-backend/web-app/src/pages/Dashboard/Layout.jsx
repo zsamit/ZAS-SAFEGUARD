@@ -9,7 +9,7 @@ import {
     Bell,
     Settings,
     Users,
-    LogOut,
+    Lock,
     AlertTriangle,
     Sparkles
 } from 'lucide-react';
@@ -25,7 +25,7 @@ const DashboardLayout = () => {
     const { user, userProfile } = useAuth();
     const [showOnboarding, setShowOnboarding] = useState(true);
 
-    // Get display name and plan
+    // Get display name
     const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'User';
     const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
@@ -35,11 +35,14 @@ const DashboardLayout = () => {
     const plan = subscription?.plan || '';
 
     const isActive = ['trialing', 'active'].includes(planStatus) || plan === 'lifetime';
+    const isTrial = planStatus === 'trialing';
     const isExpired = !isActive && user && userProfile;
+    const isPremium = isActive && !isTrial;
 
     const planName = plan === 'lifetime' ? 'Lifetime' :
-        plan === 'pro' || planStatus === 'active' ? 'Pro Plan' :
-            isExpired ? 'Expired' : 'Free Plan';
+        isPremium ? 'Premium' :
+            isTrial ? 'Trial' :
+                isExpired ? 'Expired' : 'Free';
 
     // Check if user needs onboarding
     const needsOnboarding = showOnboarding && user && (
@@ -48,23 +51,30 @@ const DashboardLayout = () => {
         userProfile.protectionMode === null
     );
 
-    // Only hide sidebar on checkout page — everything else stays visible
+    // Only hide sidebar on checkout page
     const isCheckoutPage = location.pathname.includes('/checkout');
     const hideSidebar = isCheckoutPage;
 
+    // Navigation items with premium lock indicators
+    // Mode A: Always accessible | Mode B: Locked when not entitled
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
-        { icon: Smartphone, label: 'Devices', path: '/app/devices' },
-        { icon: Shield, label: 'Protection', path: '/app/protection' },
-        { icon: EyeOff, label: 'Ad Blocker', path: '/app/adblock' },
-        { icon: ScanLine, label: 'Scanner', path: '/app/scanner' },
-        { icon: Bell, label: 'Alerts', path: '/app/alerts' },
-        { icon: Users, label: 'Family', path: '/app/family' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', mode: 'A' },
+        { icon: Smartphone, label: 'Devices', path: '/app/devices', mode: 'B' },
+        { icon: Shield, label: 'Protection', path: '/app/protection', mode: 'A' },
+        { icon: EyeOff, label: 'Ad Blocker', path: '/app/adblock', mode: 'B' },
+        { icon: ScanLine, label: 'Scanner', path: '/app/scanner', mode: 'B' },
+        { icon: Bell, label: 'Alerts', path: '/app/alerts', mode: 'B' },
+        { icon: Users, label: 'Family', path: '/app/family', mode: 'B' },
     ];
 
     const bottomNavItems = [
-        { icon: Settings, label: 'Settings', path: '/app/settings' },
+        { icon: Settings, label: 'Settings', path: '/app/settings', mode: 'A' },
     ];
+
+    // Compute trial days remaining
+    const trialDaysLeft = isTrial && subscription?.trialEnd
+        ? Math.max(0, Math.ceil((new Date(subscription.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        : null;
 
     return (
         <div className={styles.layout}>
@@ -73,33 +83,34 @@ const DashboardLayout = () => {
                 <OnboardingModal onComplete={() => setShowOnboarding(false)} />
             )}
 
-            {/* Sidebar - Desktop (always visible except checkout) */}
+            {/* Sidebar - Always visible (except checkout) */}
             {!hideSidebar && (
                 <aside className={styles.sidebar}>
-                    {/* Logo */}
                     <div className={styles.sidebarHeader}>
                         <Logo size="sm" variant="white" linkTo="/" />
                     </div>
 
-                    {/* Navigation */}
                     <nav className={styles.nav}>
                         <div className={styles.navSection}>
-                            {navItems.map((item) => (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    className={({ isActive }) =>
-                                        `${styles.navItem} ${isActive ? styles.active : ''}`
-                                    }
-                                >
-                                    <item.icon size={18} />
-                                    <span>{item.label}</span>
-                                </NavLink>
-                            ))}
+                            {navItems.map((item) => {
+                                const isLocked = item.mode === 'B' && !isActive;
+                                return (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        className={({ isActive: isRouteActive }) =>
+                                            `${styles.navItem} ${isRouteActive ? styles.active : ''} ${isLocked ? styles.navItemLocked : ''}`
+                                        }
+                                    >
+                                        <item.icon size={18} />
+                                        <span>{item.label}</span>
+                                        {isLocked && <Lock size={14} className={styles.lockIndicator} />}
+                                    </NavLink>
+                                );
+                            })}
                         </div>
                     </nav>
 
-                    {/* Bottom Section */}
                     <div className={styles.sidebarFooter}>
                         {bottomNavItems.map((item) => (
                             <NavLink
@@ -114,7 +125,6 @@ const DashboardLayout = () => {
                             </NavLink>
                         ))}
 
-                        {/* User Profile */}
                         <div className={styles.userProfile}>
                             <div className={styles.avatar}>{initials}</div>
                             <div className={styles.userInfo}>
@@ -130,7 +140,26 @@ const DashboardLayout = () => {
 
             {/* Main Content */}
             <main className={styles.main}>
-                {/* Expired Trial Banner */}
+                {/* Trial Active Banner */}
+                {isTrial && trialDaysLeft !== null && !isCheckoutPage && (
+                    <div className={styles.trialBanner}>
+                        <div className={styles.trialBannerContent}>
+                            <Sparkles size={16} className={styles.trialIcon} />
+                            <span>
+                                Trial active — {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} remaining.
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => navigate('/app/checkout?plan=yearly')}
+                            >
+                                Upgrade Now
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Expired Banner */}
                 {isExpired && !isCheckoutPage && (
                     <div className={styles.expiredBanner}>
                         <div className={styles.expiredBannerContent}>
@@ -139,10 +168,10 @@ const DashboardLayout = () => {
                             </div>
                             <div className={styles.expiredBannerText}>
                                 <span className={styles.expiredBannerTitle}>
-                                    Your free trial has ended
+                                    Your premium access has expired
                                 </span>
                                 <span className={styles.expiredBannerDesc}>
-                                    Protection services are currently disabled. Subscribe to reactivate all features.
+                                    Adult blocking remains active. Upgrade to restore full AI Browser Security protection.
                                 </span>
                             </div>
                             <Button
@@ -158,26 +187,28 @@ const DashboardLayout = () => {
                 )}
 
                 <div className={styles.content}>
-                    <Outlet />
+                    <Outlet context={{ isActive, isExpired, isTrial, isPremium, planName }} />
                 </div>
             </main>
 
-            {/* Mobile Bottom Nav (always visible except checkout) */}
+            {/* Mobile Bottom Nav */}
             {!hideSidebar && (
                 <nav className={styles.mobileNav}>
-                    {navItems.slice(0, 4).map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `${styles.mobileNavItem} ${isActive ? styles.active : ''}`
-                            }
-                        >
-                            <item.icon size={20} />
-                            <span>{item.label}</span>
-                        </NavLink>
-                    ))}
-                    {/* Settings - always visible on mobile */}
+                    {navItems.slice(0, 4).map((item) => {
+                        const isLocked = item.mode === 'B' && !isActive;
+                        return (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                className={({ isActive: isRouteActive }) =>
+                                    `${styles.mobileNavItem} ${isRouteActive ? styles.active : ''}`
+                                }
+                            >
+                                <item.icon size={20} />
+                                <span>{item.label}</span>
+                            </NavLink>
+                        );
+                    })}
                     <NavLink
                         to="/app/settings"
                         className={({ isActive }) =>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -7,9 +8,13 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Laptop, Smartphone, Tablet, Wifi, Activity, PauseCircle, Plus, Loader, CheckCircle } from 'lucide-react';
+import LockedFeature from '../../components/LockedFeature';
 import styles from './Devices.module.css';
 
 const Devices = () => {
+    const { isActive } = useOutletContext();
+    if (!isActive) return <LockedFeature feature="dashboard_admin" customTitle="Device Management" customDescription="View and manage all your connected devices. Control internet access, monitor activity, and pause protection remotely from your dashboard." />;
+
     // Real devices from Firebase
     const { devices, loading } = useDevices();
     const { user } = useAuth();

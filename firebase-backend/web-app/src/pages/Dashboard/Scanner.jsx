@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -19,9 +20,13 @@ import {
     XCircle,
     Info
 } from 'lucide-react';
+import LockedFeature from '../../components/LockedFeature';
 import styles from './Scanner.module.css';
 
 const Scanner = () => {
+    const { isActive } = useOutletContext();
+    if (!isActive) return <LockedFeature feature="url_scanning" />;
+
     const { user } = useAuth();
     const [url, setUrl] = useState('');
     const [scanning, setScanning] = useState(false);

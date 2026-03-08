@@ -279,3 +279,51 @@
         width: 100%;
     }
 }
+
+/* ========================================
+   TRIAL ACTIVE BANNER
+   ======================================== */
+
+.trialBanner {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, rgba(168, 85, 247, 0.06) 100%);
+    border-bottom: 1px solid rgba(129, 140, 248, 0.2);
+    padding: var(--space-3) var(--space-6);
+}
+
+.trialBannerContent {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.trialIcon {
+    color: var(--zas-indigo, #818cf8);
+    flex-shrink: 0;
+}
+
+.trialBannerContent span {
+    flex: 1;
+}
+
+/* ========================================
+   SIDEBAR LOCK INDICATORS
+   ======================================== */
+
+.navItemLocked {
+    opacity: 0.55;
+}
+
+.navItemLocked:hover {
+    opacity: 0.75;
+}
+
+.lockIndicator {
+    margin-left: auto;
+    color: var(--text-muted);
+    opacity: 0.6;
+    flex-shrink: 0;
+}

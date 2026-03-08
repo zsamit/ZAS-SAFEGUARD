@@ -29,16 +29,16 @@ const db = admin.firestore();
 // ============================================
 // PLAN CAPABILITY MATRIX (Locked)
 // ============================================
-// 8 feature flags × 5 plan tiers
+// 8 feature flags × 4 plan tiers
 // Feature layers:
-//   Local protection: basic_blocking, category_blocking
+//   Local protection: adult_blocking (free), category_blocking (premium)
 //   Cloud intelligence: security_intelligence, url_scanning, advanced_alerts
 //   User controls: study_mode
 //   Account controls: analytics, dashboard_admin
 
 const PLAN_CAPABILITIES = {
     free: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: false,
         url_scanning: false,
         category_blocking: false,
@@ -48,7 +48,7 @@ const PLAN_CAPABILITIES = {
         advanced_alerts: false
     },
     trial: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: true,
         url_scanning: true,
         category_blocking: true,
@@ -57,18 +57,8 @@ const PLAN_CAPABILITIES = {
         dashboard_admin: true,
         advanced_alerts: true
     },
-    essential: {
-        basic_blocking: true,
-        security_intelligence: true,
-        url_scanning: true,
-        category_blocking: false,
-        study_mode: false,
-        analytics: false,
-        dashboard_admin: true,
-        advanced_alerts: false
-    },
-    pro: {
-        basic_blocking: true,
+    premium: {
+        adult_blocking: true,
         security_intelligence: true,
         url_scanning: true,
         category_blocking: true,
@@ -78,7 +68,7 @@ const PLAN_CAPABILITIES = {
         advanced_alerts: true
     },
     expired: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: false,
         url_scanning: false,
         category_blocking: false,
@@ -91,16 +81,13 @@ const PLAN_CAPABILITIES = {
 
 /**
  * Normalize plan name to canonical tier.
- * essential_monthly/essential_yearly → essential
- * pro_monthly/pro_yearly → pro
- * lifetime → pro
+ * essential_* / pro_* / lifetime all → premium
+ * 4 tiers: free, trial, premium, expired
  */
 function normalizePlan(plan) {
     if (!plan) return 'free';
     const p = plan.toLowerCase();
-    if (p === 'essential_monthly' || p === 'essential_yearly') return 'essential';
-    if (p === 'pro_monthly' || p === 'pro_yearly') return 'pro';
-    if (p === 'lifetime') return 'pro';
+    if (p.includes('essential') || p.includes('pro') || p === 'lifetime') return 'premium';
     if (PLAN_CAPABILITIES[p]) return p;
     return 'expired'; // unknown plans resolve to expired
 }

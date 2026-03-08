@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -22,9 +23,13 @@ import {
     Trash2,
     Edit
 } from 'lucide-react';
+import LockedFeature from '../../components/LockedFeature';
 import styles from './Family.module.css';
 
 const Family = () => {
+    const { isActive } = useOutletContext();
+    if (!isActive) return <LockedFeature feature="dashboard_admin" customTitle="Family Controls" customDescription="Manage and protect your family members' online activity. Add child profiles, monitor browsing, configure alerts, and set content restrictions across all connected devices." />;
+
     const { user, userProfile } = useAuth();
     const { children, loading } = useChildren();
     const isParent = userProfile?.mode === 'family';

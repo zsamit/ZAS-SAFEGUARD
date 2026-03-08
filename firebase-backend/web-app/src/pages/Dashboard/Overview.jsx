@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -19,7 +19,15 @@ import {
     AlertCircle,
     Loader,
     Clock,
-    X
+    X,
+    Lock,
+    Shield,
+    Sparkles,
+    Eye,
+    BookOpen,
+    BarChart3,
+    Users,
+    ArrowRight
 } from 'lucide-react';
 import styles from './Overview.module.css';
 
@@ -50,6 +58,7 @@ const DURATION_OPTIONS = [
 
 const Overview = () => {
     const navigate = useNavigate();
+    const { isActive, isExpired, isTrial, isPremium, planName } = useOutletContext();
 
     // Real data from Firebase
     const { userProfile } = useAuth();
@@ -260,6 +269,99 @@ const Overview = () => {
                 <h1>Dashboard</h1>
                 <p>Overview of your protection status.</p>
             </header>
+
+            {/* Expired/Free User: Account State Section */}
+            {isExpired && (
+                <div className={styles.expiredSection}>
+                    {/* Status Card */}
+                    <Card className={styles.accountStateCard}>
+                        <div className={styles.accountStateHeader}>
+                            <div className={styles.accountStateIcon}>
+                                <Shield size={24} />
+                            </div>
+                            <div className={styles.accountStateInfo}>
+                                <h3>Account Status</h3>
+                                <div className={styles.accountStateBadges}>
+                                    <Badge variant="neutral">{planName}</Badge>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={styles.accountStateDetails}>
+                            <div className={styles.stateItem}>
+                                <ShieldCheck size={16} className={styles.activeIcon} />
+                                <span>Adult blocking</span>
+                                <Badge variant="success">Active</Badge>
+                            </div>
+                            <div className={styles.stateItem}>
+                                <Lock size={16} className={styles.lockedIcon} />
+                                <span>Premium features</span>
+                                <Badge variant="warning">Inactive</Badge>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Active vs Locked Features */}
+                    <div className={styles.featureColumns}>
+                        <Card className={styles.featureCard}>
+                            <h4 className={styles.featureCardTitle}>
+                                <ShieldCheck size={16} className={styles.activeIcon} />
+                                Active on your plan
+                            </h4>
+                            <div className={styles.featureListSimple}>
+                                <div className={styles.featureItem}>
+                                    <Shield size={14} />
+                                    <span>Adult content blocking</span>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <Card className={styles.featureCard}>
+                            <h4 className={styles.featureCardTitle}>
+                                <Lock size={16} className={styles.lockedIcon} />
+                                Requires Premium
+                            </h4>
+                            <div className={styles.featureListSimple}>
+                                {[
+                                    { icon: Eye, label: 'Security Intelligence' },
+                                    { icon: ScanLine, label: 'URL Scanning' },
+                                    { icon: Ban, label: 'Category Controls' },
+                                    { icon: BookOpen, label: 'Study & Focus Mode' },
+                                    { icon: BarChart3, label: 'Analytics Dashboard' },
+                                    { icon: Smartphone, label: 'Device Management' },
+                                    { icon: Bell, label: 'Advanced Alerts' },
+                                    { icon: Users, label: 'Family Controls' },
+                                ].map(f => (
+                                    <div key={f.label} className={styles.featureItem}>
+                                        <f.icon size={14} />
+                                        <span>{f.label}</span>
+                                        <Lock size={12} className={styles.featureItemLock} />
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Upgrade CTA */}
+                    <Card className={styles.upgradeCta}>
+                        <div className={styles.upgradeContent}>
+                            <Sparkles size={20} className={styles.upgradeIcon} />
+                            <div>
+                                <h4>Upgrade to Premium</h4>
+                                <p>Restore full AI Browser Security protection across all your devices.</p>
+                            </div>
+                        </div>
+                        <div className={styles.upgradeActions}>
+                            <Button onClick={() => navigate('/app/checkout?plan=yearly')}>
+                                <Sparkles size={14} />
+                                Upgrade Now
+                            </Button>
+                            <button className={styles.comparePlansLink} onClick={() => navigate('/#pricing')}>
+                                Compare plans <ArrowRight size={14} />
+                            </button>
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             {/* Status Card */}
             <Card variant={isProtected ? 'success' : 'warning'} className={styles.statusCard}>

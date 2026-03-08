@@ -1,12 +1,17 @@
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { useAlerts } from '../../hooks/useFirestore';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldAlert, AlertTriangle, AlertCircle, CheckCircle, Laptop, Smartphone, Tablet, Loader } from 'lucide-react';
+import LockedFeature from '../../components/LockedFeature';
 import styles from './Alerts.module.css';
 
 const Alerts = () => {
+    const { isActive } = useOutletContext();
+    if (!isActive) return <LockedFeature feature="advanced_alerts" />;
+
     // Real alerts from Firebase  
     const { alerts, loading } = useAlerts();
     const { user } = useAuth();

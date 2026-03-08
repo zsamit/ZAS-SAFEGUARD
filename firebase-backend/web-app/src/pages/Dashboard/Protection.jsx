@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Toggle } from '../../components/ui/Toggle';
 import { Badge } from '../../components/ui/Badge';
@@ -10,17 +11,13 @@ import styles from './Protection.module.css';
 
 const Protection = () => {
     const { user, userProfile } = useAuth();
+    const { isActive } = useOutletContext();
 
     // Get settings from user profile
     const categories = userProfile?.settings?.categories || {};
 
-    // Check if user has pro/lifetime - don't show Pro badge if they already have access
-    const subscription = userProfile?.subscription || {};
-    const isPro = subscription.plan === 'lifetime' ||
-        subscription.plan === 'pro_monthly' ||
-        subscription.plan === 'pro_yearly' ||
-        subscription.status === 'lifetime' ||
-        subscription.status === 'active';
+    // isPro: use the entitlement context from Layout
+    const isPro = isActive;
 
     const [settings, setSettings] = useState({
         adult: true, // Always locked ON
@@ -50,7 +47,8 @@ const Protection = () => {
     }, [JSON.stringify(categories)]); // Stringify to stabilize dependency
 
     const handleToggle = async (key) => {
-        if (key === 'adult' || !user) return; // Locked ON
+        if (key === 'adult' || !user) return; // Adult always locked ON
+        if (!isPro) return; // Premium features require active subscription
 
         const newValue = !settings[key];
         setSettings(prev => ({ ...prev, [key]: newValue }));

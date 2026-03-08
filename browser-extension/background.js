@@ -98,7 +98,7 @@ let activeStudySession = null;
 // Network failure policy (locked):
 //   - Previously verified paid user: 1-hour grace → then fail closed
 //   - Free user or no prior verification: fail closed immediately
-//   - Tier 1 (basic_blocking / ruleset_block): ALWAYS active regardless of state
+//   - Tier 1 (adult_blocking / ruleset_block): ALWAYS active regardless of state
 //   - Tier 4 (optional): disabled during grace/failure
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;    // 10 minutes
@@ -108,16 +108,16 @@ const VERIFY_ENDPOINT = `${CONFIG.FIREBASE_API_ENDPOINT}/verifySubscription`;
 // ============================================
 // PLAN CAPABILITY MATRIX (Locked — must match server)
 // ============================================
-// 8 feature flags × 5 plan tiers
+// 8 feature flags × 4 plan tiers
 // Layers:
-//   Local protection:    basic_blocking, category_blocking
+//   Local protection:    adult_blocking (free), category_blocking (premium)
 //   Cloud intelligence:  security_intelligence, url_scanning, advanced_alerts
 //   User controls:       study_mode
 //   Account controls:    analytics, dashboard_admin
 
 const PLAN_CAPABILITIES = {
     free: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: false,
         url_scanning: false,
         category_blocking: false,
@@ -127,7 +127,7 @@ const PLAN_CAPABILITIES = {
         advanced_alerts: false
     },
     trial: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: true,
         url_scanning: true,
         category_blocking: true,
@@ -136,18 +136,8 @@ const PLAN_CAPABILITIES = {
         dashboard_admin: true,
         advanced_alerts: true
     },
-    essential: {
-        basic_blocking: true,
-        security_intelligence: true,
-        url_scanning: true,
-        category_blocking: false,
-        study_mode: false,
-        analytics: false,
-        dashboard_admin: true,
-        advanced_alerts: false
-    },
-    pro: {
-        basic_blocking: true,
+    premium: {
+        adult_blocking: true,
         security_intelligence: true,
         url_scanning: true,
         category_blocking: true,
@@ -157,7 +147,7 @@ const PLAN_CAPABILITIES = {
         advanced_alerts: true
     },
     expired: {
-        basic_blocking: true,
+        adult_blocking: true,
         security_intelligence: false,
         url_scanning: false,
         category_blocking: false,
@@ -176,7 +166,7 @@ const PLAN_CAPABILITIES = {
  */
 function canUseFeature(featureName, verifiedState) {
     if (!verifiedState || !verifiedState.verified) {
-        return featureName === 'basic_blocking';
+        return featureName === 'adult_blocking';
     }
     if (verifiedState.capabilities) {
         return verifiedState.capabilities[featureName] === true;
@@ -1242,7 +1232,7 @@ async function updateBlockingRules(blockedDomains) {
         // ============================================
         const storedVerified = await chrome.storage.local.get(['_verifiedSubscription']);
         const verifiedState = storedVerified._verifiedSubscription;
-        const hasBlocking = canUseFeature('basic_blocking', verifiedState);
+        const hasBlocking = canUseFeature('adult_blocking', verifiedState);
         if (!hasBlocking) {
             console.log('[Security] Protection inactive — no verified entitlement');
             const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
@@ -1966,7 +1956,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // ENTITLEMENT CHECK: use verified subscription state
     const storedVerified = await chrome.storage.local.get(['_verifiedSubscription']);
     const verifiedState = storedVerified._verifiedSubscription;
-    const hasBlocking = canUseFeature('basic_blocking', verifiedState);
+    const hasBlocking = canUseFeature('adult_blocking', verifiedState);
     if (!hasBlocking) {
         console.log('[Security] Protection inactive — skipping offline blocklist check');
         return;
