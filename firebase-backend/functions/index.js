@@ -27,6 +27,7 @@ const heartbeat = require('./heartbeat');
 const adblock = require('./adblock');
 const dataCleanup = require('./dataCleanup');
 const dailyDigest = require('./dailyDigest');
+const verifySub = require('./verifySubscription');
 
 // ============================================
 // URL REPUTATION FUNCTIONS
@@ -77,7 +78,8 @@ exports.cleanupQueuesAndMetrics = cleanup.cleanupQueuesAndMetrics;
 exports.onUserCreate = auth.onUserCreate;
 exports.verifyPhone = auth.verifyPhone;
 exports.initializeDevice = auth.initializeDevice;
-exports.deleteAccount = auth.deleteAccount;  // NEW: Delete user + all data
+exports.deleteAccount = auth.deleteAccount;
+exports.verifySubscription = verifySub.verifySubscription;  // Server-side subscription verification
 
 // ============================================
 // SUBSCRIPTION FUNCTIONS

@@ -86,141 +86,237 @@ const CATEGORY_BLOCKLISTS = {
 let activeStudySession = null;
 
 // ============================================
-// SUBSCRIPTION STATUS CHECK
+// SUBSCRIPTION STATUS CHECK — SERVER-VERIFIED
 // ============================================
+// chrome.storage.local is ONLY a cache. The server is the source of truth.
+// Premium features require a valid, non-stale server verification.
+
+const VERIFICATION_TTL_MS = 10 * 60 * 1000;    // 10 minutes
+const GRACE_PERIOD_MS = 60 * 60 * 1000;         // 1 hour for network failures
+const VERIFY_ENDPOINT = `${CONFIG.FIREBASE_API_ENDPOINT}/verifySubscription`;
+
+// Plan capability matrix (must match server-side)
+const PLAN_CAPABILITIES = {
+    free: { basic_blocking: true, ad_blocking: false, url_scanning: false, malware_protection: false, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: false },
+    trial: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
+    essential_monthly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: true },
+    essential_yearly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: true },
+    pro_monthly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
+    pro_yearly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
+    lifetime: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true }
+};
+const NO_PREMIUM = { basic_blocking: true, ad_blocking: false, url_scanning: false, malware_protection: false, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: false };
 
 /**
- * Check if user has an active subscription or trial
- * Returns true if features should be enabled, false otherwise
+ * Check if a feature is available for the current verified plan.
+ * @param {string} featureName
+ * @param {object|null} verifiedState - Cached verification from storage
+ * @returns {boolean}
  */
-async function checkSubscriptionStatus() {
+function canUseFeature(featureName, verifiedState) {
+    if (!verifiedState || !verifiedState.verified) {
+        return featureName === 'basic_blocking';
+    }
+    if (verifiedState.capabilities) {
+        return verifiedState.capabilities[featureName] === true;
+    }
+    const caps = verifiedState.active
+        ? (PLAN_CAPABILITIES[verifiedState.plan] || NO_PREMIUM)
+        : NO_PREMIUM;
+    return caps[featureName] === true;
+}
+
+/**
+ * Check if the cached verification is still valid.
+ * @returns {{ valid: boolean, expired: boolean, graceActive: boolean }}
+ */
+function checkCacheValidity(cached) {
+    if (!cached || !cached.lastVerifiedAt || !cached.verified) {
+        return { valid: false, expired: true, graceActive: false };
+    }
+    const age = Date.now() - cached.lastVerifiedAt;
+    if (age <= VERIFICATION_TTL_MS) {
+        return { valid: true, expired: false, graceActive: false };
+    }
+    if (age <= GRACE_PERIOD_MS && cached.active === true) {
+        return { valid: true, expired: true, graceActive: true };
+    }
+    return { valid: false, expired: true, graceActive: false };
+}
+
+/**
+ * Verify subscription with the server.
+ * This is the ONLY way to enable premium features.
+ * @param {boolean} force - If true, skip cache check
+ * @returns {object|null} - Verified subscription state, or null on failure
+ */
+async function verifySubscriptionWithServer(force = false) {
     try {
-        const stored = await chrome.storage.local.get([
-            'planType',
-            'subscriptionPlan',
-            'subscriptionStatus',
-            'trialEndDate',
-            'subscriptionEndDate'
-        ]);
-
-        const planType = stored.planType || stored.subscriptionPlan || '';
-        const status = (stored.subscriptionStatus || '').toLowerCase();
-
-        console.log('[Subscription] Checking status:', { planType, status });
-
-        // Explicitly REJECT inactive, expired, cancelled statuses
-        const inactiveStatuses = ['inactive', 'expired', 'cancelled', 'canceled', 'unpaid'];
-        if (inactiveStatuses.includes(status)) {
-            console.log('[Subscription] INACTIVE - blocking all features:', status);
-            return false;
-        }
-
-        // Lifetime users always have access
-        if (planType === 'lifetime' || status === 'lifetime') {
-            console.log('[Subscription] Lifetime access');
-            return true;
-        }
-
-        // Check if status is active
-        const activeStatuses = ['active', 'trialing', 'trial', 'freetrial'];
-        if (activeStatuses.includes(status)) {
-            console.log('[Subscription] Active subscription:', status);
-            return true;
-        }
-
-        // Check if subscription is past_due but still in grace period
-        if (status === 'past_due') {
-            console.log('[Subscription] Past due - allowing grace period');
-            return true;
-        }
-
-        // Check trial end date
-        if (stored.trialEndDate) {
-            const trialEnd = new Date(stored.trialEndDate);
-            if (trialEnd > new Date()) {
-                console.log('[Subscription] Trial still active until:', trialEnd);
-                return true;
-            } else {
-                console.log('[Subscription] Trial EXPIRED:', trialEnd);
-                return false;
+        // Check cache first (unless forced)
+        if (!force) {
+            const stored = await chrome.storage.local.get(['_verifiedSubscription']);
+            const cached = stored._verifiedSubscription;
+            const cacheStatus = checkCacheValidity(cached);
+            if (cacheStatus.valid && !cacheStatus.expired) {
+                console.log('[Subscription] Using cached verification (valid)');
+                return cached;
+            }
+            if (cacheStatus.graceActive) {
+                console.log('[Subscription] Cache stale, in grace period — will re-verify');
             }
         }
 
-        // Check subscription end date
-        if (stored.subscriptionEndDate) {
-            const subEnd = new Date(stored.subscriptionEndDate);
-            if (subEnd > new Date()) {
-                console.log('[Subscription] Subscription still active until:', subEnd);
-                return true;
-            } else {
-                console.log('[Subscription] Subscription EXPIRED:', subEnd);
-                return false;
-            }
+        // Get auth token
+        const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY]);
+        const token = storage[CONFIG.USER_TOKEN_KEY];
+
+        if (!token) {
+            console.log('[Subscription] No auth token — using free tier');
+            const freeState = {
+                verified: true,
+                active: false,
+                plan: 'free',
+                plan_status: 'inactive',
+                capabilities: NO_PREMIUM,
+                lastVerifiedAt: Date.now()
+            };
+            await chrome.storage.local.set({ _verifiedSubscription: freeState });
+            return freeState;
         }
 
-        // If no subscription data at all, default to blocking
-        // This ensures new users without subscription can't use features
-        if (!planType && !status) {
-            console.log('[Subscription] No subscription data - blocking features');
-            return false;
+        // Call server verification endpoint
+        console.log('[Subscription] Calling server for verification...');
+        const response = await fetch(VERIFY_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ data: {} })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
         }
 
-        // Unknown state - block by default (safer)
-        console.log('[Subscription] Unknown state, blocking by default:', { planType, status });
-        return false;
+        const responseData = await response.json();
+        const result = responseData.result || responseData;
+
+        if (!result.verified) {
+            throw new Error('Server returned unverified response');
+        }
+
+        // Store verified state with timestamp
+        const verifiedState = {
+            ...result,
+            lastVerifiedAt: Date.now()
+        };
+
+        await chrome.storage.local.set({
+            _verifiedSubscription: verifiedState,
+            // Keep legacy fields for backward compatibility
+            planType: result.plan,
+            subscriptionStatus: result.plan_status,
+            trialEndDate: result.trial_end || null,
+            subscriptionEndDate: result.current_period_end || null
+        });
+
+        console.log('[Subscription] Server verification successful:', result.plan, result.plan_status);
+        return verifiedState;
 
     } catch (error) {
-        console.error('[Subscription] Error checking status:', error);
-        // On error, default to blocking (safer)
-        return false;
+        console.error('[Subscription] Verification failed:', error.message);
+
+        // On network failure, check if we have a grace period cache
+        const stored = await chrome.storage.local.get(['_verifiedSubscription']);
+        const cached = stored._verifiedSubscription;
+        const cacheStatus = checkCacheValidity(cached);
+
+        if (cacheStatus.graceActive) {
+            console.log('[Subscription] Network failure — using grace period cache');
+            return cached;
+        }
+
+        // No valid cache — fail closed (free tier only)
+        console.log('[Subscription] No valid cache — fail closed to free tier');
+        const failSafeState = {
+            verified: true,
+            active: false,
+            plan: 'free',
+            plan_status: 'inactive',
+            capabilities: NO_PREMIUM,
+            lastVerifiedAt: Date.now(),
+            failedVerification: true
+        };
+        await chrome.storage.local.set({ _verifiedSubscription: failSafeState });
+        return failSafeState;
     }
 }
 
 /**
- * Enable or disable ALL extension blocking features based on subscription status
- * This includes both static and dynamic rulesets
+ * Enable or disable extension features based on VERIFIED server state.
+ * Uses tiered ruleset loading:
+ *   Tier 1 (core): ruleset_block, adblock_malware
+ *   Tier 2 (privacy): adblock_trackers
+ *   Tier 3 (ads): adblock_ads, adblock_youtube
+ *   Tier 4 (optional): adblock_annoyances, adblock_social
  */
 async function enforceSubscriptionStatus() {
-    const isSubscribed = await checkSubscriptionStatus();
+    const verified = await verifySubscriptionWithServer();
+    const capabilities = verified?.capabilities || NO_PREMIUM;
+    const isActive = verified?.active === true;
 
-    console.log('[Subscription] Enforcing status:', isSubscribed ? 'ACTIVE' : 'EXPIRED');
+    console.log('[Subscription] Enforcing:', isActive ? 'PREMIUM' : 'FREE', '| Plan:', verified?.plan || 'unknown');
 
     try {
-        // Get all available static rulesets
-        const availableRulesets = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
+        const allRulesets = ['ruleset_block', 'adblock_ads', 'adblock_trackers', 'adblock_malware', 'adblock_annoyances', 'adblock_social', 'adblock_youtube'];
+        const enableIds = [];
+        const disableIds = [];
 
-        // List of static ruleset IDs from manifest.json
-        const allRulesets = [
-            'ruleset_block',
-            'adblock_ads',
-            'adblock_trackers',
-            'adblock_malware',
-            'adblock_annoyances',
-            'adblock_social',
-            'adblock_youtube'
-        ];
+        // Tier 1: Core protection (always for active plans, basic_blocking for free)
+        if (capabilities.basic_blocking) enableIds.push('ruleset_block');
+        if (capabilities.malware_protection) enableIds.push('adblock_malware');
 
-        if (isSubscribed) {
-            // Enable blocking rulesets (use the ones that were enabled in manifest)
-            await chrome.declarativeNetRequest.updateEnabledRulesets({
-                enableRulesetIds: ['ruleset_block', 'adblock_ads', 'adblock_trackers', 'adblock_malware', 'adblock_youtube']
-            });
-            console.log('[Subscription] Blocking rulesets ENABLED');
-        } else {
-            // Disable ALL rulesets when subscription is inactive
-            await chrome.declarativeNetRequest.updateEnabledRulesets({
-                disableRulesetIds: allRulesets
-            });
+        // Tier 2: Privacy (premium)
+        if (capabilities.ad_blocking) enableIds.push('adblock_trackers');
 
-            // Also clear dynamic rules
+        // Tier 3: Ad blocking (premium)
+        if (capabilities.ad_blocking) {
+            enableIds.push('adblock_ads');
+            enableIds.push('adblock_youtube');
+        }
+
+        // Tier 4: Optional (premium, check user preferences)
+        if (capabilities.ad_blocking) {
+            const config = await chrome.storage.local.get(['adblock_config']);
+            const adConfig = config.adblock_config || {};
+            if (adConfig.categories?.annoyances) enableIds.push('adblock_annoyances');
+            if (adConfig.categories?.social) enableIds.push('adblock_social');
+        }
+
+        // Everything not enabled should be disabled
+        for (const rs of allRulesets) {
+            if (!enableIds.includes(rs)) disableIds.push(rs);
+        }
+
+        await chrome.declarativeNetRequest.updateEnabledRulesets({
+            enableRulesetIds: enableIds,
+            disableRulesetIds: disableIds
+        });
+
+        // If not premium, also clear dynamic rules
+        if (!isActive) {
             const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
             const existingIds = existingRules.map(rule => rule.id);
             if (existingIds.length > 0) {
                 await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existingIds });
             }
-
-            console.log('[Subscription] ALL blocking DISABLED - subscription inactive');
         }
+
+        // Log rule counts for diagnostics
+        const ruleCount = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
+        console.log('[Subscription] Rulesets: enabled=', enableIds, 'disabled=', disableIds, 'available static rules:', ruleCount);
+
     } catch (error) {
         console.error('[Subscription] Error enforcing status:', error);
     }
@@ -229,21 +325,16 @@ async function enforceSubscriptionStatus() {
 // Check subscription status periodically (every 5 minutes)
 setInterval(enforceSubscriptionStatus, 5 * 60 * 1000);
 
-// Also check on storage changes (when subscription status updates)
+// Also check on storage changes (when subscription status updates from sync)
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local') {
-        const subscriptionKeys = ['subscriptionStatus', 'planType', 'subscriptionPlan', 'trialEndDate'];
-        const hasSubscriptionChange = subscriptionKeys.some(key => key in changes);
-        if (hasSubscriptionChange) {
-            console.log('[Subscription] Status changed, enforcing...');
+        // Only react to verified subscription changes, NOT legacy fields
+        if (changes._verifiedSubscription) {
             enforceSubscriptionStatus();
         }
     }
 });
 
-// ============================================
-// INITIALIZATION
-// ============================================
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -275,20 +366,43 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     initAdBlockEngine();
 });
 
-// Listen for TOS agreement from landing page
+// ============================================
+// EXTERNAL MESSAGE HANDLER (from dashboard)
+// ============================================
+// Message allowlist — only these types are accepted
+const ALLOWED_MESSAGE_TYPES = [
+    'TOS_AGREED', 'PLAN_UPDATE', 'LOGIN', 'LOGOUT',
+    'STUDY_MODE_START', 'STUDY_MODE_STOP', 'CATEGORY_TOGGLE',
+    'SETTINGS_UPDATE', 'CHILD_LOCK', 'GET_EXTENSION_ID',
+    'ADBLOCK_GET_STATS', 'ADBLOCK_SET_CATEGORY',
+    'ADBLOCK_ADD_ALLOWLIST', 'ADBLOCK_REMOVE_ALLOWLIST'
+];
+
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+    // Reject unknown message types
+    if (!message || !ALLOWED_MESSAGE_TYPES.includes(message.type)) {
+        console.warn('[Messages] Rejected unknown message type:', message?.type);
+        sendResponse({ error: 'Unknown message type' });
+        return true;
+    }
+
     if (message.type === 'TOS_AGREED') {
         chrome.storage.local.set({ tosAgreed: true });
         sendResponse({ success: true });
         console.log('TOS agreed by user');
     }
     if (message.type === 'PLAN_UPDATE') {
-        chrome.storage.local.set({
-            planType: message.plan,
-            subscriptionStatus: message.status || message.plan
+        // SECURITY: Do NOT write plan directly to storage.
+        // Instead, trigger server re-verification.
+        console.log('[Subscription] PLAN_UPDATE received — triggering server verification');
+        verifySubscriptionWithServer(true).then(() => {
+            enforceSubscriptionStatus();
+            sendResponse({ success: true });
+        }).catch(err => {
+            console.error('[Subscription] Re-verification after PLAN_UPDATE failed:', err);
+            sendResponse({ success: false, error: 'Verification failed' });
         });
-        sendResponse({ success: true });
-        console.log('Plan updated:', message.plan, 'Status:', message.status);
+        return true; // Keep channel open for async
     }
     // Handle LOGIN from dashboard - store Firebase auth token
     if (message.type === 'LOGIN') {
@@ -301,7 +415,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
                 // Register device with Firebase (creates device in Firestore)
                 await registerDeviceWithFirebase(message.userId, message.token);
                 // Sync immediately after login
-                syncWithFirebase();
+                await syncWithFirebase();
+                // Verify subscription with server after login
+                await verifySubscriptionWithServer(true);
+                await enforceSubscriptionStatus();
                 sendResponse({ success: true });
             });
         } else {
@@ -311,7 +428,13 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     // Handle LOGOUT from dashboard
     if (message.type === 'LOGOUT') {
         console.log('[Auth] Received LOGOUT from dashboard');
-        chrome.storage.local.remove([CONFIG.USER_TOKEN_KEY, CONFIG.POLICY_KEY, 'loggedInUserId']).then(() => {
+        chrome.storage.local.remove([
+            CONFIG.USER_TOKEN_KEY, CONFIG.POLICY_KEY, 'loggedInUserId',
+            '_verifiedSubscription', 'planType', 'subscriptionStatus',
+            'trialEndDate', 'subscriptionEndDate'
+        ]).then(() => {
+            // Enforce free tier immediately after logout
+            enforceSubscriptionStatus();
             sendResponse({ success: true });
         });
     }
@@ -1419,20 +1542,13 @@ async function syncWithFirebase() {
                 [CONFIG.POLICY_KEY]: data.policy
             });
 
-            // IMPORTANT: Save subscription plan for URL scanning feature
+            // Subscription: trigger server verification instead of trusting sync response
+            // (getBlockPolicy still returns sub data, but we verify separately)
             if (data.subscription) {
-                // Use plan_status if available (Firestore field), fallback to status
-                const subStatus = data.subscription.plan_status || data.subscription.status || 'inactive';
-                await chrome.storage.local.set({
-                    planType: data.subscription.plan,
-                    subscriptionStatus: subStatus,
-                    trialEndDate: data.subscription.trial_end || null,
-                    subscriptionEndDate: data.subscription.current_period_end || null
-                });
-                console.log('[Sync] Subscription saved:', data.subscription.plan, subStatus);
-
-                // Immediately enforce subscription status after sync
-                enforceSubscriptionStatus();
+                console.log('[Sync] Subscription data received, triggering server verification...');
+                // Force server re-verification for authoritative state
+                await verifySubscriptionWithServer(true);
+                await enforceSubscriptionStatus();
             }
 
             // COMMAND EXECUTION: Process server-side commands
