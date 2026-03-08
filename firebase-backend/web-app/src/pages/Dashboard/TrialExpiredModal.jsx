@@ -50,6 +50,10 @@ const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
                     </div>
                     <div className={styles.feature}>
                         <Check size={16} />
+                        <span>Malware & phishing protection</span>
+                    </div>
+                    <div className={styles.feature}>
+                        <Check size={16} />
                         <span>Focus Mode for productivity</span>
                     </div>
                     <div className={styles.feature}>

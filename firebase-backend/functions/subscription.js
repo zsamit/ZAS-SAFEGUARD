@@ -54,7 +54,7 @@ function generateTrialExpiredEmailHtml(userName) {
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
                     <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-                        © 2025 ZAS Safeguard. All rights reserved.
+                        © 2026 ZAS Safeguard. All rights reserved.
                     </p>
                 </div>
             </div>
@@ -228,148 +228,311 @@ exports.createCheckoutSession = functions
 /**
  * Stripe webhook handler
  */
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+exports.stripeWebhook = functions
+    .runWith({
+        memory: '512MB',
+        timeoutSeconds: 120,
+        secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+    })
+    .https.onRequest(async (req, res) => {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const sig = req.headers['stripe-signature'];
+        const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    let event;
+        let event;
 
-    try {
-        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
-    } catch (err) {
-        console.error('Webhook signature verification failed:', err);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    try {
-        switch (event.type) {
-            case 'checkout.session.completed': {
-                const session = event.data.object;
-                const uid = session.metadata.userId;
-                const priceTier = session.metadata.priceTier;
-
-                // Update subscription status
-                await db.doc(`users/${uid}`).update({
-                    'subscription.plan': 'monthly',
-                    'subscription.plan_status': 'active',
-                    'subscription.price_tier': priceTier,
-                });
-
-                // Create subscription record
-                await db.doc(`subscriptions/${uid}`).set({
-                    stripe_subscription_id: session.subscription,
-                    status: 'active',
-                    price_id: session.metadata.priceId,
-                    region: priceTier,
-                    created_at: admin.firestore.FieldValue.serverTimestamp(),
-                }, { merge: true });
-
-                console.log(`Subscription activated for user: ${uid}`);
-                break;
-            }
-
-            case 'customer.subscription.trial_will_end': {
-                const subscription = event.data.object;
-                const customer = await stripe.customers.retrieve(subscription.customer);
-                const uid = customer.metadata.firebaseUid;
-
-                // Send trial ending notification
-                await db.collection('logs').add({
-                    userId: uid,
-                    type: 'notification',
-                    message: 'Trial ending in 3 days',
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                });
-                break;
-            }
-
-            case 'customer.subscription.updated': {
-                const subscription = event.data.object;
-                const customer = await stripe.customers.retrieve(subscription.customer);
-                const uid = customer.metadata.firebaseUid;
-
-                // Check if trial just ended
-                if (subscription.status === 'active' && !subscription.trial_end) {
-                    await db.doc(`users/${uid}`).update({
-                        'subscription.trial_active': false,
-                        'subscription.plan_status': 'active',
-                    });
-                }
-
-                // Update subscription record
-                await db.doc(`subscriptions/${uid}`).update({
-                    status: subscription.status,
-                    current_period_start: admin.firestore.Timestamp.fromMillis(subscription.current_period_start * 1000),
-                    current_period_end: admin.firestore.Timestamp.fromMillis(subscription.current_period_end * 1000),
-                });
-                break;
-            }
-
-            case 'customer.subscription.deleted': {
-                const subscription = event.data.object;
-                const customer = await stripe.customers.retrieve(subscription.customer);
-                const uid = customer.metadata.firebaseUid;
-
-                // Get user data for email
-                const userDoc = await db.doc(`users/${uid}`).get();
-                const userData = userDoc.exists ? userDoc.data() : {};
-
-                // Update user subscription status
-                await db.doc(`users/${uid}`).update({
-                    'subscription.plan_status': 'cancelled',
-                    'subscription.plan': 'free',
-                    'subscription.trial_active': false,
-                });
-
-                await db.doc(`subscriptions/${uid}`).update({
-                    status: 'cancelled',
-                    cancelled_at: admin.firestore.FieldValue.serverTimestamp(),
-                });
-
-                // Send trial/subscription expired email
-                if (userData.email) {
-                    const userName = userData.displayName || userData.email.split('@')[0];
-                    await db.collection('mail').add({
-                        to: userData.email,
-                        message: {
-                            subject: 'Your ZAS Safeguard Trial Has Ended',
-                            html: generateTrialExpiredEmailHtml(userName),
-                        },
-                    });
-                    console.log(`[Email] Sent trial expired email to ${userData.email}`);
-                }
-
-                console.log(`Subscription cancelled for user: ${uid}`);
-                break;
-            }
-
-            case 'invoice.payment_failed': {
-                const invoice = event.data.object;
-                const customer = await stripe.customers.retrieve(invoice.customer);
-                const uid = customer.metadata.firebaseUid;
-
-                await db.doc(`users/${uid}`).update({
-                    'subscription.plan_status': 'past_due',
-                });
-
-                // Log payment failure
-                await db.collection('logs').add({
-                    userId: uid,
-                    type: 'payment_failed',
-                    message: 'Subscription payment failed',
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                });
-                break;
-            }
+        try {
+            event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+        } catch (err) {
+            console.error('Webhook signature verification failed:', err);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
         }
 
-        res.json({ received: true });
-    } catch (error) {
-        console.error('Webhook processing error:', error);
-        res.status(500).json({ error: 'Webhook processing failed' });
+        try {
+            switch (event.type) {
+                case 'checkout.session.completed': {
+                    const session = event.data.object;
+                    const uid = session.metadata?.userId;
+                    const priceTier = session.metadata?.priceTier;
+                    let plan = session.metadata?.plan;
+
+                    if (!uid) {
+                        await sendCriticalAlert({
+                            type: 'MISSING_FIREBASE_UID',
+                            customerId: session.customer,
+                            sessionId: session.id,
+                            email: session.customer_details?.email
+                        });
+                        return res.status(500).json({ error: 'Missing userId - will retry' });
+                    }
+
+                    // Validate plan, derive from line items if missing
+                    const validPlans = ['pro_monthly', 'pro_yearly', 'essential_monthly', 'essential_yearly'];
+                    if (!plan || !validPlans.includes(plan)) {
+                        console.warn('Missing/invalid plan metadata, deriving from line items:', session.id);
+                        try {
+                            const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+                            plan = derivePlanFromLineItems(lineItems);
+                        } catch (e) {
+                            console.error('Line items lookup failed:', e.message);
+                        }
+
+                        if (!plan) {
+                            await sendCriticalAlert({
+                                type: 'UNKNOWN_PLAN_TYPE',
+                                sessionId: session.id,
+                                customerId: session.customer,
+                                receivedPlan: session.metadata?.plan
+                            });
+                            return res.status(500).json({ error: 'Cannot determine plan' });
+                        }
+                    }
+
+                    // Update subscription status
+                    await db.doc(`users/${uid}`).update({
+                        'subscription.plan': plan,
+                        'subscription.plan_status': 'active',
+                        'subscription.price_tier': priceTier || null,
+                        'subscription.customerId': session.customer,
+                        'subscription.activatedAt': admin.firestore.FieldValue.serverTimestamp(),
+                    });
+
+                    // Create subscription record
+                    await db.doc(`subscriptions/${uid}`).set({
+                        stripe_subscription_id: session.subscription,
+                        status: 'active',
+                        plan: plan,
+                        price_id: session.metadata?.priceId || null,
+                        region: priceTier || null,
+                        created_at: admin.firestore.FieldValue.serverTimestamp(),
+                    }, { merge: true });
+
+                    console.log(`Subscription activated for user: ${uid}, plan: ${plan}`);
+                    break;
+                }
+
+                case 'customer.subscription.trial_will_end': {
+                    const subscription = event.data.object;
+                    const customer = await stripe.customers.retrieve(subscription.customer);
+                    const uid = customer.metadata?.firebaseUid;
+
+                    if (!uid) {
+                        console.error('No firebaseUid in customer metadata:', subscription.customer);
+                        break;
+                    }
+
+                    // Send trial ending notification
+                    await db.collection('logs').add({
+                        userId: uid,
+                        type: 'notification',
+                        message: 'Trial ending in 3 days',
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    break;
+                }
+
+                case 'customer.subscription.updated': {
+                    const subscription = event.data.object;
+                    const customer = await stripe.customers.retrieve(subscription.customer);
+                    let uid = customer.metadata?.firebaseUid;
+
+                    if (!uid) {
+                        // Fallback: find user by Stripe customerId
+                        uid = await findUserByCustomerId(subscription.customer);
+                        if (!uid) {
+                            await sendCriticalAlert({
+                                type: 'ORPHANED_SUBSCRIPTION',
+                                customerId: subscription.customer,
+                                subscriptionId: subscription.id,
+                                event: 'subscription.updated'
+                            });
+                            return res.status(500).json({ error: 'Cannot find user' });
+                        }
+                    }
+
+                    // Check if trial just ended
+                    if (subscription.status === 'active' && !subscription.trial_end) {
+                        await db.doc(`users/${uid}`).update({
+                            'subscription.trial_active': false,
+                            'subscription.plan_status': 'active',
+                        });
+                    }
+
+                    // Update subscription record
+                    await db.doc(`subscriptions/${uid}`).set({
+                        status: subscription.status,
+                        current_period_start: admin.firestore.Timestamp.fromMillis(subscription.current_period_start * 1000),
+                        current_period_end: admin.firestore.Timestamp.fromMillis(subscription.current_period_end * 1000),
+                    }, { merge: true });
+                    break;
+                }
+
+                case 'customer.subscription.deleted': {
+                    const subscription = event.data.object;
+                    const customer = await stripe.customers.retrieve(subscription.customer);
+                    let uid = customer.metadata?.firebaseUid;
+
+                    if (!uid) {
+                        uid = await findUserByCustomerId(subscription.customer);
+                        if (!uid) {
+                            await sendCriticalAlert({
+                                type: 'ORPHANED_SUBSCRIPTION',
+                                customerId: subscription.customer,
+                                subscriptionId: subscription.id,
+                                event: 'subscription.deleted'
+                            });
+                            return res.status(500).json({ error: 'Cannot find user' });
+                        }
+                    }
+
+                    // Get user data for email
+                    const userDoc = await db.doc(`users/${uid}`).get();
+                    const userData = userDoc.exists ? userDoc.data() : {};
+
+                    // Update user subscription status
+                    await db.doc(`users/${uid}`).update({
+                        'subscription.plan_status': 'cancelled',
+                        'subscription.plan': 'free',
+                        'subscription.trial_active': false,
+                    });
+
+                    await db.doc(`subscriptions/${uid}`).set({
+                        status: 'cancelled',
+                        cancelled_at: admin.firestore.FieldValue.serverTimestamp(),
+                    }, { merge: true });
+
+                    // Send trial/subscription expired email
+                    if (userData.email) {
+                        const userName = userData.displayName || userData.email.split('@')[0];
+                        await db.collection('mail').add({
+                            to: userData.email,
+                            message: {
+                                subject: 'Your ZAS Safeguard Trial Has Ended',
+                                html: generateTrialExpiredEmailHtml(userName),
+                            },
+                        });
+                        console.log(`[Email] Sent trial expired email to ${userData.email}`);
+                    }
+
+                    console.log(`Subscription cancelled for user: ${uid}`);
+                    break;
+                }
+
+                case 'invoice.payment_failed': {
+                    const invoice = event.data.object;
+                    const customer = await stripe.customers.retrieve(invoice.customer);
+                    let uid = customer.metadata?.firebaseUid;
+
+                    if (!uid) {
+                        uid = await findUserByCustomerId(invoice.customer);
+                        if (!uid) {
+                            await sendCriticalAlert({
+                                type: 'PAYMENT_FAILED_ORPHANED',
+                                customerId: invoice.customer,
+                                invoiceId: invoice.id
+                            });
+                            return res.status(500).json({ error: 'Cannot find user for payment failure' });
+                        }
+                    }
+
+                    await db.doc(`users/${uid}`).update({
+                        'subscription.plan_status': 'past_due',
+                    });
+
+                    // Log payment failure
+                    await db.collection('logs').add({
+                        userId: uid,
+                        type: 'payment_failed',
+                        message: 'Subscription payment failed',
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    break;
+                }
+            }
+
+            res.json({ received: true });
+        } catch (error) {
+            console.error('Webhook processing error:', error);
+
+            // Log critical errors for manual review
+            await sendCriticalAlert({
+                type: 'WEBHOOK_PROCESSING_ERROR',
+                eventType: event.type,
+                error: error.message,
+                eventId: event.id
+            });
+
+            res.status(500).json({ error: 'Webhook processing failed' });
+        }
+    });
+
+/**
+ * Send critical alert — writes to Firestore for manual review
+ */
+async function sendCriticalAlert(data) {
+    try {
+        await db.collection('critical_errors').add({
+            ...data,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            resolved: false
+        });
+        console.error('CRITICAL ALERT:', JSON.stringify(data, null, 2));
+    } catch (err) {
+        console.error('Failed to log critical alert:', err, data);
     }
-});
+}
+
+/**
+ * Find user by Stripe customer ID (fallback when metadata is missing)
+ */
+async function findUserByCustomerId(customerId) {
+    try {
+        const snapshot = await db.collection('users')
+            .where('subscription.customerId', '==', customerId)
+            .limit(1)
+            .get();
+
+        if (!snapshot.empty) {
+            console.log(`[Webhook] Found user ${snapshot.docs[0].id} via customerId lookup`);
+            return snapshot.docs[0].id;
+        }
+
+        // Also check stripeCustomerId field
+        const snapshot2 = await db.collection('users')
+            .where('stripeCustomerId', '==', customerId)
+            .limit(1)
+            .get();
+
+        if (!snapshot2.empty) {
+            console.log(`[Webhook] Found user ${snapshot2.docs[0].id} via stripeCustomerId lookup`);
+            return snapshot2.docs[0].id;
+        }
+
+        return null;
+    } catch (err) {
+        console.error('[Webhook] findUserByCustomerId error:', err);
+        return null;
+    }
+}
+
+/**
+ * Derive plan type from Stripe line items (fallback when metadata is missing)
+ */
+function derivePlanFromLineItems(lineItems) {
+    if (!lineItems?.data || lineItems.data.length === 0) return null;
+
+    const item = lineItems.data[0];
+    const description = (item.description || '').toLowerCase();
+    const priceId = item.price?.id || '';
+
+    if (description.includes('yearly') || description.includes('annual') || priceId.includes('yearly')) {
+        return 'pro_yearly';
+    } else if (description.includes('monthly') || priceId.includes('monthly')) {
+        return 'pro_monthly';
+    }
+
+    return null;
+}
 
 /**
  * Check if user is eligible for free trial

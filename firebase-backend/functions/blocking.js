@@ -142,7 +142,11 @@ exports.getBlockPolicy = functions.runWith(runtimeOpts).https.onCall(async (data
             // Include subscription info so extension knows user's plan
             subscription: {
                 plan: userData?.subscription?.plan || 'free',
-                status: userData?.subscription?.status || 'trial'
+                // Use plan_status (Firestore field) - this is the source of truth
+                plan_status: userData?.subscription?.plan_status || 'inactive',
+                status: userData?.subscription?.plan_status || userData?.subscription?.status || 'inactive',
+                trial_end: userData?.subscription?.trial_end?.toDate?.()?.toISOString() || null,
+                current_period_end: userData?.subscription?.current_period_end?.toDate?.()?.toISOString() || null
             },
             // Include lock status for command execution
             commands: {
@@ -229,18 +233,36 @@ exports.logBlockEvent = functions.https.onCall(async (data, context) => {
  * Log a block event from extension via HTTP (for fetch calls)
  */
 exports.logBlockEventHttp = functions.https.onRequest(async (req, res) => {
-    // CORS
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // CORS - restrict to ZAS domains
+    const allowedOrigins = [
+        'https://zassafeguard.com',
+        'https://www.zassafeguard.com',
+        'https://zas-safeguard.web.app',
+        'https://zasgloballlc.com'
+    ];
+    const origin = req.headers.origin;
+    const isAllowedOrigin = allowedOrigins.includes(origin);
 
+    // Handle preflight request
     if (req.method === 'OPTIONS') {
+        if (!isAllowedOrigin) {
+            console.warn('CORS preflight rejected for origin:', origin);
+            return res.status(403).json({ error: 'Origin not allowed' });
+        }
+        res.set('Access-Control-Allow-Origin', origin);
+        res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.set('Access-Control-Max-Age', '3600');
         return res.status(204).send('');
     }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+    // Reject non-allowed origins on actual requests
+    if (!isAllowedOrigin) {
+        console.warn('CORS request rejected for origin:', origin);
+        return res.status(403).json({ error: 'Origin not allowed' });
     }
+
+    res.set('Access-Control-Allow-Origin', origin);
 
     try {
         // Verify auth token

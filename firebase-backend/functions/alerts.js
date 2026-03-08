@@ -714,7 +714,20 @@ exports.markAlertRead = onCall(async (request) => {
     }
 
     try {
-        await db.doc(`alerts/${userId}/${alertId}`).update({
+        // Alerts are in flat collection alerts/{alertId}
+        const alertRef = db.doc(`alerts/${alertId}`);
+        const alertDoc = await alertRef.get();
+
+        if (!alertDoc.exists) {
+            throw new Error('Alert not found');
+        }
+
+        // Verify ownership
+        if (alertDoc.data().userId !== userId) {
+            throw new Error('Not authorized to modify this alert');
+        }
+
+        await alertRef.update({
             read: true,
             readAt: FieldValue.serverTimestamp()
         });
@@ -734,6 +747,26 @@ exports.markAlertRead = onCall(async (request) => {
 const { onRequest } = require('firebase-functions/v2/https');
 
 exports.testEmail = onRequest({ cors: true, memory: '512MiB' }, async (req, res) => {
+    // Require admin authentication
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const admin = require('firebase-admin');
+        const idToken = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+        // Check if user is admin
+        const adminDoc = await db.doc(`admins/${decodedToken.uid}`).get();
+        if (!adminDoc.exists) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+    } catch (authError) {
+        return res.status(401).json({ error: 'Invalid authentication' });
+    }
+
     const { email, message } = req.body;
 
     if (!email) {

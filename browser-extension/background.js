@@ -104,7 +104,16 @@ async function checkSubscriptionStatus() {
         ]);
 
         const planType = stored.planType || stored.subscriptionPlan || '';
-        const status = stored.subscriptionStatus || '';
+        const status = (stored.subscriptionStatus || '').toLowerCase();
+
+        console.log('[Subscription] Checking status:', { planType, status });
+
+        // Explicitly REJECT inactive, expired, cancelled statuses
+        const inactiveStatuses = ['inactive', 'expired', 'cancelled', 'canceled', 'unpaid'];
+        if (inactiveStatuses.includes(status)) {
+            console.log('[Subscription] INACTIVE - blocking all features:', status);
+            return false;
+        }
 
         // Lifetime users always have access
         if (planType === 'lifetime' || status === 'lifetime') {
@@ -113,7 +122,7 @@ async function checkSubscriptionStatus() {
         }
 
         // Check if status is active
-        const activeStatuses = ['active', 'trialing', 'trial'];
+        const activeStatuses = ['active', 'trialing', 'trial', 'freetrial'];
         if (activeStatuses.includes(status)) {
             console.log('[Subscription] Active subscription:', status);
             return true;
@@ -131,6 +140,9 @@ async function checkSubscriptionStatus() {
             if (trialEnd > new Date()) {
                 console.log('[Subscription] Trial still active until:', trialEnd);
                 return true;
+            } else {
+                console.log('[Subscription] Trial EXPIRED:', trialEnd);
+                return false;
             }
         }
 
@@ -140,25 +152,27 @@ async function checkSubscriptionStatus() {
             if (subEnd > new Date()) {
                 console.log('[Subscription] Subscription still active until:', subEnd);
                 return true;
+            } else {
+                console.log('[Subscription] Subscription EXPIRED:', subEnd);
+                return false;
             }
         }
 
-        // Check for active pro plans
-        const proPlanTypes = ['pro_monthly', 'pro_yearly', 'essential_monthly', 'essential_yearly'];
-        if (proPlanTypes.includes(planType)) {
-            // If they have a plan type but no status, check with sync
-            console.log('[Subscription] Has plan type but unclear status, allowing');
-            return true;
+        // If no subscription data at all, default to blocking
+        // This ensures new users without subscription can't use features
+        if (!planType && !status) {
+            console.log('[Subscription] No subscription data - blocking features');
+            return false;
         }
 
-        // No valid subscription found
-        console.log('[Subscription] No active subscription found:', { planType, status });
+        // Unknown state - block by default (safer)
+        console.log('[Subscription] Unknown state, blocking by default:', { planType, status });
         return false;
 
     } catch (error) {
         console.error('[Subscription] Error checking status:', error);
-        // On error, default to allowing (don't lock out users due to bugs)
-        return true;
+        // On error, default to blocking (safer)
+        return false;
     }
 }
 
@@ -654,11 +668,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
     console.log('[URLScanner] Plan check:', { planType, status, isProPlan });
 
-    // if (!isProPlan) {
-    //     // Free users don't get URL safety scanning
-    //     console.log('[ZAS] Free plan - URL scanning is Pro feature (Check disabled for testing)');
-    //     // return;
-    // }
+    if (!isProPlan) {
+        // Free users don't get URL safety scanning
+        console.log('[ZAS] Free plan - URL scanning is a Pro feature');
+        return;
+    }
 
     console.log('[URLScanner] Scanning:', url);
 
@@ -1407,11 +1421,18 @@ async function syncWithFirebase() {
 
             // IMPORTANT: Save subscription plan for URL scanning feature
             if (data.subscription) {
+                // Use plan_status if available (Firestore field), fallback to status
+                const subStatus = data.subscription.plan_status || data.subscription.status || 'inactive';
                 await chrome.storage.local.set({
                     planType: data.subscription.plan,
-                    subscriptionStatus: data.subscription.status
+                    subscriptionStatus: subStatus,
+                    trialEndDate: data.subscription.trial_end || null,
+                    subscriptionEndDate: data.subscription.current_period_end || null
                 });
-                console.log('[Sync] Subscription plan saved:', data.subscription.plan, data.subscription.status);
+                console.log('[Sync] Subscription saved:', data.subscription.plan, subStatus);
+
+                // Immediately enforce subscription status after sync
+                enforceSubscriptionStatus();
             }
 
             // COMMAND EXECUTION: Process server-side commands
@@ -1767,6 +1788,13 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return; // Never block auth domains
     }
 
+    // SUBSCRIPTION CHECK: Skip blocking if subscription is inactive
+    const isSubscribed = await checkSubscriptionStatus();
+    if (!isSubscribed) {
+        console.log('[Blocking] Subscription inactive - skipping offline blocklist check');
+        return;
+    }
+
     // Check against local blocklist
     const storage = await chrome.storage.local.get(CONFIG.OFFLINE_BLOCKLIST_KEY);
     const blocklist = storage[CONFIG.OFFLINE_BLOCKLIST_KEY] || DEFAULT_BLOCKLIST;
@@ -1851,6 +1879,16 @@ async function handleMessage(message, sender) {
 
         case 'SYNC_NOW':
             return await syncWithFirebase();
+
+        case 'RESET_STATS':
+            // Reset all ad blocker stats to 0
+            await chrome.storage.local.set({
+                stats: { blockedToday: 0, blockedTotal: 0 },
+                adblock_stats: { totalBlocked: 0, categories: { ads: 0, trackers: 0, malware: 0, annoyances: 0, social: 0 }, breakageEvents: 0 },
+                adblock_daily_stats: {}
+            });
+            console.log('[Stats] All stats reset to 0');
+            return { success: true, message: 'Stats reset' };
 
         case 'REQUEST_UNLOCK':
             return await requestUnlock();

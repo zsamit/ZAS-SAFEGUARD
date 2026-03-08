@@ -65,7 +65,11 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       // Allow creating new user document with any fields
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      // Users can update their profile, but NOT subscription or security fields
+      // Subscription fields are managed exclusively by Cloud Functions
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['subscription', 'master_key_hash', 'createdAt']);
       // Allow users to delete their own account
       allow delete: if isOwner(userId);
     }
@@ -93,8 +97,18 @@ service cloud.firestore {
     // ============================================
     
     match /owner_profiles/{userId} {
-      allow read, write: if isOwner(userId);
-      // Family mode users CANNOT access owner profiles at all
+      allow read: if isOwner(userId);
+      // Allow creating owner profiles — must include master_key_hash
+      allow create: if isOwner(userId) &&
+        request.resource.data.keys().hasAll(['master_key_hash', 'createdAt']) &&
+        request.resource.data.master_key_hash is string &&
+        request.resource.data.master_key_hash.size() >= 60;
+      // Users can update settings but NOT master_key_hash, createdAt, or userId
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['master_key_hash', 'createdAt', 'userId']);
+      // Users can delete their own profile
+      allow delete: if isOwner(userId);
     }
 
     // ============================================
@@ -339,16 +353,16 @@ service cloud.firestore {
     // ============================================
     
     match /alerts/{alertId} {
-      // Users can read their own alerts
+      // Users can read and list their own alerts only
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      // Users can also list alerts (for queries)
-      allow list: if isAuthenticated();
       allow create: if false; // Only Cloud Functions
       allow update: if isAuthenticated() && 
         resource.data.userId == request.auth.uid &&
-        // Only allow marking as read
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
-      allow delete: if false;
+        // Only allow marking as read (cannot un-read)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']) &&
+        request.resource.data.read == true;
+      // Users can delete their own alerts
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ============================================

@@ -23,15 +23,18 @@
         hostname === 'localhost';
 
     if (isZasDomain) {
-        // Only run the extension ID announcement on ZAS domains
+        // Only run the extension ID announcement on ZAS domains, from top frame only
         const announceId = () => {
+            // Only send from top-level frame, not iframes
+            if (window !== window.top) return;
+
             const extensionId = chrome.runtime.id;
             console.log('[ZAS Content] Dashboard detected, skipping blocking. Extension ID:', extensionId);
             window.postMessage({
                 source: 'zas-extension',
                 type: 'EXTENSION_ID_ANNOUNCEMENT',
                 extensionId: extensionId
-            }, '*');
+            }, window.location.origin);
             try {
                 localStorage.setItem('zasExtensionId', extensionId);
             } catch (e) { }

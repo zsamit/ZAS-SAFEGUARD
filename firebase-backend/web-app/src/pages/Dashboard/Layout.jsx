@@ -37,6 +37,15 @@ const DashboardLayout = () => {
         userProfile.protectionMode === null
     );
 
+    // Hide sidebar on checkout page or before trial is activated
+    const isCheckoutPage = location.pathname.includes('/checkout');
+    const hasActiveTrial = userProfile?.subscription?.plan_status === 'trialing' ||
+        userProfile?.subscription?.status === 'trialing' ||
+        userProfile?.subscription?.status === 'active' ||
+        userProfile?.subscription?.plan_status === 'active' ||
+        userProfile?.subscription?.plan === 'lifetime';
+    const hideSidebar = isCheckoutPage || !hasActiveTrial;
+
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
         { icon: Smartphone, label: 'Devices', path: '/app/devices' },
@@ -58,17 +67,35 @@ const DashboardLayout = () => {
                 <OnboardingModal onComplete={() => setShowOnboarding(false)} />
             )}
 
-            {/* Sidebar - Desktop */}
-            <aside className={styles.sidebar}>
-                {/* Logo */}
-                <div className={styles.sidebarHeader}>
-                    <Logo size="sm" variant="white" linkTo="/" />
-                </div>
+            {/* Sidebar - Desktop (hidden on checkout or before trial) */}
+            {!hideSidebar && (
+                <aside className={styles.sidebar}>
+                    {/* Logo */}
+                    <div className={styles.sidebarHeader}>
+                        <Logo size="sm" variant="white" linkTo="/" />
+                    </div>
 
-                {/* Navigation */}
-                <nav className={styles.nav}>
-                    <div className={styles.navSection}>
-                        {navItems.map((item) => (
+                    {/* Navigation */}
+                    <nav className={styles.nav}>
+                        <div className={styles.navSection}>
+                            {navItems.map((item) => (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    className={({ isActive }) =>
+                                        `${styles.navItem} ${isActive ? styles.active : ''}`
+                                    }
+                                >
+                                    <item.icon size={18} />
+                                    <span>{item.label}</span>
+                                </NavLink>
+                            ))}
+                        </div>
+                    </nav>
+
+                    {/* Bottom Section */}
+                    <div className={styles.sidebarFooter}>
+                        {bottomNavItems.map((item) => (
                             <NavLink
                                 key={item.path}
                                 to={item.path}
@@ -80,34 +107,18 @@ const DashboardLayout = () => {
                                 <span>{item.label}</span>
                             </NavLink>
                         ))}
-                    </div>
-                </nav>
 
-                {/* Bottom Section */}
-                <div className={styles.sidebarFooter}>
-                    {bottomNavItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `${styles.navItem} ${isActive ? styles.active : ''}`
-                            }
-                        >
-                            <item.icon size={18} />
-                            <span>{item.label}</span>
-                        </NavLink>
-                    ))}
-
-                    {/* User Profile */}
-                    <div className={styles.userProfile}>
-                        <div className={styles.avatar}>{initials}</div>
-                        <div className={styles.userInfo}>
-                            <span className={styles.userName}>{displayName}</span>
-                            <span className={styles.userPlan}>{planName}</span>
+                        {/* User Profile */}
+                        <div className={styles.userProfile}>
+                            <div className={styles.avatar}>{initials}</div>
+                            <div className={styles.userInfo}>
+                                <span className={styles.userName}>{displayName}</span>
+                                <span className={styles.userPlan}>{planName}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </aside>
+                </aside>
+            )}
 
             {/* Main Content */}
             <main className={styles.main}>
@@ -116,31 +127,33 @@ const DashboardLayout = () => {
                 </div>
             </main>
 
-            {/* Mobile Bottom Nav */}
-            <nav className={styles.mobileNav}>
-                {navItems.slice(0, 4).map((item) => (
+            {/* Mobile Bottom Nav (hidden on checkout or before trial) */}
+            {!hideSidebar && (
+                <nav className={styles.mobileNav}>
+                    {navItems.slice(0, 4).map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) =>
+                                `${styles.mobileNavItem} ${isActive ? styles.active : ''}`
+                            }
+                        >
+                            <item.icon size={20} />
+                            <span>{item.label}</span>
+                        </NavLink>
+                    ))}
+                    {/* Settings - always visible on mobile */}
                     <NavLink
-                        key={item.path}
-                        to={item.path}
+                        to="/app/settings"
                         className={({ isActive }) =>
                             `${styles.mobileNavItem} ${isActive ? styles.active : ''}`
                         }
                     >
-                        <item.icon size={20} />
-                        <span>{item.label}</span>
+                        <Settings size={20} />
+                        <span>Settings</span>
                     </NavLink>
-                ))}
-                {/* Settings - always visible on mobile */}
-                <NavLink
-                    to="/app/settings"
-                    className={({ isActive }) =>
-                        `${styles.mobileNavItem} ${isActive ? styles.active : ''}`
-                    }
-                >
-                    <Settings size={20} />
-                    <span>Settings</span>
-                </NavLink>
-            </nav>
+                </nav>
+            )}
         </div>
     );
 };

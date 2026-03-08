@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, PaymentElement, ExpressCheckoutElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../firebase';
 import { Shield, Check, ArrowLeft, Loader } from 'lucide-react';
@@ -95,13 +95,63 @@ const PaymentForm = ({ plan, isSetupIntent, trialEligible }) => {
 
     return (
         <form onSubmit={handleSubmit} className={styles.paymentForm}>
+            {/* Express Checkout - Google Pay / Apple Pay */}
+            <div className={styles.expressCheckout}>
+                <ExpressCheckoutElement
+                    onConfirm={async (event) => {
+                        if (!stripe || !elements) return;
+
+                        setLoading(true);
+                        setError('');
+
+                        try {
+                            let result;
+                            if (isSetupIntent) {
+                                result = await stripe.confirmSetup({
+                                    elements,
+                                    confirmParams: {
+                                        return_url: `${window.location.origin}/app/dashboard?trial=started`,
+                                    },
+                                });
+                            } else {
+                                result = await stripe.confirmPayment({
+                                    elements,
+                                    confirmParams: {
+                                        return_url: `${window.location.origin}/app/dashboard?payment=success`,
+                                    },
+                                });
+                            }
+
+                            if (result.error) {
+                                setError(result.error.message);
+                            }
+                        } catch (err) {
+                            setError('Payment failed. Please try again.');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }}
+                    options={{
+                        wallets: {
+                            applePay: 'auto',
+                            googlePay: 'auto',
+                        },
+                    }}
+                />
+            </div>
+
+            {/* Divider */}
+            <div className={styles.divider}>
+                <span>or pay with card</span>
+            </div>
+
             <div className={styles.paymentElementWrapper}>
                 <PaymentElement
                     options={{
                         layout: 'accordion',
                         wallets: {
-                            applePay: 'auto',
-                            googlePay: 'auto',
+                            applePay: 'never',
+                            googlePay: 'never',
                         },
                     }}
                 />
