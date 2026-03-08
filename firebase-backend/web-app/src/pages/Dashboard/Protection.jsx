@@ -209,7 +209,7 @@ const Protection = () => {
             <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                     <Globe size={20} />
-                    <h3>Content Categories</h3>
+                    <h3>Content Categories <Badge variant="info">Beta Preview</Badge></h3>
                 </div>
                 <Card className={styles.toggleCard}>
                     <ProtectionItem

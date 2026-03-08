@@ -11,12 +11,12 @@ const FEATURE_INFO = {
         icon: Shield
     },
     url_scanning: {
-        title: 'URL Scanner',
+        title: 'Link Scanner — Beta Preview',
         description: 'Scan any URL before visiting. Check links against global threat databases and receive instant safety ratings to protect against phishing and malicious websites.',
         icon: Shield
     },
     category_blocking: {
-        title: 'Category Controls',
+        title: 'Category Controls — Beta Preview',
         description: 'Fine-grained content filtering by category. Block social media, gaming, gambling, or other distracting content categories with customizable schedules.',
         icon: Shield
     },
@@ -26,7 +26,7 @@ const FEATURE_INFO = {
         icon: Shield
     },
     analytics: {
-        title: 'Analytics Dashboard',
+        title: 'Analytics Dashboard — Beta Preview',
         description: 'Detailed browsing analytics showing threats blocked, time saved, and protection statistics. Understand your browsing patterns and security posture.',
         icon: Shield
     },

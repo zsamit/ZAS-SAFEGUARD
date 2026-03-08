@@ -28,7 +28,7 @@ import styles from './Family.module.css';
 
 const Family = () => {
     const { isActive } = useOutletContext();
-    if (!isActive) return <LockedFeature feature="dashboard_admin" customTitle="Family Controls" customDescription="Manage and protect your family members' online activity. Add child profiles, monitor browsing, configure alerts, and set content restrictions across all connected devices." />;
+    if (!isActive) return <LockedFeature feature="dashboard_admin" customTitle="Family Controls — Beta Preview" customDescription="Manage and protect your family members' online activity. Add child profiles, monitor browsing, configure alerts, and set content restrictions across all connected devices. This feature is in Beta Preview." />;
 
     const { user, userProfile } = useAuth();
     const { children, loading } = useChildren();
@@ -115,7 +115,7 @@ const Family = () => {
         return (
             <div className={styles.page}>
                 <header className={styles.header}>
-                    <h1>Family Controls</h1>
+                    <h1>Family Controls <Badge variant="info">Beta Preview</Badge></h1>
                     <p>Monitor and protect your family's online activity.</p>
                 </header>
 
@@ -135,7 +135,7 @@ const Family = () => {
         <div className={styles.page}>
             <header className={styles.header}>
                 <div>
-                    <h1>Family Controls</h1>
+                    <h1>Family Controls <Badge variant="info">Beta Preview</Badge></h1>
                     <p>Monitor and protect your family's online activity.</p>
                 </div>
                 <Button onClick={() => setShowAddModal(true)}>

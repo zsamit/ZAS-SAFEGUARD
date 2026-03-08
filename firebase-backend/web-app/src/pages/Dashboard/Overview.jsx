@@ -323,17 +323,18 @@ const Overview = () => {
                             <div className={styles.featureListSimple}>
                                 {[
                                     { icon: Eye, label: 'Ad & Threat Protection' },
-                                    { icon: ScanLine, label: 'URL Scanning' },
-                                    { icon: Ban, label: 'Category Controls' },
+                                    { icon: ScanLine, label: 'Link Scanner', beta: true },
+                                    { icon: Ban, label: 'Category Controls', beta: true },
                                     { icon: BookOpen, label: 'Study & Focus Mode' },
-                                    { icon: BarChart3, label: 'Analytics Dashboard' },
+                                    { icon: BarChart3, label: 'Analytics Dashboard', beta: true },
                                     { icon: Smartphone, label: 'Device Management' },
                                     { icon: Bell, label: 'Advanced Alerts' },
-                                    { icon: Users, label: 'Family Controls' },
+                                    { icon: Users, label: 'Family Controls', beta: true },
                                 ].map(f => (
                                     <div key={f.label} className={styles.featureItem}>
                                         <f.icon size={14} />
                                         <span>{f.label}</span>
+                                        {f.beta && <Badge variant="info" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>Beta Preview</Badge>}
                                         <Lock size={12} className={styles.featureItemLock} />
                                     </div>
                                 ))}

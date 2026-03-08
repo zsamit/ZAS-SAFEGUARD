@@ -62,7 +62,7 @@ const DashboardLayout = () => {
         { icon: Smartphone, label: 'Devices', path: '/app/devices', mode: 'B' },
         { icon: Shield, label: 'Protection', path: '/app/protection', mode: 'A' },
         { icon: EyeOff, label: 'Ad Blocker', path: '/app/adblock', mode: 'B' },
-        { icon: ScanLine, label: 'Scanner', path: '/app/scanner', mode: 'B' },
+        { icon: ScanLine, label: 'Link Scanner', path: '/app/scanner', mode: 'B' },
         { icon: Bell, label: 'Alerts', path: '/app/alerts', mode: 'B' },
         { icon: Users, label: 'Family', path: '/app/family', mode: 'B' },
     ];

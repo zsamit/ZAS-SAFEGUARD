@@ -177,7 +177,7 @@ const Scanner = () => {
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <h1>URL Scanner</h1>
+                <h1>Link Scanner <Badge variant="info">Beta Preview</Badge></h1>
                 <p>Check if a website is safe before visiting.</p>
             </header>
 
