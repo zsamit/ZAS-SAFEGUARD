@@ -139,15 +139,8 @@ exports.getBlockPolicy = functions.runWith(runtimeOpts).https.onCall(async (data
         return {
             success: true,
             policy,
-            // Include subscription info so extension knows user's plan
-            subscription: {
-                plan: userData?.subscription?.plan || 'free',
-                // Use plan_status (Firestore field) - this is the source of truth
-                plan_status: userData?.subscription?.plan_status || 'inactive',
-                status: userData?.subscription?.plan_status || userData?.subscription?.status || 'inactive',
-                trial_end: userData?.subscription?.trial_end?.toDate?.()?.toISOString() || null,
-                current_period_end: userData?.subscription?.current_period_end?.toDate?.()?.toISOString() || null
-            },
+            // NOTE: Subscription data removed. Use verifySubscription for entitlements.
+            // getBlockPolicy returns blocking rules and commands only.
             // Include lock status for command execution
             commands: {
                 childLocked: userData?.childLocked || false,

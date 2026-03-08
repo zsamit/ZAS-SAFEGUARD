@@ -86,30 +86,91 @@ const CATEGORY_BLOCKLISTS = {
 let activeStudySession = null;
 
 // ============================================
-// SUBSCRIPTION STATUS CHECK — SERVER-VERIFIED
+// SUBSCRIPTION VERIFICATION — SERVER-VERIFIED
 // ============================================
-// chrome.storage.local is ONLY a cache. The server is the source of truth.
-// Premium features require a valid, non-stale server verification.
+// ZAS Safeguard — AI Browser Security Platform
+// chrome.storage.local is ONLY a cache. verifySubscription is the single entitlement authority.
+// getBlockPolicy returns blocking rules only — never determines premium access.
+//
+// Source of truth chain:
+//   Stripe → Firestore → verifySubscription → Extension cache → Enforcement
+//
+// Network failure policy (locked):
+//   - Previously verified paid user: 1-hour grace → then fail closed
+//   - Free user or no prior verification: fail closed immediately
+//   - Tier 1 (basic_blocking / ruleset_block): ALWAYS active regardless of state
+//   - Tier 4 (optional): disabled during grace/failure
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;    // 10 minutes
-const GRACE_PERIOD_MS = 60 * 60 * 1000;         // 1 hour for network failures
+const GRACE_PERIOD_MS = 60 * 60 * 1000;         // 1 hour for verified paid users only
 const VERIFY_ENDPOINT = `${CONFIG.FIREBASE_API_ENDPOINT}/verifySubscription`;
 
-// Plan capability matrix (must match server-side)
+// ============================================
+// PLAN CAPABILITY MATRIX (Locked — must match server)
+// ============================================
+// 8 feature flags × 5 plan tiers
+// Layers:
+//   Local protection:    basic_blocking, category_blocking
+//   Cloud intelligence:  security_intelligence, url_scanning, advanced_alerts
+//   User controls:       study_mode
+//   Account controls:    analytics, dashboard_admin
+
 const PLAN_CAPABILITIES = {
-    free: { basic_blocking: true, ad_blocking: false, url_scanning: false, malware_protection: false, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: false },
-    trial: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
-    essential_monthly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: true },
-    essential_yearly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: true },
-    pro_monthly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
-    pro_yearly: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true },
-    lifetime: { basic_blocking: true, ad_blocking: true, url_scanning: true, malware_protection: true, category_blocking: true, study_mode: true, advanced_alerts: true, analytics: true, cosmetic_filtering: true }
+    free: {
+        basic_blocking: true,
+        security_intelligence: false,
+        url_scanning: false,
+        category_blocking: false,
+        study_mode: false,
+        analytics: false,
+        dashboard_admin: false,
+        advanced_alerts: false
+    },
+    trial: {
+        basic_blocking: true,
+        security_intelligence: true,
+        url_scanning: true,
+        category_blocking: true,
+        study_mode: true,
+        analytics: true,
+        dashboard_admin: true,
+        advanced_alerts: true
+    },
+    essential: {
+        basic_blocking: true,
+        security_intelligence: true,
+        url_scanning: true,
+        category_blocking: false,
+        study_mode: false,
+        analytics: false,
+        dashboard_admin: true,
+        advanced_alerts: false
+    },
+    pro: {
+        basic_blocking: true,
+        security_intelligence: true,
+        url_scanning: true,
+        category_blocking: true,
+        study_mode: true,
+        analytics: true,
+        dashboard_admin: true,
+        advanced_alerts: true
+    },
+    expired: {
+        basic_blocking: true,
+        security_intelligence: false,
+        url_scanning: false,
+        category_blocking: false,
+        study_mode: false,
+        analytics: false,
+        dashboard_admin: false,
+        advanced_alerts: false
+    }
 };
-const NO_PREMIUM = { basic_blocking: true, ad_blocking: false, url_scanning: false, malware_protection: false, category_blocking: false, study_mode: false, advanced_alerts: false, analytics: false, cosmetic_filtering: false };
 
 /**
  * Check if a feature is available for the current verified plan.
- * @param {string} featureName
+ * @param {string} featureName - e.g. 'security_intelligence', 'study_mode'
  * @param {object|null} verifiedState - Cached verification from storage
  * @returns {boolean}
  */
@@ -121,14 +182,18 @@ function canUseFeature(featureName, verifiedState) {
         return verifiedState.capabilities[featureName] === true;
     }
     const caps = verifiedState.active
-        ? (PLAN_CAPABILITIES[verifiedState.plan] || NO_PREMIUM)
-        : NO_PREMIUM;
+        ? (PLAN_CAPABILITIES[verifiedState.plan] || PLAN_CAPABILITIES.expired)
+        : PLAN_CAPABILITIES.expired;
     return caps[featureName] === true;
 }
 
 /**
  * Check if the cached verification is still valid.
- * @returns {{ valid: boolean, expired: boolean, graceActive: boolean }}
+ * Rules:
+ *   - Within TTL (≤10min): fully valid
+ *   - Within grace (≤1hr) AND previously verified active PAID user: valid but stale
+ *   - Free users: NO grace period
+ *   - Beyond grace or no prior verification: invalid → fail closed
  */
 function checkCacheValidity(cached) {
     if (!cached || !cached.lastVerifiedAt || !cached.verified) {
@@ -138,17 +203,18 @@ function checkCacheValidity(cached) {
     if (age <= VERIFICATION_TTL_MS) {
         return { valid: true, expired: false, graceActive: false };
     }
-    if (age <= GRACE_PERIOD_MS && cached.active === true) {
+    // Grace period ONLY for previously verified active PAID users
+    if (age <= GRACE_PERIOD_MS && cached.active === true && cached.plan !== 'free' && cached.plan !== 'expired') {
         return { valid: true, expired: true, graceActive: true };
     }
     return { valid: false, expired: true, graceActive: false };
 }
 
 /**
- * Verify subscription with the server.
+ * Verify subscription with the server (single entitlement authority).
  * This is the ONLY way to enable premium features.
  * @param {boolean} force - If true, skip cache check
- * @returns {object|null} - Verified subscription state, or null on failure
+ * @returns {object} Verified subscription state
  */
 async function verifySubscriptionWithServer(force = false) {
     try {
@@ -158,11 +224,11 @@ async function verifySubscriptionWithServer(force = false) {
             const cached = stored._verifiedSubscription;
             const cacheStatus = checkCacheValidity(cached);
             if (cacheStatus.valid && !cacheStatus.expired) {
-                console.log('[Subscription] Using cached verification (valid)');
+                console.log('[Security] Using cached verification (valid)');
                 return cached;
             }
             if (cacheStatus.graceActive) {
-                console.log('[Subscription] Cache stale, in grace period — will re-verify');
+                console.warn('[Security] Cache stale — grace period active, re-verifying...');
             }
         }
 
@@ -171,13 +237,13 @@ async function verifySubscriptionWithServer(force = false) {
         const token = storage[CONFIG.USER_TOKEN_KEY];
 
         if (!token) {
-            console.log('[Subscription] No auth token — using free tier');
+            console.log('[Security] No auth token — free tier only');
             const freeState = {
                 verified: true,
                 active: false,
                 plan: 'free',
                 plan_status: 'inactive',
-                capabilities: NO_PREMIUM,
+                capabilities: PLAN_CAPABILITIES.free,
                 lastVerifiedAt: Date.now()
             };
             await chrome.storage.local.set({ _verifiedSubscription: freeState });
@@ -185,7 +251,7 @@ async function verifySubscriptionWithServer(force = false) {
         }
 
         // Call server verification endpoint
-        console.log('[Subscription] Calling server for verification...');
+        console.log('[Security] Calling verifySubscription...');
         const response = await fetch(VERIFY_ENDPOINT, {
             method: 'POST',
             headers: {
@@ -214,37 +280,37 @@ async function verifySubscriptionWithServer(force = false) {
 
         await chrome.storage.local.set({
             _verifiedSubscription: verifiedState,
-            // Keep legacy fields for backward compatibility
+            // Legacy fields for backward compatibility
             planType: result.plan,
             subscriptionStatus: result.plan_status,
             trialEndDate: result.trial_end || null,
             subscriptionEndDate: result.current_period_end || null
         });
 
-        console.log('[Subscription] Server verification successful:', result.plan, result.plan_status);
+        console.log('[Security] Verification successful:', result.plan, result.plan_status);
         return verifiedState;
 
     } catch (error) {
-        console.error('[Subscription] Verification failed:', error.message);
+        console.error('[Security] Verification failed:', error.message);
 
-        // On network failure, check if we have a grace period cache
+        // On network failure, check grace period
         const stored = await chrome.storage.local.get(['_verifiedSubscription']);
         const cached = stored._verifiedSubscription;
         const cacheStatus = checkCacheValidity(cached);
 
         if (cacheStatus.graceActive) {
-            console.log('[Subscription] Network failure — using grace period cache');
+            console.warn('[Security] Network failure — using grace period (paid user, 1hr max)');
             return cached;
         }
 
-        // No valid cache — fail closed (free tier only)
-        console.log('[Subscription] No valid cache — fail closed to free tier');
+        // No valid cache — fail closed (free tier / core safety only)
+        console.warn('[Security] No valid cache — fail closed, core safety only');
         const failSafeState = {
             verified: true,
             active: false,
-            plan: 'free',
+            plan: 'expired',
             plan_status: 'inactive',
-            capabilities: NO_PREMIUM,
+            capabilities: PLAN_CAPABILITIES.expired,
             lastVerifiedAt: Date.now(),
             failedVerification: true
         };
@@ -254,47 +320,54 @@ async function verifySubscriptionWithServer(force = false) {
 }
 
 /**
- * Enable or disable extension features based on VERIFIED server state.
- * Uses tiered ruleset loading:
- *   Tier 1 (core): ruleset_block, adblock_malware
- *   Tier 2 (privacy): adblock_trackers
- *   Tier 3 (ads): adblock_ads, adblock_youtube
- *   Tier 4 (optional): adblock_annoyances, adblock_social
+ * Enable or disable protection tiers based on VERIFIED server state.
+ *
+ * Tier 1: Core Safety — ruleset_block — ALWAYS active, never disabled
+ * Tier 2: Security Intelligence — adblock_malware — requires security_intelligence
+ * Tier 3: Ad Filtering + Privacy — adblock_ads, adblock_trackers, adblock_youtube — requires security_intelligence
+ * Tier 4: Optional QoL — adblock_annoyances, adblock_social — requires security_intelligence + user opt-in; DISABLED during grace/failure
  */
 async function enforceSubscriptionStatus() {
     const verified = await verifySubscriptionWithServer();
-    const capabilities = verified?.capabilities || NO_PREMIUM;
+    const capabilities = verified?.capabilities || PLAN_CAPABILITIES.expired;
     const isActive = verified?.active === true;
+    const isGraceOrFailure = verified?.failedVerification === true ||
+        (checkCacheValidity(verified).graceActive);
 
-    console.log('[Subscription] Enforcing:', isActive ? 'PREMIUM' : 'FREE', '| Plan:', verified?.plan || 'unknown');
+    console.log('[Security] Enforcing:', isActive ? 'PREMIUM' : 'FREE',
+        '| Plan:', verified?.plan || 'unknown',
+        '| Grace:', isGraceOrFailure);
 
     try {
-        const allRulesets = ['ruleset_block', 'adblock_ads', 'adblock_trackers', 'adblock_malware', 'adblock_annoyances', 'adblock_social', 'adblock_youtube'];
+        const allRulesets = ['ruleset_block', 'adblock_malware', 'adblock_ads', 'adblock_trackers', 'adblock_youtube', 'adblock_annoyances', 'adblock_social'];
         const enableIds = [];
         const disableIds = [];
 
-        // Tier 1: Core protection (always for active plans, basic_blocking for free)
-        if (capabilities.basic_blocking) enableIds.push('ruleset_block');
-        if (capabilities.malware_protection) enableIds.push('adblock_malware');
+        // Tier 1: Core Safety — ALWAYS active, never disabled
+        enableIds.push('ruleset_block');
 
-        // Tier 2: Privacy (premium)
-        if (capabilities.ad_blocking) enableIds.push('adblock_trackers');
+        // Tier 2: Security Intelligence
+        if (capabilities.security_intelligence) {
+            enableIds.push('adblock_malware');
+        }
 
-        // Tier 3: Ad blocking (premium)
-        if (capabilities.ad_blocking) {
+        // Tier 3: Ad Filtering + Privacy
+        if (capabilities.security_intelligence) {
             enableIds.push('adblock_ads');
+            enableIds.push('adblock_trackers');
             enableIds.push('adblock_youtube');
         }
 
-        // Tier 4: Optional (premium, check user preferences)
-        if (capabilities.ad_blocking) {
+        // Tier 4: Optional / Quality-of-Life
+        // DISABLED during grace/failure — these are convenience, not security
+        if (capabilities.security_intelligence && !isGraceOrFailure) {
             const config = await chrome.storage.local.get(['adblock_config']);
             const adConfig = config.adblock_config || {};
             if (adConfig.categories?.annoyances) enableIds.push('adblock_annoyances');
             if (adConfig.categories?.social) enableIds.push('adblock_social');
         }
 
-        // Everything not enabled should be disabled
+        // Everything not enabled → disabled
         for (const rs of allRulesets) {
             if (!enableIds.includes(rs)) disableIds.push(rs);
         }
@@ -304,7 +377,7 @@ async function enforceSubscriptionStatus() {
             disableRulesetIds: disableIds
         });
 
-        // If not premium, also clear dynamic rules
+        // If not active, also clear dynamic rules (except core safety)
         if (!isActive) {
             const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
             const existingIds = existingRules.map(rule => rule.id);
@@ -313,25 +386,22 @@ async function enforceSubscriptionStatus() {
             }
         }
 
-        // Log rule counts for diagnostics
+        // Diagnostics: log rule counts
         const ruleCount = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
-        console.log('[Subscription] Rulesets: enabled=', enableIds, 'disabled=', disableIds, 'available static rules:', ruleCount);
+        console.log('[Security] Rulesets enabled:', enableIds, '| disabled:', disableIds, '| available static rules:', ruleCount);
 
     } catch (error) {
-        console.error('[Subscription] Error enforcing status:', error);
+        console.error('[Security] Error enforcing protection status:', error);
     }
 }
 
-// Check subscription status periodically (every 5 minutes)
+// Periodic verification (every 5 minutes)
 setInterval(enforceSubscriptionStatus, 5 * 60 * 1000);
 
-// Also check on storage changes (when subscription status updates from sync)
+// React to verified subscription changes only (not legacy fields)
 chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local') {
-        // Only react to verified subscription changes, NOT legacy fields
-        if (changes._verifiedSubscription) {
-            enforceSubscriptionStatus();
-        }
+    if (areaName === 'local' && changes._verifiedSubscription) {
+        enforceSubscriptionStatus();
     }
 });
 
@@ -1542,14 +1612,10 @@ async function syncWithFirebase() {
                 [CONFIG.POLICY_KEY]: data.policy
             });
 
-            // Subscription: trigger server verification instead of trusting sync response
-            // (getBlockPolicy still returns sub data, but we verify separately)
-            if (data.subscription) {
-                console.log('[Sync] Subscription data received, triggering server verification...');
-                // Force server re-verification for authoritative state
-                await verifySubscriptionWithServer(true);
-                await enforceSubscriptionStatus();
-            }
+            // Verify subscription via dedicated endpoint (getBlockPolicy no longer returns sub data)
+            console.log('[Sync] Triggering subscription verification...');
+            await verifySubscriptionWithServer(true);
+            await enforceSubscriptionStatus();
 
             // COMMAND EXECUTION: Process server-side commands
             if (data.commands) {

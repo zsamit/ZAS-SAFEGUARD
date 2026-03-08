@@ -1,108 +1,80 @@
 /**
  * ZAS Safeguard — Centralized Entitlements Module
- * 
- * Single source of truth for plan capabilities in the extension.
- * Used by background.js to determine what features to enable.
- * 
- * IMPORTANT: This module does NOT make any decisions about subscription
- * status. It only maps a verified server response to feature flags.
+ * AI Browser Security Platform — Local Entitlement Reference
+ *
+ * Single reference for plan capabilities in the extension.
+ * Used by background.js to map verified server state to feature flags.
+ *
+ * IMPORTANT: This module does NOT make entitlement decisions.
+ * Only verifySubscription (server) determines premium access.
+ * This module maps a verified response to local feature behavior.
+ *
+ * Source of truth chain:
+ *   Stripe → Firestore → verifySubscription → Extension cache → This module
  */
 
 // ============================================
-// PLAN CAPABILITY MATRIX
+// PLAN CAPABILITY MATRIX (Locked — must match server)
 // ============================================
+// 8 feature flags × 5 plan tiers
+//
+// Layers:
+//   Local protection:    basic_blocking, category_blocking
+//   Cloud intelligence:  security_intelligence, url_scanning, advanced_alerts
+//   User controls:       study_mode
+//   Account controls:    analytics, dashboard_admin
 
 const PLAN_CAPABILITIES = {
     free: {
         basic_blocking: true,
-        ad_blocking: false,
+        security_intelligence: false,
         url_scanning: false,
-        malware_protection: false,
         category_blocking: false,
         study_mode: false,
-        advanced_alerts: false,
         analytics: false,
-        cosmetic_filtering: false
+        dashboard_admin: false,
+        advanced_alerts: false
     },
     trial: {
         basic_blocking: true,
-        ad_blocking: true,
+        security_intelligence: true,
         url_scanning: true,
-        malware_protection: true,
         category_blocking: true,
         study_mode: true,
-        advanced_alerts: true,
         analytics: true,
-        cosmetic_filtering: true
+        dashboard_admin: true,
+        advanced_alerts: true
     },
-    essential_monthly: {
+    essential: {
         basic_blocking: true,
-        ad_blocking: true,
+        security_intelligence: true,
         url_scanning: true,
-        malware_protection: true,
         category_blocking: false,
         study_mode: false,
-        advanced_alerts: false,
         analytics: false,
-        cosmetic_filtering: true
+        dashboard_admin: true,
+        advanced_alerts: false
     },
-    essential_yearly: {
+    pro: {
         basic_blocking: true,
-        ad_blocking: true,
+        security_intelligence: true,
         url_scanning: true,
-        malware_protection: true,
+        category_blocking: true,
+        study_mode: true,
+        analytics: true,
+        dashboard_admin: true,
+        advanced_alerts: true
+    },
+    expired: {
+        basic_blocking: true,
+        security_intelligence: false,
+        url_scanning: false,
         category_blocking: false,
         study_mode: false,
-        advanced_alerts: false,
         analytics: false,
-        cosmetic_filtering: true
-    },
-    pro_monthly: {
-        basic_blocking: true,
-        ad_blocking: true,
-        url_scanning: true,
-        malware_protection: true,
-        category_blocking: true,
-        study_mode: true,
-        advanced_alerts: true,
-        analytics: true,
-        cosmetic_filtering: true
-    },
-    pro_yearly: {
-        basic_blocking: true,
-        ad_blocking: true,
-        url_scanning: true,
-        malware_protection: true,
-        category_blocking: true,
-        study_mode: true,
-        advanced_alerts: true,
-        analytics: true,
-        cosmetic_filtering: true
-    },
-    lifetime: {
-        basic_blocking: true,
-        ad_blocking: true,
-        url_scanning: true,
-        malware_protection: true,
-        category_blocking: true,
-        study_mode: true,
-        advanced_alerts: true,
-        analytics: true,
-        cosmetic_filtering: true
+        dashboard_admin: false,
+        advanced_alerts: false
     }
-};
-
-// No capabilities — used for expired/cancelled/unknown plans
-const NO_PREMIUM = {
-    basic_blocking: true,   // Free tier always gets basic blocking
-    ad_blocking: false,
-    url_scanning: false,
-    malware_protection: false,
-    category_blocking: false,
-    study_mode: false,
-    advanced_alerts: false,
-    analytics: false,
-    cosmetic_filtering: false
 };
 
 // ============================================
@@ -111,14 +83,14 @@ const NO_PREMIUM = {
 
 /**
  * Check if a specific feature is available for the current plan.
- * 
- * @param {string} featureName - Feature to check (e.g., 'ad_blocking', 'study_mode')
+ *
+ * @param {string} featureName - Feature to check (e.g., 'security_intelligence', 'study_mode')
  * @param {object} verifiedSubscription - The verified server response
- * @returns {boolean} - Whether the feature is available
+ * @returns {boolean}
  */
 function canUseFeature(featureName, verifiedSubscription) {
     if (!verifiedSubscription || !verifiedSubscription.verified) {
-        // Not verified — only allow basic blocking
+        // Not verified — only core safety (basic_blocking) is available
         return featureName === 'basic_blocking';
     }
 
@@ -131,90 +103,88 @@ function canUseFeature(featureName, verifiedSubscription) {
     const plan = verifiedSubscription.plan || 'free';
     const isActive = verifiedSubscription.active === true;
     const capabilities = isActive
-        ? (PLAN_CAPABILITIES[plan] || NO_PREMIUM)
-        : NO_PREMIUM;
+        ? (PLAN_CAPABILITIES[plan] || PLAN_CAPABILITIES.expired)
+        : PLAN_CAPABILITIES.expired;
 
     return capabilities[featureName] === true;
 }
 
 /**
  * Get all capabilities for the verified subscription.
- * 
+ *
  * @param {object} verifiedSubscription - The verified server response
- * @returns {object} - All capability flags
+ * @returns {object} All capability flags
  */
 function getCapabilities(verifiedSubscription) {
     if (!verifiedSubscription || !verifiedSubscription.verified || !verifiedSubscription.active) {
-        return NO_PREMIUM;
+        return PLAN_CAPABILITIES.expired;
     }
-
     if (verifiedSubscription.capabilities) {
         return verifiedSubscription.capabilities;
     }
-
     const plan = verifiedSubscription.plan || 'free';
-    return PLAN_CAPABILITIES[plan] || NO_PREMIUM;
+    return PLAN_CAPABILITIES[plan] || PLAN_CAPABILITIES.expired;
 }
+
+// ============================================
+// RULESET TIER MAPPING (Locked)
+// ============================================
+//
+// Tier 1: Core Safety — always active, never disabled
+//   - ruleset_block
+//
+// Tier 2: Security Intelligence — requires security_intelligence flag
+//   - adblock_malware (malware/phishing/fraud rulesets)
+//
+// Tier 3: Ad Filtering + Privacy — requires pro or trial
+//   - adblock_ads, adblock_trackers, adblock_youtube
+//
+// Tier 4: Optional / Quality-of-Life — requires pro or trial + user opt-in
+//   - adblock_annoyances, adblock_social
+//   - DISABLED during grace/failure scenarios
 
 /**
  * Map capabilities to rulesets that should be enabled.
- * 
- * Tier 1 (core): Always loaded first
- *   - ruleset_block (basic content blocking)
- *   - adblock_malware (security)
- * 
- * Tier 2 (privacy): Premium
- *   - adblock_trackers
- * 
- * Tier 3 (ad blocking): Premium
- *   - adblock_ads
- *   - adblock_youtube
- * 
- * Tier 4 (optional): Premium
- *   - adblock_annoyances
- *   - adblock_social
- * 
- * @param {object} capabilities - Capability flags
+ *
+ * @param {object} capabilities - Capability flags from verified state
+ * @param {object} userPrefs - User preference settings (for Tier 4)
+ * @param {boolean} isGraceOrFailure - Whether extension is in grace/failure mode
  * @returns {{ enable: string[], disable: string[] }}
  */
-function getRulesetConfig(capabilities) {
+function getRulesetConfig(capabilities, userPrefs, isGraceOrFailure) {
     const allRulesets = [
         'ruleset_block',
+        'adblock_malware',
         'adblock_ads',
         'adblock_trackers',
-        'adblock_malware',
+        'adblock_youtube',
         'adblock_annoyances',
-        'adblock_social',
-        'adblock_youtube'
+        'adblock_social'
     ];
 
     const enable = [];
     const disable = [];
 
-    // Tier 1: Core protection (free + premium)
-    if (capabilities.basic_blocking) {
-        enable.push('ruleset_block');
-    }
-    if (capabilities.malware_protection) {
+    // Tier 1: Core Safety — ALWAYS active, never disabled
+    enable.push('ruleset_block');
+
+    // Tier 2: Security Intelligence
+    if (capabilities.security_intelligence) {
         enable.push('adblock_malware');
     }
 
-    // Tier 2: Privacy (premium)
-    if (capabilities.ad_blocking) {
-        enable.push('adblock_trackers');
-    }
-
-    // Tier 3: Ad blocking (premium)
-    if (capabilities.ad_blocking) {
+    // Tier 3: Ad Filtering + Privacy (requires security_intelligence as baseline)
+    if (capabilities.security_intelligence) {
         enable.push('adblock_ads');
+        enable.push('adblock_trackers');
         enable.push('adblock_youtube');
     }
 
-    // Tier 4: Optional (premium, user-controlled)
-    if (capabilities.ad_blocking) {
-        // These are user-controlled but require premium
-        // Don't auto-enable — they'll be enabled by user preference
-        // For now, keep them in disable unless user has turned them on
+    // Tier 4: Optional / Quality-of-Life
+    // Disabled during grace/failure — these are convenience, not security
+    if (capabilities.security_intelligence && !isGraceOrFailure) {
+        if (userPrefs?.annoyances) enable.push('adblock_annoyances');
+        if (userPrefs?.social) enable.push('adblock_social');
     }
 
     // Everything not enabled should be disabled
@@ -228,15 +198,21 @@ function getRulesetConfig(capabilities) {
 }
 
 // ============================================
-// VERIFICATION CACHE
+// VERIFICATION CACHE (Locked)
 // ============================================
 
-const VERIFICATION_TTL_MS = 10 * 60 * 1000;       // 10 minutes
-const GRACE_PERIOD_MS = 60 * 60 * 1000;            // 1 hour
+const VERIFICATION_TTL_MS = 10 * 60 * 1000;    // 10 minutes
+const GRACE_PERIOD_MS = 60 * 60 * 1000;         // 1 hour
 
 /**
  * Check if cached verification is still valid.
- * 
+ *
+ * Rules:
+ *   - Within TTL (≤10min): fully valid
+ *   - Within grace (≤1hr) AND previously active paid user: valid but stale
+ *   - Free users: no grace period
+ *   - Beyond grace or no prior verification: invalid → fail closed
+ *
  * @param {object} cached - Cached verification data from storage
  * @returns {{ valid: boolean, expired: boolean, graceActive: boolean }}
  */
@@ -245,29 +221,27 @@ function checkCacheValidity(cached) {
         return { valid: false, expired: true, graceActive: false };
     }
 
-    const now = Date.now();
-    const age = now - cached.lastVerifiedAt;
+    const age = Date.now() - cached.lastVerifiedAt;
 
     // Within TTL — fully valid
     if (age <= VERIFICATION_TTL_MS) {
         return { valid: true, expired: false, graceActive: false };
     }
 
-    // Within grace period — valid but stale (should re-verify ASAP)
-    if (age <= GRACE_PERIOD_MS && cached.active === true) {
+    // Grace period — ONLY for previously verified active PAID users
+    // Free users do NOT get grace period behavior
+    if (age <= GRACE_PERIOD_MS && cached.active === true && cached.plan !== 'free' && cached.plan !== 'expired') {
         return { valid: true, expired: true, graceActive: true };
     }
 
-    // Beyond grace period — invalid
+    // Beyond grace or free user — invalid
     return { valid: false, expired: true, graceActive: false };
 }
 
 // Export for use as inline module in background.js
-// (Service workers can't use ES modules with importScripts)
 if (typeof globalThis !== 'undefined') {
     globalThis.ZASEntitlements = {
         PLAN_CAPABILITIES,
-        NO_PREMIUM,
         canUseFeature,
         getCapabilities,
         getRulesetConfig,
