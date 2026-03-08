@@ -157,9 +157,10 @@ const Protection = () => {
                     <ProtectionItem
                         label="Phishing & Malware Protection"
                         description="Real-time scanning for malware and deceptive sites."
-                        checked={settings.malware}
+                        checked={isPro ? settings.malware : false}
                         onChange={() => handleToggle('malware')}
-                        badge={isPro ? null : "Pro"}
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                         icon={<Bug size={16} />}
                     />
                 </Card>
@@ -175,15 +176,19 @@ const Protection = () => {
                     <ProtectionItem
                         label="Ad Blocker"
                         description="Removes intrusive ads from websites and videos."
-                        checked={settings.ads}
+                        checked={isPro ? settings.ads : false}
                         onChange={() => handleToggle('ads')}
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                     />
                     <div className={styles.divider} />
                     <ProtectionItem
                         label="Tracker Blocking"
                         description="Stops data collectors from following your browsing history."
-                        checked={settings.trackers}
+                        checked={isPro ? settings.trackers : false}
                         onChange={() => handleToggle('trackers')}
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                     />
                 </Card>
             </section>
@@ -198,9 +203,11 @@ const Protection = () => {
                     <ProtectionItem
                         label="Block Social Media"
                         description="Restricts access to Instagram, TikTok, Twitter, YouTube, etc."
-                        checked={settings.social}
+                        checked={isPro ? settings.social : false}
                         onChange={() => handleToggle('social')}
                         helperText="Active during Focus Mode or Internet Lock"
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                     />
                 </Card>
             </section>
@@ -215,15 +222,19 @@ const Protection = () => {
                     <ProtectionItem
                         label="Gambling Sites"
                         description="Blocks online casinos, betting, and gambling platforms."
-                        checked={settings.gambling}
+                        checked={isPro ? settings.gambling : false}
                         onChange={() => handleToggle('gambling')}
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                     />
                     <div className={styles.divider} />
                     <ProtectionItem
                         label="Violence & Gore"
                         description="Blocks extremely violent or graphic content."
-                        checked={settings.violence}
+                        checked={isPro ? settings.violence : false}
                         onChange={() => handleToggle('violence')}
+                        badge={isPro ? null : "Premium"}
+                        locked={!isPro}
                     />
                 </Card>
             </section>
