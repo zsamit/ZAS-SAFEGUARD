@@ -423,7 +423,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.alarms.create('heartbeat', { periodInMinutes: 1 });
 
     // Initialize Ad Blocker Engine
-    initAdBlockEngine();
+    await initAdBlockEngine();
+
+    // Enforce subscription status AFTER adblock init to gate premium rulesets
+    await enforceSubscriptionStatus();
 });
 
 // ============================================
@@ -1468,7 +1471,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // Check study mode on startup
 chrome.runtime.onStartup.addListener(() => {
     syncStudyMode();
-    checkChildLock(); // Also check child lock on startup
+    checkChildLock();
+    // Re-enforce entitlement on every browser startup
+    enforceSubscriptionStatus();
 });
 
 // ============================================
@@ -2551,13 +2556,19 @@ async function applyAdBlockConfig(config) {
             return;
         }
 
+        // Check entitlement — only enable premium rulesets if user has security_intelligence
+        const verified = await chrome.storage.local.get(['_verifiedSubscription']);
+        const sub = verified._verifiedSubscription;
+        const capabilities = sub?.capabilities || PLAN_CAPABILITIES.expired;
+        const hasPremium = capabilities.security_intelligence === true;
+
         const enableIds = [];
         const disableIds = [];
 
         for (const [category, enabled] of Object.entries(config.categories)) {
             const rulesetId = ADBLOCK_CATEGORY_RULESETS[category];
             if (rulesetId) {
-                if (enabled) {
+                if (enabled && hasPremium) {
                     enableIds.push(rulesetId);
                 } else {
                     disableIds.push(rulesetId);
@@ -2572,7 +2583,7 @@ async function applyAdBlockConfig(config) {
             });
         }
 
-        console.log('[AdBlock Engine] Applied config:', { enabled: enableIds, disabled: disableIds });
+        console.log('[AdBlock Engine] Applied config (premium:', hasPremium, '):', { enabled: enableIds, disabled: disableIds });
     } catch (error) {
         console.error('[AdBlock Engine] Apply config error:', error);
     }
