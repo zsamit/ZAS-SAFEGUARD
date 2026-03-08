@@ -6,7 +6,7 @@ import styles from './LockedFeature.module.css';
 
 const FEATURE_INFO = {
     security_intelligence: {
-        title: 'Security Intelligence',
+        title: 'Ad & Threat Protection',
         description: 'Advanced AI-powered threat detection that monitors web traffic in real-time, blocking malware, phishing attempts, and malicious scripts before they reach your browser.',
         icon: Shield
     },

@@ -322,7 +322,7 @@ const Overview = () => {
                             </h4>
                             <div className={styles.featureListSimple}>
                                 {[
-                                    { icon: Eye, label: 'Security Intelligence' },
+                                    { icon: Eye, label: 'Ad & Threat Protection' },
                                     { icon: ScanLine, label: 'URL Scanning' },
                                     { icon: Ban, label: 'Category Controls' },
                                     { icon: BookOpen, label: 'Study & Focus Mode' },
