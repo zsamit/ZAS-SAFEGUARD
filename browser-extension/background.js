@@ -846,24 +846,16 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return;
     }
 
-    // Check if user has Pro plan for URL scanning (check multiple storage keys)
-    const stored = await chrome.storage.local.get(['planType', 'subscriptionPlan', 'subscriptionStatus']);
-    const planType = stored.planType || stored.subscriptionPlan || '';
-    const status = stored.subscriptionStatus || '';
+    // Check if user has URL scanning entitlement (server-verified only)
+    const storedVerified = await chrome.storage.local.get(['_verifiedSubscription']);
+    const verifiedState = storedVerified._verifiedSubscription;
+    const hasUrlScanning = canUseFeature('url_scanning', verifiedState);
 
-    // Be flexible with plan matching
-    const isProPlan =
-        planType === 'lifetime' ||
-        planType === 'pro' ||
-        planType.includes('pro') ||
-        status === 'lifetime' ||
-        ['pro_monthly', 'pro_yearly', 'essential_monthly', 'essential_yearly'].includes(planType);
+    console.log('[URLScanner] Entitlement check:', { plan: verifiedState?.plan, hasUrlScanning });
 
-    console.log('[URLScanner] Plan check:', { planType, status, isProPlan });
-
-    if (!isProPlan) {
-        // Free users don't get URL safety scanning
-        console.log('[ZAS] Free plan - URL scanning is a Pro feature');
+    if (!hasUrlScanning) {
+        // URL scanning requires verified entitlement
+        console.log('[Security] URL scanning not available for current plan');
         return;
     }
 
@@ -1246,12 +1238,13 @@ async function getDeviceId() {
 async function updateBlockingRules(blockedDomains) {
     try {
         // ============================================
-        // SUBSCRIPTION CHECK - Disable features if not subscribed
+        // ENTITLEMENT CHECK — use verified subscription state
         // ============================================
-        const isSubscribed = await checkSubscriptionStatus();
-        if (!isSubscribed) {
-            console.log('[Blocking] Subscription inactive - disabling all blocking rules');
-            // Clear all existing rules
+        const storedVerified = await chrome.storage.local.get(['_verifiedSubscription']);
+        const verifiedState = storedVerified._verifiedSubscription;
+        const hasBlocking = canUseFeature('basic_blocking', verifiedState);
+        if (!hasBlocking) {
+            console.log('[Security] Protection inactive — no verified entitlement');
             const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
             const existingIds = existingRules.map(rule => rule.id);
             if (existingIds.length > 0) {
@@ -1970,10 +1963,12 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return; // Never block auth domains
     }
 
-    // SUBSCRIPTION CHECK: Skip blocking if subscription is inactive
-    const isSubscribed = await checkSubscriptionStatus();
-    if (!isSubscribed) {
-        console.log('[Blocking] Subscription inactive - skipping offline blocklist check');
+    // ENTITLEMENT CHECK: use verified subscription state
+    const storedVerified = await chrome.storage.local.get(['_verifiedSubscription']);
+    const verifiedState = storedVerified._verifiedSubscription;
+    const hasBlocking = canUseFeature('basic_blocking', verifiedState);
+    if (!hasBlocking) {
+        console.log('[Security] Protection inactive — skipping offline blocklist check');
         return;
     }
 
