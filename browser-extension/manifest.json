@@ -71,17 +71,17 @@
             },
             {
                 "id": "adblock_ads",
-                "enabled": true,
+                "enabled": false,
                 "path": "rules/adblock_ads.json"
             },
             {
                 "id": "adblock_trackers",
-                "enabled": true,
+                "enabled": false,
                 "path": "rules/adblock_trackers.json"
             },
             {
                 "id": "adblock_malware",
-                "enabled": true,
+                "enabled": false,
                 "path": "rules/adblock_malware.json"
             },
             {
@@ -96,7 +96,7 @@
             },
             {
                 "id": "adblock_youtube",
-                "enabled": true,
+                "enabled": false,
                 "path": "rules/adblock_youtube.json"
             }
         ]

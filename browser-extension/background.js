@@ -2264,6 +2264,7 @@ const ADBLOCK_CATEGORY_RULESETS = {
     ads: 'adblock_ads',
     trackers: 'adblock_trackers',
     malware: 'adblock_malware',
+    youtube: 'adblock_youtube',
     annoyances: 'adblock_annoyances',
     social: 'adblock_social'
 };
