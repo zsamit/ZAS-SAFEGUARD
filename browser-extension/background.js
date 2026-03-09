@@ -316,58 +316,53 @@ async function verifySubscriptionWithServer(force = false) {
  * Tier 2: Security Intelligence — adblock_malware — requires security_intelligence
  * Tier 3: Ad Filtering + Privacy — adblock_ads, adblock_trackers, adblock_youtube — requires security_intelligence
  * Tier 4: Optional QoL — adblock_annoyances, adblock_social — requires security_intelligence + user opt-in; DISABLED during grace/failure
+ *
+ * @param {boolean} forceVerify - If true, bypass cache and force server re-verification
  */
-async function enforceSubscriptionStatus() {
-    const verified = await verifySubscriptionWithServer();
-    const capabilities = verified?.capabilities || PLAN_CAPABILITIES.expired;
-    const isActive = verified?.active === true;
-    const isGraceOrFailure = verified?.failedVerification === true ||
-        (checkCacheValidity(verified).graceActive);
-
-    console.log('[Security] Enforcing:', isActive ? 'PREMIUM' : 'FREE',
-        '| Plan:', verified?.plan || 'unknown',
-        '| Grace:', isGraceOrFailure);
-
+async function enforceSubscriptionStatus(forceVerify = false) {
     try {
-        const allRulesets = ['ruleset_block', 'adblock_malware', 'adblock_ads', 'adblock_trackers', 'adblock_youtube', 'adblock_annoyances', 'adblock_social'];
-        const enableIds = [];
-        const disableIds = [];
-
-        // Tier 1: Core Safety — ALWAYS active, never disabled
-        enableIds.push('ruleset_block');
-
-        // Tier 2: Security Intelligence
-        if (capabilities.security_intelligence) {
-            enableIds.push('adblock_malware');
-        }
-
-        // Tier 3: Ad Filtering + Privacy
-        if (capabilities.security_intelligence) {
-            enableIds.push('adblock_ads');
-            enableIds.push('adblock_trackers');
-            enableIds.push('adblock_youtube');
-        }
-
-        // Tier 4: Optional / Quality-of-Life
-        // DISABLED during grace/failure — these are convenience, not security
-        if (capabilities.security_intelligence && !isGraceOrFailure) {
-            const config = await chrome.storage.local.get(['adblock_config']);
-            const adConfig = config.adblock_config || {};
-            if (adConfig.categories?.annoyances) enableIds.push('adblock_annoyances');
-            if (adConfig.categories?.social) enableIds.push('adblock_social');
-        }
-
-        // Everything not enabled → disabled
-        for (const rs of allRulesets) {
-            if (!enableIds.includes(rs)) disableIds.push(rs);
-        }
-
+        // FAIL-CLOSED: Immediately disable ALL premium rulesets before async verification
+        // This ensures no stale cache can keep premium features running
+        const allPremiumRulesets = ['adblock_malware', 'adblock_ads', 'adblock_trackers', 'adblock_youtube', 'adblock_annoyances', 'adblock_social'];
         await chrome.declarativeNetRequest.updateEnabledRulesets({
-            enableRulesetIds: enableIds,
-            disableRulesetIds: disableIds
+            enableRulesetIds: ['ruleset_block'],  // Core safety always ON
+            disableRulesetIds: allPremiumRulesets
         });
+        console.log('[Security] Fail-closed: all premium rulesets disabled pending verification');
 
-        // If not active, also clear dynamic rules (except core safety)
+        // Now verify with server
+        const verified = await verifySubscriptionWithServer(forceVerify);
+        const capabilities = verified?.capabilities || PLAN_CAPABILITIES.expired;
+        const isActive = verified?.active === true;
+        const isGraceOrFailure = verified?.failedVerification === true ||
+            (checkCacheValidity(verified).graceActive);
+
+        console.log('[Security] Enforcing:', isActive ? 'PREMIUM' : 'FREE',
+            '| Plan:', verified?.plan || 'unknown',
+            '| Grace:', isGraceOrFailure);
+
+        // Only re-enable premium rulesets if server confirms entitlement
+        if (capabilities.security_intelligence) {
+            const enableIds = ['adblock_malware', 'adblock_ads', 'adblock_trackers', 'adblock_youtube'];
+
+            // Tier 4: Optional — disabled during grace/failure
+            if (!isGraceOrFailure) {
+                const config = await chrome.storage.local.get(['adblock_config']);
+                const adConfig = config.adblock_config || {};
+                if (adConfig.categories?.annoyances) enableIds.push('adblock_annoyances');
+                if (adConfig.categories?.social) enableIds.push('adblock_social');
+            }
+
+            await chrome.declarativeNetRequest.updateEnabledRulesets({
+                enableRulesetIds: enableIds,
+                disableRulesetIds: []
+            });
+            console.log('[Security] Premium verified — rulesets re-enabled:', enableIds);
+        } else {
+            console.log('[Security] Not entitled — premium rulesets remain disabled');
+        }
+
+        // If not active, also clear dynamic rules
         if (!isActive) {
             const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
             const existingIds = existingRules.map(rule => rule.id);
@@ -376,12 +371,13 @@ async function enforceSubscriptionStatus() {
             }
         }
 
-        // Diagnostics: log rule counts
+        // Diagnostics
         const ruleCount = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
-        console.log('[Security] Rulesets enabled:', enableIds, '| disabled:', disableIds, '| available static rules:', ruleCount);
+        console.log('[Security] Available static rules:', ruleCount);
 
     } catch (error) {
         console.error('[Security] Error enforcing protection status:', error);
+        // On error, premium rulesets are already disabled (fail-closed above)
     }
 }
 
@@ -425,8 +421,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // Initialize Ad Blocker Engine
     await initAdBlockEngine();
 
-    // Enforce subscription status AFTER adblock init to gate premium rulesets
-    await enforceSubscriptionStatus();
+    // Enforce subscription status AFTER adblock init — force server re-verification
+    await enforceSubscriptionStatus(true);
 });
 
 // ============================================
@@ -1472,8 +1468,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 chrome.runtime.onStartup.addListener(() => {
     syncStudyMode();
     checkChildLock();
-    // Re-enforce entitlement on every browser startup
-    enforceSubscriptionStatus();
+    // Re-enforce entitlement on every browser startup (force re-verify)
+    enforceSubscriptionStatus(true);
 });
 
 // ============================================
