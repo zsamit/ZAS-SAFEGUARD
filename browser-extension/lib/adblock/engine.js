@@ -86,7 +86,7 @@ async function applyConfig() {
     try {
         const stored = await chrome.storage.local.get(['_verifiedSubscription']);
         const sub = stored._verifiedSubscription;
-        if (sub && sub.capabilities && sub.capabilities.includes('security_intelligence')) {
+        if (sub && sub.capabilities && sub.capabilities.security_intelligence === true) {
             hasPremium = true;
         }
     } catch (e) {

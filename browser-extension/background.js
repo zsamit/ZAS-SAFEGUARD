@@ -11,6 +11,7 @@
  * - Ad Blocker Engine (NEW)
  */
 
+import * as AdBlockEngine from './lib/adblock/engine.js';
 
 // ============================================
 // CONFIGURATION
@@ -573,7 +574,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
             config.categories[message.category] = message.enabled;
             await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
-            await applyAdBlockConfig(config);
+            await AdBlockEngine.setCategory(message.category, message.enabled);
             sendResponse({ success: true, config });
         })();
         return true;
@@ -935,7 +936,7 @@ async function checkUrlViaCloudFunction(url) {
 
     try {
         const response = await fetch(
-            'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
+            CONFIG.CHECK_URL_REPUTATION_URL,
             {
                 method: 'POST',
                 headers: {
@@ -2207,380 +2208,36 @@ const ADBLOCK_CATEGORY_RULESETS = {
 };
 
 /**
- * Initialize the ad blocker engine
+ * Initialize the ad blocker engine — delegates to engine.js (Issue 02)
  */
 async function initAdBlockEngine() {
     try {
-        console.log('[AdBlock Engine] Initializing...');
-
-        // Load or create config
-        const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
-        const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
-
-        // Apply initial ruleset state
-        await applyAdBlockConfig(config);
-
-        // Set up DNR feedback listener for stats
-        setupAdBlockFeedback();
-
-        // Initialize filter lists (EasyList/EasyPrivacy) - inline implementation
-        try {
-            console.log('[AdBlock Engine] Initializing filter lists...');
-            await initFilterLists();
-        } catch (filterError) {
-            console.warn('[AdBlock Engine] Filter list init error:', filterError.message);
-        }
+        console.log('[AdBlock Engine] Delegating to engine.js...');
+        const ok = await AdBlockEngine.init();
 
         // Apply critical allowlist (Firebase Auth domains, etc.) at startup
         const existingAllowlist = await handleAdBlockGetAllowlist();
         await applyAdBlockAllowlist(existingAllowlist);
 
-        console.log('[AdBlock Engine] Initialized successfully');
-        return true;
+        console.log('[AdBlock Engine] Initialized via engine.js:', ok);
+        return ok;
     } catch (error) {
         console.error('[AdBlock Engine] Init error:', error);
         return false;
     }
 }
 
-// ============================================
-// FILTER LIST MANAGEMENT (EasyList/EasyPrivacy)
-// ============================================
 
-const FILTER_LISTS = {
-    easylist: {
-        name: 'EasyList',
-        url: 'https://easylist.to/easylist/easylist.txt',
-        enabled: true
-    },
-    easyprivacy: {
-        name: 'EasyPrivacy',
-        url: 'https://easylist.to/easylist/easyprivacy.txt',
-        enabled: true
-    },
-    peter_lowe: {
-        name: "Peter Lowe's List",
-        url: 'https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=0',
-        enabled: true
-    }
-};
-
-const FILTER_CACHE_KEY = 'adblock_filter_cache';
-const FILTER_LAST_UPDATE_KEY = 'adblock_filter_last_update';
-const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+// ─────────────────────────────────────────────────────────────
+// Issue 02: Inline duplicates deleted.
+// initFilterLists, fetchAndParseFilterList, deduplicateFilterRules,
+// applyFilterListRules, applyAdBlockConfig, setupAdBlockFeedback
+// — all now handled inside engine.js.
+// ─────────────────────────────────────────────────────────────
 
 /**
- * Initialize filter lists - fetches and applies EasyList/EasyPrivacy
- */
-async function initFilterLists() {
-    try {
-        // Check if we have cached rules that are recent
-        const storage = await chrome.storage.local.get([FILTER_CACHE_KEY, FILTER_LAST_UPDATE_KEY]);
-        const lastUpdate = storage[FILTER_LAST_UPDATE_KEY] || 0;
-        const cachedRules = storage[FILTER_CACHE_KEY] || [];
-        const now = Date.now();
-
-        // Use cache if recent
-        if (cachedRules.length > 0 && (now - lastUpdate) < UPDATE_INTERVAL_MS) {
-            console.log('[FilterLists] Using cached rules:', cachedRules.length);
-            await applyFilterListRules(cachedRules);
-            return;
-        }
-
-        // Fetch fresh rules
-        console.log('[FilterLists] Fetching fresh filter lists...');
-        const allRules = [];
-
-        for (const [listId, listConfig] of Object.entries(FILTER_LISTS)) {
-            if (!listConfig.enabled) continue;
-
-            try {
-                console.log(`[FilterLists] Fetching ${listConfig.name}...`);
-                const rules = await fetchAndParseFilterList(listConfig.url);
-                console.log(`[FilterLists] ${listConfig.name}: ${rules.length} rules`);
-                allRules.push(...rules);
-            } catch (e) {
-                console.warn(`[FilterLists] Failed to fetch ${listConfig.name}:`, e.message);
-            }
-        }
-
-        // Deduplicate
-        const uniqueRules = deduplicateFilterRules(allRules);
-        console.log('[FilterLists] Total unique rules:', uniqueRules.length);
-
-        // Cache and apply
-        await chrome.storage.local.set({
-            [FILTER_CACHE_KEY]: uniqueRules.slice(0, 5000), // Store up to 5K
-            [FILTER_LAST_UPDATE_KEY]: now
-        });
-
-        await applyFilterListRules(uniqueRules);
-
-    } catch (error) {
-        console.error('[FilterLists] Error:', error);
-    }
-}
-
-/**
- * Fetch and parse a single filter list
- */
-async function fetchAndParseFilterList(url) {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const text = await response.text();
-    const lines = text.split('\n');
-    const rules = [];
-    let ruleId = 200000; // Start at 200000 for dynamic filter rules
-
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
-
-        // Skip comments, empty lines, cosmetic rules
-        if (!line || line.startsWith('!') || line.startsWith('[') ||
-            line.includes('##') || line.includes('#@#')) {
-            continue;
-        }
-
-        // Skip exception rules for now
-        if (line.startsWith('@@')) continue;
-
-        // Parse the pattern
-        let pattern = line;
-
-        // Remove options for simplicity
-        const dollarIndex = pattern.lastIndexOf('$');
-        if (dollarIndex > 0) {
-            pattern = pattern.substring(0, dollarIndex);
-        }
-
-        // Handle ||domain^ pattern
-        if (pattern.startsWith('||')) {
-            pattern = pattern.substring(2).replace(/[\^|]+$/, '');
-
-            // Skip very short patterns or patterns with special chars
-            if (pattern.length < 4 || pattern.includes('*') || pattern.includes('/')) {
-                continue;
-            }
-
-            rules.push({
-                id: ruleId++,
-                priority: 1,
-                action: { type: 'block' },
-                condition: {
-                    urlFilter: `||${pattern}`,
-                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other']
-                }
-            });
-
-            // Limit rules per list
-            if (rules.length >= 2000) break;
-        }
-    }
-
-    return rules;
-}
-
-/**
- * Deduplicate rules by urlFilter
- */
-function deduplicateFilterRules(rules) {
-    const seen = new Set();
-    const unique = [];
-    let id = 200000;
-
-    for (const rule of rules) {
-        const key = rule.condition?.urlFilter;
-        if (key && !seen.has(key)) {
-            seen.add(key);
-            rule.id = id++;
-            unique.push(rule);
-        }
-    }
-
-    return unique;
-}
-
-/**
- * Apply parsed filter rules to Chrome DNR
- */
-let filterListUpdateInProgress = false;
-
-async function applyFilterListRules(rules) {
-    // Prevent concurrent updates
-    if (filterListUpdateInProgress) {
-        console.log('[FilterLists] Update already in progress, skipping');
-        return;
-    }
-
-    filterListUpdateInProgress = true;
-
-    try {
-        // Get existing dynamic rules
-        const existing = await chrome.declarativeNetRequest.getDynamicRules();
-        console.log('[FilterLists] Existing dynamic rules:', existing.length);
-
-        // Find all filter list rule IDs (>= 200000)
-        const toRemove = existing.filter(r => r.id >= 200000).map(r => r.id);
-        console.log('[FilterLists] Rules to remove:', toRemove.length);
-
-        // Chrome limit: 5000 dynamic rules
-        const sourceRules = rules.slice(0, 4500);
-
-        // Build rules with SEQUENTIAL unique IDs starting from 200000
-        const toAdd = [];
-        const seenUrlFilters = new Set();
-        let nextId = 200000;
-
-        for (const rule of sourceRules) {
-            // Skip invalid rules
-            if (!rule.condition?.urlFilter) continue;
-
-            // Skip duplicates
-            const urlFilter = rule.condition.urlFilter;
-            if (seenUrlFilters.has(urlFilter)) continue;
-            seenUrlFilters.add(urlFilter);
-
-            toAdd.push({
-                id: nextId++,
-                priority: 1,
-                action: { type: 'block' },
-                condition: {
-                    urlFilter: urlFilter,
-                    resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'other'],
-                    excludedRequestDomains: [
-                        'identitytoolkit.googleapis.com',
-                        'securetoken.googleapis.com',
-                        'zassafeguard.com',
-                        'zas-safeguard.web.app',
-                        'firebaseapp.com',
-                        'cloudfunctions.net'
-                    ]
-                }
-            });
-        }
-
-        console.log('[FilterLists] Prepared', toAdd.length, 'unique rules (IDs: 200000 -', nextId - 1, ')');
-
-        // ATOMIC update: remove and add in single call
-        if (toRemove.length > 0 || toAdd.length > 0) {
-            await chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: toRemove,
-                addRules: toAdd
-            });
-            console.log('[FilterLists] Applied', toAdd.length, 'dynamic rules successfully');
-        }
-    } catch (error) {
-        console.error('[FilterLists] Failed to apply rules:', error);
-        // On failure, try to clear cache
-        await chrome.storage.local.remove([FILTER_CACHE_KEY, FILTER_LAST_UPDATE_KEY]);
-        console.log('[FilterLists] Cleared cache due to error');
-    } finally {
-        filterListUpdateInProgress = false;
-    }
-}
-
-/**
- * Apply adblock configuration to DNR rulesets
- */
-async function applyAdBlockConfig(config) {
-    try {
-        if (!config.enabled) {
-            // Disable all adblock rulesets
-            const rulesetIds = Object.values(ADBLOCK_CATEGORY_RULESETS);
-            await chrome.declarativeNetRequest.updateEnabledRulesets({
-                disableRulesetIds: rulesetIds
-            });
-            return;
-        }
-
-        // Check entitlement — only enable premium rulesets if user has security_intelligence
-        const verified = await chrome.storage.local.get(['_verifiedSubscription']);
-        const sub = verified._verifiedSubscription;
-        const capabilities = sub?.capabilities || PLAN_CAPABILITIES.expired;
-        const hasPremium = capabilities.security_intelligence === true;
-
-        const enableIds = [];
-        const disableIds = [];
-
-        for (const [category, enabled] of Object.entries(config.categories)) {
-            const rulesetId = ADBLOCK_CATEGORY_RULESETS[category];
-            if (rulesetId) {
-                if (enabled && hasPremium) {
-                    enableIds.push(rulesetId);
-                } else {
-                    disableIds.push(rulesetId);
-                }
-            }
-        }
-
-        if (enableIds.length > 0 || disableIds.length > 0) {
-            await chrome.declarativeNetRequest.updateEnabledRulesets({
-                enableRulesetIds: enableIds,
-                disableRulesetIds: disableIds
-            });
-        }
-
-        console.log('[AdBlock Engine] Applied config (premium:', hasPremium, '):', { enabled: enableIds, disabled: disableIds });
-    } catch (error) {
-        console.error('[AdBlock Engine] Apply config error:', error);
-    }
-}
-
-/**
- * Set up DNR feedback listener for tracking blocked requests
- */
-function setupAdBlockFeedback() {
-    // Domains to exclude from ad block counting (our own sites)
-    const EXCLUDE_FROM_COUNTING = [
-        'zassafeguard.com',
-        'zas-safeguard.web.app',
-        'zasgloballlc.com',
-        'localhost'
-    ];
-
-    // Listen for matched rules to track stats
-    if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
-        chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (info) => {
-            // Skip counting for ZAS domains
-            try {
-                const url = new URL(info.request.url);
-                const initiator = info.request.initiator ? new URL(info.request.initiator).hostname : '';
-
-                // Don't count blocks that are FROM or TO our own sites
-                if (EXCLUDE_FROM_COUNTING.some(d => url.hostname.includes(d) || initiator.includes(d))) {
-                    return; // Skip counting
-                }
-            } catch (e) {
-                // URL parsing failed, skip
-            }
-
-            // Determine category from ruleset ID
-            const rulesetId = info.rule.rulesetId;
-            let category = 'ads';
-
-            for (const [cat, rsId] of Object.entries(ADBLOCK_CATEGORY_RULESETS)) {
-                if (rsId === rulesetId) {
-                    category = cat;
-                    break;
-                }
-            }
-
-            // Increment stats
-            await incrementAdBlockStat(category);
-        });
-
-        console.log('[AdBlock Engine] Stats tracking enabled');
-    } else {
-        console.log('[AdBlock Engine] Stats tracking not available (declarativeNetRequestFeedback permission needed for debug mode)');
-    }
-}
-
-/**
- * Increment blocked count for a category
- */
-/**
- * Increment blocked count for a category
+ * Increment blocked count for a category.
+ * KEPT in background.js — has Firestore batch logging that engine.js doesn't.
  */
 async function incrementAdBlockStat(category = 'ads', amount = 1) {
     try {
@@ -2598,12 +2255,9 @@ async function incrementAdBlockStat(category = 'ads', amount = 1) {
         if (!dailyStats[todayKey]) {
             dailyStats[todayKey] = { ads: 0, trackers: 0, malware: 0, annoyances: 0, social: 0, total: 0 };
         }
-
-        // Ensure category initialized
         if (typeof dailyStats[todayKey][category] !== 'number') {
             dailyStats[todayKey][category] = 0;
         }
-
         dailyStats[todayKey][category] += amount;
         dailyStats[todayKey].total += amount;
 
@@ -2623,8 +2277,6 @@ async function incrementAdBlockStat(category = 'ads', amount = 1) {
             adblock_pending_log: pendingLog
         });
 
-        console.log(`[AdBlock Engine] Stats updated: +${amount} ${category} (Today: ${dailyStats[todayKey].total})`);
-
         // Log to Firestore every 10 blocks (batch to reduce API calls)
         const token = result[CONFIG.USER_TOKEN_KEY];
         if (token && pendingLog >= 10) {
@@ -2642,11 +2294,9 @@ async function incrementAdBlockStat(category = 'ads', amount = 1) {
                         url: 'batch'
                     })
                 });
-                // Reset pending counter
                 await chrome.storage.local.set({ adblock_pending_log: 0 });
-                console.log('[AdBlock Engine] Synced', pendingLog, 'blocks to Firestore');
             } catch (e) {
-                // Silent fail - will retry next batch
+                console.warn('[AdBlock Engine] Firestore batch log failed:', e.message);
             }
         }
     } catch (error) {
@@ -2657,82 +2307,46 @@ async function incrementAdBlockStat(category = 'ads', amount = 1) {
 /**
  * Handle enabling the ad blocker
  */
-async function handleAdBlockEnable() {
-    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
-    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
-    config.enabled = true;
-    await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
-    await applyAdBlockConfig(config);
-    console.log('[AdBlock Engine] Enabled');
-}
+// ─────────────────────────────────────────────────────────────
+// Issue 02: handleAdBlock* functions — thin delegations to engine.js
+// ─────────────────────────────────────────────────────────────
+async function handleAdBlockEnable() { return await AdBlockEngine.enable(); }
+async function handleAdBlockDisable() { return await AdBlockEngine.disable(); }
+async function handleAdBlockSetCategory(category, enabled) { return await AdBlockEngine.setCategory(category, enabled); }
 
-/**
- * Handle disabling the ad blocker
- */
-async function handleAdBlockDisable() {
-    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
-    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
-    config.enabled = false;
-    await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
-    await applyAdBlockConfig(config);
-    console.log('[AdBlock Engine] Disabled');
-}
-
-/**
- * Handle setting a category enabled/disabled
- */
-async function handleAdBlockSetCategory(category, enabled) {
-    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
-    const config = result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
-
-    if (config.categories.hasOwnProperty(category)) {
-        config.categories[category] = enabled;
-        await chrome.storage.local.set({ [ADBLOCK_CONFIG_KEY]: config });
-        await applyAdBlockConfig(config);
-        console.log('[AdBlock Engine] Category', category, enabled ? 'enabled' : 'disabled');
-    }
-}
-
-/**
- * Handle adding domain to allowlist
- */
 async function handleAdBlockAddAllowlist(domain) {
-    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
-    const allowlist = result[ADBLOCK_ALLOWLIST_KEY] || [];
+    await AdBlockEngine.addToAllowlist(domain);
+    // Also apply our critical allowlist overlay
+    const list = await AdBlockEngine.getAllowlist();
+    await applyAdBlockAllowlist(list);
+}
 
-    if (!allowlist.includes(domain)) {
-        allowlist.push(domain);
-        await chrome.storage.local.set({ [ADBLOCK_ALLOWLIST_KEY]: allowlist });
-        await applyAdBlockAllowlist(allowlist);
-        console.log('[AdBlock Engine] Added to allowlist:', domain);
+async function handleAdBlockRemoveAllowlist(domain) {
+    await AdBlockEngine.removeFromAllowlist(domain);
+    const list = await AdBlockEngine.getAllowlist();
+    await applyAdBlockAllowlist(list);
+}
+
+async function handleAdBlockGetAllowlist() {
+    return await AdBlockEngine.getAllowlist();
+}
+
+async function handleAdBlockSetSiteMode(domain, mode) {
+    await AdBlockEngine.setSiteMode(domain, mode);
+    if (mode === 'off') {
+        await handleAdBlockAddAllowlist(domain);
+    } else {
+        await handleAdBlockRemoveAllowlist(domain);
     }
 }
 
-/**
- * Handle removing domain from allowlist
- */
-async function handleAdBlockRemoveAllowlist(domain) {
-    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
-    let allowlist = result[ADBLOCK_ALLOWLIST_KEY] || [];
-
-    allowlist = allowlist.filter(d => d !== domain);
-    await chrome.storage.local.set({ [ADBLOCK_ALLOWLIST_KEY]: allowlist });
-    await applyAdBlockAllowlist(allowlist);
-    console.log('[AdBlock Engine] Removed from allowlist:', domain);
-}
+async function handleAdBlockGetStats() { return await AdBlockEngine.getStats(); }
+async function handleAdBlockGetConfig() { return await AdBlockEngine.getConfig(); }
 
 /**
- * Handle getting allowlist
+ * Critical domains that must NEVER be blocked (Firebase Auth, etc.)
+ * This is kept in background.js (not engine.js) because it's deployment-specific.
  */
-async function handleAdBlockGetAllowlist() {
-    const result = await chrome.storage.local.get([ADBLOCK_ALLOWLIST_KEY]);
-    return result[ADBLOCK_ALLOWLIST_KEY] || [];
-}
-
-/**
- * Apply allowlist as dynamic DNR rules
- */
-// Critical domains that must NEVER be blocked (Firebase Auth, etc.)
 const CRITICAL_ALLOWLIST = [
     'identitytoolkit.googleapis.com',
     'securetoken.googleapis.com',
@@ -2742,6 +2356,9 @@ const CRITICAL_ALLOWLIST = [
     'cloudfunctions.net'
 ];
 
+/**
+ * Apply allowlist as dynamic DNR rules, merging critical domains.
+ */
 async function applyAdBlockAllowlist(domains) {
     try {
         const ALLOWLIST_RULE_START = 50000;
@@ -2778,57 +2395,6 @@ async function applyAdBlockAllowlist(domains) {
     } catch (error) {
         console.error('[AdBlock Engine] Allowlist error:', error);
     }
-}
-
-/**
- * Handle setting site mode
- */
-async function handleAdBlockSetSiteMode(domain, mode) {
-    const result = await chrome.storage.local.get([ADBLOCK_SITE_MODES_KEY]);
-    const modes = result[ADBLOCK_SITE_MODES_KEY] || {};
-
-    if (mode === 'strict') {
-        delete modes[domain];
-    } else {
-        modes[domain] = mode;
-    }
-
-    await chrome.storage.local.set({ [ADBLOCK_SITE_MODES_KEY]: modes });
-
-    // If mode is 'off', add to allowlist
-    if (mode === 'off') {
-        await handleAdBlockAddAllowlist(domain);
-    } else {
-        await handleAdBlockRemoveAllowlist(domain);
-    }
-
-    console.log('[AdBlock Engine] Set site mode:', domain, mode);
-}
-
-/**
- * Handle getting stats
- */
-async function handleAdBlockGetStats() {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const result = await chrome.storage.local.get([ADBLOCK_STATS_KEY, ADBLOCK_DAILY_STATS_KEY]);
-
-    const stats = result[ADBLOCK_STATS_KEY] || { totalBlocked: 0, categories: {} };
-    const dailyStats = result[ADBLOCK_DAILY_STATS_KEY] || {};
-
-    return {
-        blockedToday: dailyStats[todayKey]?.total || 0,
-        blockedTotal: stats.totalBlocked || 0,
-        todayByCategory: dailyStats[todayKey] || {},
-        totalByCategory: stats.categories || {}
-    };
-}
-
-/**
- * Handle getting config
- */
-async function handleAdBlockGetConfig() {
-    const result = await chrome.storage.local.get([ADBLOCK_CONFIG_KEY]);
-    return result[ADBLOCK_CONFIG_KEY] || { ...ADBLOCK_DEFAULT_CONFIG };
 }
 
 // ============================================
