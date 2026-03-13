@@ -43,6 +43,15 @@
                 "*://*.youtube.com/*"
             ],
             "js": [
+                "content-scripts/youtube-gate.js"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
                 "content-scripts/youtube-interceptor.js"
             ],
             "run_at": "document_start",

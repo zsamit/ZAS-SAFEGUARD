@@ -10,6 +10,11 @@
  *   - Lets telemetry beacons fire naturally (25/50/75%) so YouTube's backend
  *     sees a valid ad view — no throttling
  *
+ * ENTITLEMENT GATE:
+ *   Wrapped in chrome.storage.local.get() — only activates for premium users
+ *   with security_intelligence capability. Also listens for mid-session
+ *   subscription changes to disengage/engage dynamically.
+ *
  * Does NOT:
  *   - Use display: none on the video container (backend detects this)
  *   - Jump currentTime to end (backend detects 5ms ad with no quartiles)
@@ -20,105 +25,70 @@
 
     if (!window.location.hostname.includes('youtube.com')) return;
 
-    console.log('[YouTube AdBlock] Phase 2 safety net initializing...');
+    // ── Entitlement gate — check subscription before activating ──
+    chrome.storage.local.get(['_verifiedSubscription'], (stored) => {
+        const sub = stored._verifiedSubscription;
+        const hasPremium = sub?.capabilities?.security_intelligence === true;
+
+        if (!hasPremium) {
+            console.log('[YouTube AdBlock] No premium entitlement — Phase 2 inactive');
+            // Still inject cosmetic styles for search bar protection
+            injectSearchBarProtection();
+            return;
+        }
+
+        console.log('[YouTube AdBlock] Premium confirmed — Phase 2 activating...');
+        activatePhase2();
+    });
+
+    // ── Mid-session subscription changes ────────────────────────
+    let phase2Active = false;
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local' || !changes._verifiedSubscription) return;
+
+        const sub = changes._verifiedSubscription.newValue;
+        const hasPremium = sub?.capabilities?.security_intelligence === true;
+
+        if (hasPremium && !phase2Active) {
+            console.log('[YouTube AdBlock] Subscription activated mid-session — engaging Phase 2');
+            activatePhase2();
+        } else if (!hasPremium && phase2Active) {
+            console.log('[YouTube AdBlock] Subscription expired mid-session — disengaging Phase 2');
+            disengageSpeedBurn();
+            phase2Active = false;
+        }
+    });
 
     // ========================================
-    // Cosmetic Filters — non-video ad elements in the page
-    // These are safe to CSS-hide (feed ads, banners, promos)
+    // Search Bar Protection — always active regardless of subscription
     // ========================================
 
-    const cosmeticStyles = document.createElement('style');
-    cosmeticStyles.id = 'zas-youtube-cosmetic';
-    cosmeticStyles.textContent = `
-        /* Feed / sidebar / banner ads — safe to hide */
-        ytd-ad-slot-renderer,
-        ytd-in-feed-ad-layout-renderer,
-        ytd-banner-promo-renderer,
-        ytd-statement-banner-renderer,
-        ytd-mealbar-promo-renderer,
-        ytd-compact-promoted-video-renderer,
-        ytd-promoted-sparkles-web-renderer,
-        ytd-promoted-video-renderer,
-        ytd-display-ad-renderer,
-        ytd-action-companion-ad-renderer,
-        ytd-player-legacy-desktop-watch-ads-renderer,
-        #masthead-ad,
-        ytd-primetime-promo-renderer {
-            display: none !important;
-        }
+    function injectSearchBarProtection() {
+        const searchStyles = document.createElement('style');
+        searchStyles.id = 'zas-youtube-search-protect';
+        searchStyles.textContent = `
+            /* FORCE SEARCH BAR VISIBLE */
+            #masthead #search,
+            #masthead #search-form,
+            #masthead ytd-searchbox,
+            ytd-masthead #search,
+            ytd-masthead #search-form,
+            ytd-masthead ytd-searchbox,
+            #container.ytd-searchbox,
+            #search-input.ytd-searchbox,
+            #search-icon-legacy,
+            ytd-searchbox#search {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+        `;
 
-        /* Hide promoted in lists */
-        ytd-rich-item-renderer:has(> ytd-ad-slot-renderer),
-        ytd-video-renderer:has(> .ytd-promoted-sparkles-text-search-renderer) {
-            display: none !important;
-        }
-
-        /* Hide "Ad" badges */
-        .ytd-badge-supported-renderer[aria-label="Ad"],
-        .badge-style-type-ad {
-            display: none !important;
-        }
-
-        /* Speed-burn blur overlay — applied dynamically via JS */
-        .zas-ad-overlay {
-            position: absolute !important;
-            top: 0 !important; left: 0 !important;
-            width: 100% !important; height: 100% !important;
-            background: rgba(0, 0, 0, 0.85) !important;
-            backdrop-filter: blur(20px) !important;
-            z-index: 9999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            pointer-events: none !important;
-        }
-        .zas-ad-overlay::after {
-            content: 'Skipping ad...' !important;
-            color: rgba(255,255,255,0.5) !important;
-            font-size: 14px !important;
-            font-family: 'Roboto', Arial, sans-serif !important;
-        }
-
-        /* FORCE SEARCH BAR VISIBLE */
-        #masthead #search,
-        #masthead #search-form,
-        #masthead ytd-searchbox,
-        ytd-masthead #search,
-        ytd-masthead #search-form,
-        ytd-masthead ytd-searchbox,
-        #container.ytd-searchbox,
-        #search-input.ytd-searchbox,
-        #search-icon-legacy,
-        ytd-searchbox#search {
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
-
-        /* Hide adblocker detection overlays — but NOT the video itself */
-        ytd-enforcement-message-view-model,
-        .style-scope.ytd-enforcement-message-view-model,
-        tp-yt-paper-dialog.style-scope.ytd-popup-container,
-        tp-yt-iron-overlay-backdrop {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-    `;
-
-    if (document.head) {
-        document.head.appendChild(cosmeticStyles);
-    } else {
-        document.addEventListener('DOMContentLoaded', () => {
-            document.head.appendChild(cosmeticStyles);
-        });
+        const target = document.head || document.documentElement;
+        target.appendChild(searchStyles);
     }
-
-    // ========================================
-    // Search Bar Protection
-    // ========================================
 
     function protectSearchBar() {
         const searchBox = document.querySelector('ytd-searchbox, #search, #search-form');
@@ -134,7 +104,105 @@
         }
     }
 
-    setInterval(protectSearchBar, 500);
+    // ========================================
+    // Phase 2 Activation — only called for premium users
+    // ========================================
+
+    function activatePhase2() {
+        phase2Active = true;
+
+        // Cosmetic Filters — non-video ad elements in the page
+        const cosmeticStyles = document.createElement('style');
+        cosmeticStyles.id = 'zas-youtube-cosmetic';
+        cosmeticStyles.textContent = `
+            /* Feed / sidebar / banner ads — safe to hide */
+            ytd-ad-slot-renderer,
+            ytd-in-feed-ad-layout-renderer,
+            ytd-banner-promo-renderer,
+            ytd-statement-banner-renderer,
+            ytd-mealbar-promo-renderer,
+            ytd-compact-promoted-video-renderer,
+            ytd-promoted-sparkles-web-renderer,
+            ytd-promoted-video-renderer,
+            ytd-display-ad-renderer,
+            ytd-action-companion-ad-renderer,
+            ytd-player-legacy-desktop-watch-ads-renderer,
+            #masthead-ad,
+            ytd-primetime-promo-renderer {
+                display: none !important;
+            }
+
+            /* Hide promoted in lists */
+            ytd-rich-item-renderer:has(> ytd-ad-slot-renderer),
+            ytd-video-renderer:has(> .ytd-promoted-sparkles-text-search-renderer) {
+                display: none !important;
+            }
+
+            /* Hide "Ad" badges */
+            .ytd-badge-supported-renderer[aria-label="Ad"],
+            .badge-style-type-ad {
+                display: none !important;
+            }
+
+            /* Speed-burn blur overlay — applied dynamically via JS */
+            .zas-ad-overlay {
+                position: absolute !important;
+                top: 0 !important; left: 0 !important;
+                width: 100% !important; height: 100% !important;
+                background: rgba(0, 0, 0, 0.85) !important;
+                backdrop-filter: blur(20px) !important;
+                z-index: 9999 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                pointer-events: none !important;
+            }
+            .zas-ad-overlay::after {
+                content: 'Skipping ad...' !important;
+                color: rgba(255,255,255,0.5) !important;
+                font-size: 14px !important;
+                font-family: 'Roboto', Arial, sans-serif !important;
+            }
+
+            /* FORCE SEARCH BAR VISIBLE */
+            #masthead #search,
+            #masthead #search-form,
+            #masthead ytd-searchbox,
+            ytd-masthead #search,
+            ytd-masthead #search-form,
+            ytd-masthead ytd-searchbox,
+            #container.ytd-searchbox,
+            #search-input.ytd-searchbox,
+            #search-icon-legacy,
+            ytd-searchbox#search {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+
+            /* Hide adblocker detection overlays — but NOT the video itself */
+            ytd-enforcement-message-view-model,
+            .style-scope.ytd-enforcement-message-view-model,
+            tp-yt-paper-dialog.style-scope.ytd-popup-container,
+            tp-yt-iron-overlay-backdrop {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+        `;
+
+        const target = document.head || document.documentElement;
+        target.appendChild(cosmeticStyles);
+
+        // Search bar protection
+        injectSearchBarProtection();
+        setInterval(protectSearchBar, 500);
+
+        // Speed-burn handler
+        initSpeedBurn();
+    }
 
     // ========================================
     // Phase 2: Speed-Burn Ad Handler
@@ -150,6 +218,8 @@
      * Apply speed-burn to an ad: mute, 16x speed, blur overlay
      */
     function engageSpeedBurn() {
+        if (!phase2Active) return; // Subscription might have expired mid-session
+
         const video = document.querySelector('video');
         const player = document.querySelector('.html5-video-player');
         if (!video || !player || adActive) return;
@@ -243,11 +313,6 @@
     // MutationObserver — dual signal detection
     // ========================================
 
-    /**
-     * Signal 1: Watch for .ad-showing class on video player
-     * Signal 2: Watch for ytd-ad-slot-renderer DOM injection
-     * Two independent signals so a class rename only breaks one.
-     */
     function startAdObserver() {
         const player = document.querySelector('.html5-video-player');
         if (!player) {
@@ -278,17 +343,14 @@
         }
     }
 
-    // Observer for ad slot DOM injection (catches banner-style in-player ads)
+    // Observer for ad slot DOM injection
     function startDomObserver() {
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === 1) {
-                        // Check if an ad slot was injected into the player area
                         if (node.tagName === 'YTD-AD-SLOT-RENDERER' ||
                             node.querySelector?.('ytd-ad-slot-renderer')) {
-                            console.log('[YouTube AdBlock] Phase 2: Ad slot injected in DOM');
-                            // Cosmetic CSS handles feed ads; check if this is a video ad
                             const player = document.querySelector('.html5-video-player');
                             if (player && player.classList.contains('ad-showing') && !adActive) {
                                 engageSpeedBurn();
@@ -306,8 +368,9 @@
         console.log('[YouTube AdBlock] Phase 2: DOM injection observer started');
     }
 
-    // Also use an interval as a final safety net
+    // Safety net interval
     function adCheckLoop() {
+        if (!phase2Active) return;
         const player = document.querySelector('.html5-video-player');
         if (!player) return;
 
@@ -320,26 +383,28 @@
     }
 
     // ========================================
-    // Initialize
+    // Initialize Speed-Burn system
     // ========================================
 
-    function init() {
-        startAdObserver();
-        startDomObserver();
-        setInterval(adCheckLoop, 1000); // Safety net interval
+    function initSpeedBurn() {
+        function init() {
+            startAdObserver();
+            startDomObserver();
+            setInterval(adCheckLoop, 1000);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            if (skipPoller) clearInterval(skipPoller);
+            disengageSpeedBurn();
+        });
+
+        console.log('[YouTube AdBlock] Phase 2 safety net ready');
     }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-    // Cleanup on unload
-    window.addEventListener('beforeunload', () => {
-        if (skipPoller) clearInterval(skipPoller);
-        disengageSpeedBurn();
-    });
-
-    console.log('[YouTube AdBlock] Phase 2 safety net ready');
 })();
