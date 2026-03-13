@@ -8,6 +8,8 @@ let urlPatterns = null;
 let malwareSignatures = null;
 let scanCache = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const USER_TOKEN_KEY = 'user_token'; // Matches key set by background.js on login
+const CHECK_URL_REPUTATION_URL = 'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation';
 
 /**
  * Initialize the scanner with required data
@@ -202,7 +204,7 @@ function checkSignatures(url) {
             }
         }
     } catch (e) {
-        // Invalid URL
+        console.warn('[URLScanner] checkSignatures: could not parse URL:', url, e.message);
     }
 
     return { blocked: false };
@@ -210,50 +212,35 @@ function checkSignatures(url) {
 
 /**
  * Layer C: Online reputation check via Cloud Function
+ * Issue 01 fix: reads token from chrome.storage.local instead of firebase.auth()
  */
 async function checkOnlineReputation(url) {
     try {
-        // Get current user
-        const user = await getCurrentUser();
-        if (!user) return null;
+        const stored = await chrome.storage.local.get([USER_TOKEN_KEY]);
+        const token = stored[USER_TOKEN_KEY];
+        if (!token) return null; // Not logged in — skip cloud check gracefully
 
-        const idToken = await user.getIdToken();
-
-        const response = await fetch(
-            'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({ url })
-            }
-        );
+        const response = await fetch(CHECK_URL_REPUTATION_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ url })
+        });
 
         if (!response.ok) return null;
-        return await response.json();
+        const result = await response.json();
+        console.log('[URLScanner] Online check returned a result');
+        return result;
     } catch (error) {
-        console.warn('[URLScanner] Online check failed:', error);
+        console.warn('[URLScanner] Online check failed:', error.message);
         return null;
     }
 }
 
-/**
- * Get current Firebase user
- */
-async function getCurrentUser() {
-    return new Promise((resolve) => {
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            const unsubscribe = firebase.auth().onAuthStateChanged(user => {
-                unsubscribe();
-                resolve(user);
-            });
-        } else {
-            resolve(null);
-        }
-    });
-}
+// getCurrentUser() deleted — Issue 01: was using firebase.auth() which never
+// exists in MV3 service workers. Replaced with chrome.storage.local reads above.
 
 /**
  * Categorize pattern type
@@ -301,21 +288,21 @@ function cacheResult(key, result) {
 
 /**
  * Log scan to Firestore
+ * Issue 01 fix: reads token from chrome.storage.local
  */
 async function logScan(result, userId, deviceId) {
     try {
-        const user = await getCurrentUser();
-        if (!user) return;
+        const stored = await chrome.storage.local.get([USER_TOKEN_KEY]);
+        const token = stored[USER_TOKEN_KEY];
+        if (!token) return; // Not logged in — skip
 
-        // Send to Cloud Function
-        const idToken = await user.getIdToken();
         await fetch(
             'https://us-central1-zas-safeguard.cloudfunctions.net/logUrlScan',
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     ...result,
@@ -325,7 +312,7 @@ async function logScan(result, userId, deviceId) {
             }
         );
     } catch (error) {
-        console.error('[URLScanner] Log failed:', error);
+        console.error('[URLScanner] Log failed:', error.message);
     }
 }
 

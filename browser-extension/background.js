@@ -11,26 +11,21 @@
  * - Ad Blocker Engine (NEW)
  */
 
-// Import Ad Blocker modules (inline for service worker compatibility)
-// Note: Service workers don't support ES modules well, so we use inline loading
-let AdBlockEngine = null;
-let AdBlockStats = null;
-let AdBlockAntiBreakage = null;
-let FilterListParser = null;
-let FilterListManager = null;
-
-// Filter list modules will be loaded inline during init
-// (ES modules with "type": "module" don't support importScripts)
 
 // ============================================
 // CONFIGURATION
 // ============================================
+// ─────────────────────────────────────────────────────────────
+// CONFIG — all URLs centralised here (Issue 04A)
+// No inline fetch URLs anywhere else in the file
+// ─────────────────────────────────────────────────────────────
 const CONFIG = {
     FIREBASE_API_ENDPOINT: 'https://us-central1-zas-safeguard.cloudfunctions.net',
     FIREBASE_FUNCTIONS_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net',
-    // 2nd gen Cloud Run function URLs
     UPDATE_DEVICE_STATUS_URL: 'https://updatedevicestatus-xwlk3qzrrq-uc.a.run.app',
     REGISTER_DEVICE_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net/registerDevice',
+    CHECK_URL_REPUTATION_URL: 'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
+
     SYNC_INTERVAL_MINUTES: 15,
     OFFLINE_BLOCKLIST_KEY: 'offline_blocklist',
     DEVICE_ID_KEY: 'device_id',
@@ -610,40 +605,70 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
 });
 
-// ============================================
-// INTERNAL MESSAGE HANDLER (from content scripts)
-// ============================================
+// ─────────────────────────────────────────────────────────────
+// UNIFIED INTERNAL MESSAGE HANDLER  (Issue 05)
+// Replaces 3 separate addListener registrations that caused
+// racing duplicate handlers for PING / LOGIN / LOGOUT / DEV_TOOLS_OPENED.
+// Rule: sync handlers return false, async return true.
+// ─────────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[Background] Received internal message:', message.type);
+    console.log('[Background] Message received:', message.type);
+
+    // ── SYNC handlers — fire-and-forget, return false ──────────
+
+    if (message.type === 'PING') {
+        sendResponse({ status: 'alive', version: EXTENSION_VERSION });
+        return false;
+    }
+
+    if (message.type === 'DEV_TOOLS_OPENED') {
+        console.log('[Security] DevTools opened on:', message.url);
+        logSecurityEvent('DEVTOOLS_OPENED', { url: message.url, severity: 'medium' });
+        logTamperAttempt('dev_tools_opened');
+        sendResponse({ received: true });
+        return false;
+    }
+
+    if (message.type === 'ADBLOCK_BREAKAGE') {
+        logSecurityEvent('ADBLOCK_BREAKAGE', { domain: message.domain, severity: 'low' });
+        sendResponse({ received: true }); return false;
+    }
+
+    if (message.type === 'ADBLOCK_COSMETIC_STATS') {
+        (async () => {
+            for (let i = 0; i < Math.min(message.count, 100); i++)
+                await incrementAdBlockStat('ads');
+        })();
+        sendResponse({ received: true }); return false;
+    }
+
+    if (message.type === 'VISIBILITY_CHANGE') {
+        if (message.hidden) console.log('[ZAS] Tab hidden:', message.url);
+        sendResponse({ received: true }); return false;
+    }
+
+    // ── ASYNC handlers — keep channel open, return true ────────
 
     if (message.type === 'CHILD_LOCK') {
-        console.log('[ChildLock] Lock command from content script:', message.locked);
         chrome.storage.local.set({
             childLocked: message.locked,
             childLockTime: new Date().toISOString()
-        }).then(() => {
-            applyChildLock(message.locked);
-            sendResponse({ success: true });
-        });
-        return true; // Keep channel open for async response
+        }).then(() => { applyChildLock(message.locked); sendResponse({ success: true }); });
+        return true;
     }
 
     if (message.type === 'STUDY_MODE_START') {
-        console.log('[StudyMode] Start from content script:', message.session);
         chrome.storage.local.set({
             activeStudySession: message.session,
             studyBlockCategories: message.session.blockCategories
         }).then(async () => {
-            // Directly apply blocking NOW - don't wait for debounced listener
             await updateBlockingWithCategories(message.session.blockCategories);
-            console.log('[StudyMode] Blocking applied for categories:', message.session.blockCategories);
             sendResponse({ success: true });
         });
         return true;
     }
 
     if (message.type === 'STUDY_MODE_STOP') {
-        console.log('[StudyMode] Stop from content script');
         chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']).then(() => {
             updateBlockingRules(DEFAULT_BLOCKLIST);
             sendResponse({ success: true });
@@ -651,109 +676,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
-    // Handle DevTools detection from content script
-    if (message.type === 'DEV_TOOLS_OPENED') {
-        console.log('[Security] DevTools opened detected on:', message.url);
-        logSecurityEvent('DEVTOOLS_OPENED', {
-            url: message.url,
-            reason: 'Developer tools were opened on a monitored page',
-            severity: 'medium'
-        });
-        sendResponse({ received: true });
-        return false;
+    if (message.type === 'PAGE_UNLOAD') {
+        sendGracefulOffline(message.hint || 'page_unload');
+        sendResponse({ received: true }); return true;
     }
 
-    if (message.type === 'PING') {
-        sendResponse({ status: 'alive', version: EXTENSION_VERSION });
-        return false;
-    }
+    if (message.type === 'ADBLOCK_ENABLE') { handleAdBlockEnable().then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_DISABLE') { handleAdBlockDisable().then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_SET_CATEGORY') { handleAdBlockSetCategory(message.category, message.enabled).then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_ADD_ALLOWLIST') { handleAdBlockAddAllowlist(message.domain).then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_REMOVE_ALLOWLIST') { handleAdBlockRemoveAllowlist(message.domain).then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_GET_ALLOWLIST') { handleAdBlockGetAllowlist().then(list => sendResponse({ allowlist: list })); return true; }
+    if (message.type === 'ADBLOCK_SET_SITE_MODE') { handleAdBlockSetSiteMode(message.domain, message.mode).then(() => sendResponse({ success: true })); return true; }
+    if (message.type === 'ADBLOCK_GET_STATS') { handleAdBlockGetStats().then(stats => sendResponse({ stats })); return true; }
+    if (message.type === 'ADBLOCK_GET_CONFIG') { handleAdBlockGetConfig().then(config => sendResponse({ config })); return true; }
 
-    // ============================================
-    // AD BLOCKER MESSAGE HANDLERS
-    // ============================================
-
-    if (message.type === 'ADBLOCK_ENABLE') {
-        handleAdBlockEnable().then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_DISABLE') {
-        handleAdBlockDisable().then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_SET_CATEGORY') {
-        handleAdBlockSetCategory(message.category, message.enabled)
-            .then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_ADD_ALLOWLIST') {
-        handleAdBlockAddAllowlist(message.domain)
-            .then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_REMOVE_ALLOWLIST') {
-        handleAdBlockRemoveAllowlist(message.domain)
-            .then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_GET_ALLOWLIST') {
-        handleAdBlockGetAllowlist().then(list => sendResponse({ allowlist: list }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_SET_SITE_MODE') {
-        handleAdBlockSetSiteMode(message.domain, message.mode)
-            .then(() => sendResponse({ success: true }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_GET_STATS') {
-        handleAdBlockGetStats().then(stats => sendResponse({ stats }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_GET_CONFIG') {
-        handleAdBlockGetConfig().then(config => sendResponse({ config }));
-        return true;
-    }
-
-    if (message.type === 'ADBLOCK_BREAKAGE') {
-        console.log('[AdBlock] Breakage reported for:', message.domain);
-        logSecurityEvent('ADBLOCK_BREAKAGE', {
-            domain: message.domain,
-            timestamp: message.timestamp,
-            severity: 'low'
-        });
-        sendResponse({ received: true });
-        return false;
-    }
-
-    // Handle cosmetic filter stats from content script
-    if (message.type === 'ADBLOCK_COSMETIC_STATS') {
-        console.log('[AdBlock] Cosmetic stats from', message.domain, ':', message.count, 'elements blocked');
-        // Increment stats by the count of hidden elements
-        (async () => {
-            for (let i = 0; i < Math.min(message.count, 100); i++) {
-                await incrementAdBlockStat('ads');
-            }
-        })();
-        sendResponse({ received: true });
-        return false;
-    }
-
-    // Handle URL scan from popup
     if (message.type === 'SCAN_URL') {
-        console.log('[URLScanner] Popup scan request for:', message.url);
         scanUrlForThreats(message.url)
             .then(result => sendResponse(result))
-            .catch(error => sendResponse({ safe: true, error: error.message }));
-        return true; // Async response
+            .catch(err => sendResponse({ safe: true, error: err.message }));
+        return true;
     }
 
+    // ── Delegated popup/dashboard types ────────────────────────
+    const delegated = [
+        'GET_STATUS', 'LOGIN', 'LOGOUT', 'SYNC_NOW', 'RESET_STATS',
+        'REQUEST_UNLOCK', 'GET_DEVICE_ID', 'ANALYZE_CONTENT_FOR_ADULT',
+        'AI_CONTENT_BLOCKED', 'CONTENT_BLOCKED', 'LOG_BLOCKED_SITE'
+    ];
+    if (delegated.includes(message.type)) {
+        handleMessage(message, sender).then(sendResponse);
+        return true;
+    }
+
+    console.warn('[Background] Unhandled message type:', message.type);
+    sendResponse({ error: 'Unknown message type' });
     return false;
 });
 
@@ -1055,7 +1012,9 @@ function checkSuspiciousPatterns(url) {
                 category: 'suspicious'
             };
         }
-    } catch (e) { }
+    } catch (e) {
+        console.warn('[URLScanner] checkSuspiciousPatterns: could not parse URL:', url, e.message);
+    }
 
     return { suspicious: false };
 }
@@ -1134,7 +1093,9 @@ function checkSignatureDatabase(url) {
                 return { blocked: true, safe: false, category, reason: 'known_malicious' };
             }
         }
-    } catch (e) { }
+    } catch (e) {
+        console.warn('[URLScanner] checkSignatureDatabase: could not parse URL:', url, e.message);
+    }
 
     return { blocked: false };
 }
@@ -1806,7 +1767,7 @@ async function sendGracefulOffline(reason = 'browser_closed') {
                 },
                 body: data,
                 keepalive: true
-            }).catch(() => { });
+            }).catch(e => { console.warn('[ZAS] Graceful offline fetch failed:', e.message); });
         }
 
         console.log('[ZAS] Graceful offline signal sent:', reason);
@@ -1821,20 +1782,10 @@ chrome.runtime.onSuspend.addListener(() => {
     sendGracefulOffline('service_worker_suspend');
 });
 
-// Handle visibility changes via messages from content scripts
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'VISIBILITY_CHANGE') {
-        if (message.hidden) {
-            // Tab is hidden, but don't send offline yet - wait for actual unload
-            console.log('[ZAS] Tab hidden:', message.url);
-        }
-    }
-
-    if (message.type === 'PAGE_UNLOAD') {
-        // Page is unloading - this is a graceful close
-        sendGracefulOffline(message.hint || 'page_unload');
-    }
-});
+// ─────────────────────────────────────────────────────────────
+// Issue 05: Listener #2 (VISIBILITY_CHANGE/PAGE_UNLOAD) removed.
+// Now handled in the unified onMessage listener above.
+// ─────────────────────────────────────────────────────────────
 
 // ============================================
 // TAMPER DETECTION
@@ -1916,7 +1867,9 @@ async function logBlockedAttempt(url) {
     let domain = url;
     try {
         domain = new URL(url).hostname;
-    } catch (e) { }
+    } catch (e) {
+        console.warn('[BlockLog] Could not parse URL for domain extraction:', url, e.message);
+    }
 
     await logSecurityEvent('BLOCKED_SITE', {
         url: url,
@@ -2025,14 +1978,10 @@ async function logBlockedUrl(url, hostname) {
     }
 }
 
-// ============================================
-// MESSAGE HANDLING FROM POPUP/CONTENT SCRIPTS
-// ============================================
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    handleMessage(message, sender).then(sendResponse);
-    return true; // Keep channel open for async response
-});
+// ─────────────────────────────────────────────────────────────
+// Issue 05: Listener #3 registration removed.
+// handleMessage() still exists — delegated from unified listener above.
+// ─────────────────────────────────────────────────────────────
 
 async function handleMessage(message, sender) {
     switch (message.type) {
@@ -2064,10 +2013,6 @@ async function handleMessage(message, sender) {
         case 'GET_DEVICE_ID':
             return { deviceId: await getDeviceId() };
 
-        case 'DEV_TOOLS_OPENED':
-            await logTamperAttempt('dev_tools_opened');
-            return { logged: true };
-
         case 'ANALYZE_CONTENT_FOR_ADULT':
             return await analyzeContentForAdult(message.data);
 
@@ -2080,13 +2025,9 @@ async function handleMessage(message, sender) {
             return { logged: true };
 
         case 'LOG_BLOCKED_SITE':
-            // Called from blocked.html when a site is blocked
             console.log('[Security] Logging blocked site from blocked.html:', message.url);
             await logBlockedAttempt(message.url);
             return { logged: true, url: message.url };
-
-        case 'PING':
-            return { pong: true };
 
         default:
             return { error: 'Unknown message type' };
@@ -2894,14 +2835,11 @@ async function handleAdBlockGetConfig() {
 // STARTUP
 // ============================================
 
-// Track navigation (Removed estimation logic per user request for real data only)
-// Now relying purely on:
-// 1. Cosmetic filter matches (from content script)
-// 2. Navigation errors (blocked sites/frames)
-chrome.webNavigation.onCompleted.addListener(async (details) => {
-    // Listener kept empty to allow for future logic if needed, 
-    // but removed estimation to ensure accuracy.
-});
+// ─────────────────────────────────────────────────────────────
+// Issue 04C: empty webNavigation.onCompleted listener removed.
+// Was: chrome.webNavigation.onCompleted.addListener(async () => {})
+// Re-add if future implementation is scoped.
+// ─────────────────────────────────────────────────────────────
 
 // Track failed navigations (blocked sites)
 chrome.webNavigation.onErrorOccurred.addListener(async (details) => {

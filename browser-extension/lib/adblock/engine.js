@@ -70,6 +70,8 @@ async function init() {
 
 /**
  * Apply current configuration to DNR rulesets
+ * Includes subscription entitlement check — premium categories only
+ * enabled if user has security_intelligence capability.
  */
 async function applyConfig() {
     if (!engineConfig.enabled) {
@@ -77,8 +79,27 @@ async function applyConfig() {
         return;
     }
 
+    // ── Entitlement gate: check if user has premium capabilities ──
+    const PREMIUM_CATEGORIES = ['ads', 'trackers', 'malware', 'youtube'];
+    let hasPremium = false;
+
+    try {
+        const stored = await chrome.storage.local.get(['_verifiedSubscription']);
+        const sub = stored._verifiedSubscription;
+        if (sub && sub.capabilities && sub.capabilities.includes('security_intelligence')) {
+            hasPremium = true;
+        }
+    } catch (e) {
+        console.warn('[AdBlock Engine] Could not check entitlement:', e.message);
+    }
+
     // Apply each category setting
     for (const [category, enabled] of Object.entries(engineConfig.categories)) {
+        // If this is a premium category, gate on entitlement
+        if (PREMIUM_CATEGORIES.includes(category) && !hasPremium) {
+            await DnrBuilder.setCategoryEnabled(category, false);
+            continue;
+        }
         await DnrBuilder.setCategoryEnabled(category, enabled);
     }
 
@@ -87,6 +108,10 @@ async function applyConfig() {
     const allowlist = result[ENGINE_ALLOWLIST_KEY] || [];
     if (allowlist.length > 0) {
         await DnrBuilder.applyAllowlist(allowlist);
+    }
+
+    if (!hasPremium) {
+        console.log('[AdBlock Engine] Premium categories disabled — no entitlement');
     }
 }
 
