@@ -113,7 +113,9 @@ const Overview = () => {
             // Show popup if any condition is true
             if (isExpired || isFreeAfterTrial || trialEnded) {
                 // Check if user already dismissed (don't show again for 24 hours)
-                const dismissedAt = localStorage.getItem('trialExpiredDismissed');
+                const uid = userProfile?.uid || 'unknown';
+                const dismissKey = `trialExpiredDismissed_${uid}`;
+                const dismissedAt = localStorage.getItem(dismissKey);
                 const shouldShow = !dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000;
                 console.log('[TrialCheck] Should show popup:', shouldShow);
                 if (shouldShow) {
@@ -124,7 +126,9 @@ const Overview = () => {
     }, [userProfile]);
 
     const handleDismissTrialModal = () => {
-        localStorage.setItem('trialExpiredDismissed', Date.now().toString());
+        const uid = userProfile?.uid || 'unknown';
+        const dismissKey = `trialExpiredDismissed_${uid}`;
+        localStorage.setItem(dismissKey, Date.now().toString());
         setShowTrialExpired(false);
     };
 

@@ -13,6 +13,12 @@ const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
 
     if (!isOpen) return null;
 
+    // Use subscription prop to tailor the messaging
+    const hasEverSubscribed = subscription?.plan !== 'free' || subscription?.trial_used;
+    const headline = hasEverSubscribed
+        ? 'Your Subscription Has Ended'
+        : 'Your Free Trial Has Ended';
+
     const handleUpgrade = () => {
         navigate(`/app/checkout?plan=${selectedPlan}`);
         onClose();
@@ -34,7 +40,7 @@ const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
                     <Shield size={48} />
                 </div>
 
-                <h2>Your Free Trial Has Ended</h2>
+                <h2>{headline}</h2>
                 <p className={styles.subtitle}>
                     Subscribe now to continue protecting yourself and your family online.
                 </p>

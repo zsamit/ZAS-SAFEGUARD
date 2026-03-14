@@ -651,6 +651,14 @@ function derivePlanFromLineItems(lineItems) {
  * Check if user is eligible for free trial
  */
 async function checkTrialEligibilityInternal(uid) {
+    // Fast-path: if user doc already has trial_used stamped, reject immediately
+    // This avoids the expensive device fingerprint lookup when we already know
+    const userDoc = await db.doc(`users/${uid}`).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    if (userData.subscription?.trial_used === true) {
+        return { eligible: false, reason: 'trial_already_used' };
+    }
+
     // Get user's device fingerprint
     const userDevices = await db.collection('devices')
         .where('userId', '==', uid)
@@ -670,8 +678,7 @@ async function checkTrialEligibilityInternal(uid) {
     }
 
     // Check 2: Phone number (for discounted regions)
-    const userDoc = await db.doc(`users/${uid}`).get();
-    const userData = userDoc.data();
+    // (userDoc and userData already fetched above in fast-path check)
 
     if (userData.phone) {
         const phoneUsers = await db.collection('users')
@@ -1010,9 +1017,25 @@ exports.createSubscriptionIntent = functions
             const userDoc = await db.doc(`users/${uid}`).get();
             const userData = userDoc.exists ? userDoc.data() : {};
 
-            // Get price ID
-            const priceId = STRIPE_PRICE_IDS[normalizedPlan];
-            if (!priceId || priceId.includes('price_essential') || priceId.includes('price_pro_monthly') && !priceId.startsWith('price_1')) {
+            // Get price ID — first try Firestore config, then env vars (mirrors createCheckoutSession)
+            let priceId;
+            const pricingDoc = await db.doc('config/stripe_prices').get();
+            if (pricingDoc.exists && pricingDoc.data()[normalizedPlan]) {
+                priceId = pricingDoc.data()[normalizedPlan];
+            } else {
+                priceId = STRIPE_PRICE_IDS[normalizedPlan];
+            }
+
+            // Check if price ID is a placeholder (not configured)
+            const isPlaceholder = !priceId ||
+                priceId.includes('REPLACE') ||
+                priceId === 'price_essential_monthly' ||
+                priceId === 'price_pro_monthly' ||
+                priceId === 'price_essential_yearly' ||
+                priceId === 'price_pro_yearly';
+
+            if (isPlaceholder) {
+                console.error('Stripe price not configured. Plan:', normalizedPlan, 'PriceId:', priceId);
                 throw new functions.https.HttpsError('failed-precondition', 'Stripe price not configured');
             }
 
@@ -1057,6 +1080,51 @@ exports.createSubscriptionIntent = functions
             }
 
             const subscription = await stripe.subscriptions.create(subscriptionParams);
+
+            // ── Fix 2: Stamp trial_used immediately after Stripe confirms trial ──
+            // This is the authoritative moment — Stripe has created the subscription.
+            // Stamping here (not in a webhook) because createSubscriptionIntent
+            // creates subscriptions directly, so checkout.session.completed never fires.
+            if (trialEligible.eligible && subscription.trial_end) {
+                try {
+                    // Stamp on user doc (fast-path check in checkTrialEligibilityInternal)
+                    await db.doc(`users/${uid}`).set({
+                        subscription: {
+                            trial_used: true,
+                            trial_started_at: admin.firestore.FieldValue.serverTimestamp(),
+                        }
+                    }, { merge: true });
+
+                    // Stamp on device registry (device fingerprint check)
+                    const userDevices = await db.collection('devices')
+                        .where('userId', '==', uid)
+                        .limit(1)
+                        .get();
+
+                    if (!userDevices.empty) {
+                        const fingerprint = userDevices.docs[0].data().fingerprint;
+                        if (fingerprint) {
+                            await db.doc(`device_registry/${fingerprint}`).set({
+                                trial_used: true,
+                                trial_used_at: admin.firestore.FieldValue.serverTimestamp(),
+                                trial_used_by: uid,
+                            }, { merge: true });
+                        }
+                    }
+
+                    console.log(`[Trial] Stamped trial_used=true for user: ${uid}`);
+                } catch (stampErr) {
+                    // Non-fatal — the subscription was created successfully.
+                    // The fast-path user doc check provides primary protection.
+                    console.error('[Trial] Failed to stamp trial_used:', stampErr.message);
+                    await sendCriticalAlert({
+                        type: 'TRIAL_STAMP_FAILED',
+                        userId: uid,
+                        subscriptionId: subscription.id,
+                        error: stampErr.message
+                    });
+                }
+            }
 
             // Get client secret - from setup_intent for trials, payment_intent otherwise
             let clientSecret;
