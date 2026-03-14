@@ -21,23 +21,23 @@
       },
       {
         "source": "/app/**",
-        "destination": "/index.html"
+        "destination": "/app.html"
       },
       {
         "source": "/register",
-        "destination": "/index.html"
+        "destination": "/app.html"
       },
       {
         "source": "/login",
-        "destination": "/index.html"
+        "destination": "/app.html"
       },
       {
         "source": "/checkout/**",
-        "destination": "/index.html"
+        "destination": "/app.html"
       },
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "/app.html"
       }
     ]
   },
