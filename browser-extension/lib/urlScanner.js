@@ -13,20 +13,34 @@ const CHECK_URL_REPUTATION_URL = 'https://us-central1-zas-safeguard.cloudfunctio
 
 /**
  * Initialize the scanner with required data
+ * C-03: Replaced eval() of urlPatterns.js with JSON.parse of urlPatterns.json
  */
 async function initScanner() {
     try {
-        // Load URL patterns
-        const patternsResponse = await fetch(chrome.runtime.getURL('lib/urlPatterns.js'));
-        const patternsCode = await patternsResponse.text();
-        eval(patternsCode);
+        // Load URL patterns from JSON (no eval — C-03 fix)
+        const patternsResponse = await fetch(chrome.runtime.getURL('lib/urlPatterns.json'));
+        const patternsData = await patternsResponse.json();
+
+        // Reconstruct regex patterns from JSON strings
+        const regexPatterns = (patternsData.maliciousRegexPatterns || []).map(p => new RegExp(p, 'i'));
+        const simplePatterns = (patternsData.maliciousPatterns || []);
+
+        urlPatterns = {
+            maliciousPatterns: simplePatterns,
+            maliciousRegexPatterns: regexPatterns,
+            suspiciousParams: patternsData.suspiciousParams || [],
+            maliciousShorteners: patternsData.maliciousShorteners || [],
+            trustedDomains: patternsData.trustedDomains || []
+        };
 
         // Load malware signatures
         const signaturesResponse = await fetch(chrome.runtime.getURL('lib/malwareSignatures.json'));
         malwareSignatures = await signaturesResponse.json();
 
         console.log('[URLScanner] Initialized with',
-            malwareSignatures.total_entries, 'signatures');
+            malwareSignatures.total_entries, 'signatures,',
+            simplePatterns.length, 'simple patterns,',
+            regexPatterns.length, 'regex patterns');
         return true;
     } catch (error) {
         console.error('[URLScanner] Init failed:', error);
@@ -127,47 +141,78 @@ async function scanUrl(url) {
 }
 
 /**
- * Layer A: Check URL against hardcoded patterns
+ * Layer A: Check URL against loaded patterns
+ * Uses patterns loaded from urlPatterns.json via initScanner()
  */
 function checkPatterns(url) {
-    // Malicious patterns
-    const MALICIOUS_PATTERNS = [
-        /phish/i, /ph1sh/i, /verify-account/i, /confirm-identity/i,
-        /account-suspended/i, /reset-password-now/i, /free-crypto/i,
-        /crypto-giveaway/i, /wallet-drainer/i, /claim-airdrop/i,
-        /binance-verify/i, /coinbase-verify/i, /metamask-verify/i,
-        /steam-gift/i, /free-robux/i, /free-vbucks/i,
-        /iphone-winner/i, /prize-claim/i, /lottery-winner/i,
-        /download-now-free/i, /virus-detected/i, /your-pc-infected/i,
-        /grabify/i, /iplogger/i,
-        /paypa[l1].*\.(com|net)/i, /amaz[o0]n.*\.(com|net)/i,
-        /g[o0]{2}gle.*\.(com|net)/i
-    ];
+    const urlLower = url.toLowerCase();
 
-    const TRUSTED_DOMAINS = [
+    // Use loaded patterns if available, otherwise fallback to minimal set
+    const trustedDomains = urlPatterns?.trustedDomains || [
         'google.com', 'youtube.com', 'facebook.com', 'instagram.com',
         'twitter.com', 'x.com', 'microsoft.com', 'apple.com',
         'amazon.com', 'netflix.com', 'github.com', 'reddit.com',
         'paypal.com', 'stripe.com', 'zasgloballlc.com'
     ];
 
-    const urlLower = url.toLowerCase();
-
     // Check trusted first
-    for (const domain of TRUSTED_DOMAINS) {
+    for (const domain of trustedDomains) {
         if (urlLower.includes(domain)) {
             return { blocked: false, reason: 'trusted' };
         }
     }
 
-    // Check patterns
-    for (const pattern of MALICIOUS_PATTERNS) {
+    // Check simple string patterns (case-insensitive substring match)
+    const simplePatterns = urlPatterns?.maliciousPatterns || [];
+    for (const pattern of simplePatterns) {
+        if (urlLower.includes(pattern.toLowerCase())) {
+            return {
+                blocked: true,
+                reason: 'malicious_pattern',
+                pattern: pattern,
+                category: categorizePattern({ toString: () => pattern })
+            };
+        }
+    }
+
+    // Check regex patterns (complex patterns that need regex matching)
+    const regexPatterns = urlPatterns?.maliciousRegexPatterns || [];
+    for (const pattern of regexPatterns) {
         if (pattern.test(url)) {
             return {
                 blocked: true,
                 reason: 'malicious_pattern',
                 pattern: pattern.toString(),
                 category: categorizePattern(pattern)
+            };
+        }
+    }
+
+    // Check suspicious query parameters
+    const suspiciousParams = urlPatterns?.suspiciousParams || [];
+    try {
+        const urlObj = new URL(url);
+        for (const param of suspiciousParams) {
+            if (urlObj.searchParams.has(param)) {
+                return {
+                    blocked: true,
+                    reason: 'suspicious_parameter',
+                    pattern: param,
+                    category: 'data_harvesting'
+                };
+            }
+        }
+    } catch (e) { /* Invalid URL */ }
+
+    // Check malicious shorteners
+    const shorteners = urlPatterns?.maliciousShorteners || [];
+    for (const shortener of shorteners) {
+        if (urlLower.includes(shortener)) {
+            return {
+                blocked: true,
+                reason: 'malicious_shortener',
+                pattern: shortener,
+                category: 'malicious_redirect'
             };
         }
     }

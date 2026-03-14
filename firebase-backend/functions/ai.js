@@ -25,6 +25,23 @@ const GAMBLING_KEYWORDS = [
     'roulette', 'sportsbook', 'wager',
 ];
 
+// M-04: Sanitize user-supplied strings before embedding in AI prompts
+function sanitizeForPrompt(str, maxLen = 500) {
+    return (str || '').substring(0, maxLen)
+        .replace(/ignore.*instructions/gi, '[removed]')
+        .replace(/system.*prompt/gi, '[removed]')
+        .replace(/you are now/gi, '[removed]')
+        .replace(/disregard/gi, '[removed]');
+}
+
+// M-04: Whitelist AI response fields to prevent injection of unexpected data
+const ALLOWED_CLASSIFICATION_FIELDS = ['categories', 'isAdult', 'isHarmful', 'isGambling', 'confidence', 'reason'];
+function whitelistOutput(parsed) {
+    return Object.fromEntries(
+        Object.entries(parsed).filter(([k]) => ALLOWED_CLASSIFICATION_FIELDS.includes(k))
+    );
+}
+
 /**
  * Classify content for adult/harmful material (Gen 2 with native CORS)
  */
@@ -64,13 +81,14 @@ async function classifyContentLogic(data, uid) {
         const userData = userDoc.data();
         const subscription = userData.subscription || {};
         const plan = subscription.plan?.toLowerCase() || '';
-        const status = subscription.status?.toLowerCase() || '';
+        // H-03: Read plan_status first (written by webhooks), fallback to status
+        const status = (subscription.plan_status || subscription.status || '').toLowerCase();
 
         // Check for Pro access: Pro plan OR Lifetime access
         // Lifetime can have status 'lifetime' OR 'active'
         const isLifetime = plan === 'lifetime' || status === 'lifetime';
         const isPro = isLifetime ||
-            (plan.includes('pro') && (status === 'active' || status === 'trialing'));
+            (plan.includes('pro') && ['active', 'trialing', 'trial'].includes(status));
 
         if (!isPro) {
             return {
@@ -136,11 +154,16 @@ async function classifyContentLogic(data, uid) {
             const OpenAI = require('openai');
             const openai = new OpenAI({ apiKey: openaiApiKey });
 
+            // M-04: Sanitize user-supplied inputs before embedding in prompt
+            const safeUrl = sanitizeForPrompt(url, 200);
+            const safeTitle = sanitizeForPrompt(title, 200);
+            const safeContent = sanitizeForPrompt(content, 500);
+
             const prompt = `Classify the following web content. Respond with JSON only.
 
-URL: ${url}
-Title: ${title}
-Content snippet: ${content?.substring(0, 500)}
+URL: ${safeUrl}
+Title: ${safeTitle}
+Content snippet: ${safeContent}
 
 Classify into categories: safe, adult, gambling, violence, drugs, social_media, gaming
 Return format: {"categories": ["category1"], "isAdult": boolean, "isHarmful": boolean, "confidence": 0.0-1.0, "reason": "brief explanation"}`;
@@ -160,7 +183,9 @@ Return format: {"categories": ["category1"], "isAdult": boolean, "isHarmful": bo
                 });
 
                 const aiResponse = completion.choices[0].message.content;
-                const classification = JSON.parse(aiResponse);
+                // M-04: Whitelist output fields to prevent injection
+                const rawClassification = JSON.parse(aiResponse);
+                const classification = whitelistOutput(rawClassification);
 
                 return {
                     success: true,
@@ -503,10 +528,11 @@ exports.analyzeContentForAdult = functions
             const userData = userDoc.data();
             const subscription = userData.subscription || {};
             const plan = subscription.plan?.toLowerCase() || '';
-            const status = subscription.status?.toLowerCase() || '';
+            // H-03: Read plan_status first (written by webhooks), fallback to status
+            const status = (subscription.plan_status || subscription.status || '').toLowerCase();
 
             const isPro = (plan.includes('pro') || plan === 'lifetime') &&
-                (status === 'active' || status === 'trialing');
+                ['active', 'trialing', 'trial'].includes(status);
 
             if (!isPro) {
                 return { blocked: false, reason: 'pro_required' };
@@ -552,11 +578,16 @@ exports.analyzeContentForAdult = functions
             // Truncate text to save tokens
             const truncatedText = text?.substring(0, 2000) || '';
 
+            // M-04: Sanitize user-supplied inputs
+            const safeTitle = sanitizeForPrompt(title, 200);
+            const safeUrl = sanitizeForPrompt(url, 200);
+            const safeText = sanitizeForPrompt(truncatedText, 2000);
+
             const prompt = `Analyze this webpage content and classify it.
 
-Title: ${title}
-URL: ${url}
-Content: ${truncatedText}
+Title: ${safeTitle}
+URL: ${safeUrl}
+Content: ${safeText}
 
 Classify as ONE of:
 - SAFE: Normal, appropriate content

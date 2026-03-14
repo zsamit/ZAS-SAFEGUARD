@@ -182,6 +182,19 @@ exports.verifyUnlock = functions.https.onCall(async (data, context) => {
         const storedHash = ownerProfile.data().master_key_hash;
         const inputHash = CryptoJS.SHA256(masterKey).toString();
 
+        // H-01: Brute-force limit — lock after 5 wrong attempts
+        const MAX_ATTEMPTS = 5;
+        if (requestData.attempt_count >= MAX_ATTEMPTS) {
+            await db.doc(`override_requests/${requestId}`).update({
+                status: 'locked',
+            });
+            return {
+                success: false,
+                message: 'Too many attempts. Start a new unlock request.',
+                locked: true,
+            };
+        }
+
         // Increment attempt count
         await db.doc(`override_requests/${requestId}`).update({
             attempt_count: admin.firestore.FieldValue.increment(1),

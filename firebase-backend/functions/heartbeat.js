@@ -12,6 +12,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 
 const db = getFirestore();
 
@@ -67,11 +68,29 @@ const OFFLINE_EVENTS = [
  */
 exports.registerDevice = onRequest({ cors: true }, async (req, res) => {
     try {
+        // C-01: Verify authentication token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authorization required' });
+        }
+
+        let decoded;
+        try {
+            decoded = await getAuth().verifyIdToken(authHeader.split('Bearer ')[1]);
+        } catch (authErr) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
         const data = req.body.data || req.body;
         const { deviceId, userId, deviceName, deviceType, browser, timezone } = data;
 
         if (!deviceId || !userId) {
             return res.status(400).json({ error: 'deviceId and userId required' });
+        }
+
+        // Verify the caller owns this userId
+        if (decoded.uid !== userId) {
+            return res.status(403).json({ error: 'Forbidden: userId mismatch' });
         }
 
         console.log(`[RegisterDevice] Registering ${deviceId} for user ${userId}`);
@@ -148,6 +167,19 @@ exports.registerDevice = onRequest({ cors: true }, async (req, res) => {
  */
 exports.updateDeviceStatus = onRequest({ cors: true }, async (req, res) => {
     try {
+        // C-02: Verify authentication token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authorization required' });
+        }
+
+        let decoded;
+        try {
+            decoded = await getAuth().verifyIdToken(authHeader.split('Bearer ')[1]);
+        } catch (authErr) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
         const data = req.body.data || req.body;
         const { deviceId, status, offlineReason, hint, timestamp, timezone } = data;
 
@@ -163,6 +195,11 @@ exports.updateDeviceStatus = onRequest({ cors: true }, async (req, res) => {
 
         if (!deviceDoc.exists) {
             return res.status(404).json({ error: 'Device not found' });
+        }
+
+        // C-02: Verify the caller owns this device
+        if (deviceDoc.data().userId !== decoded.uid) {
+            return res.status(403).json({ error: 'Forbidden: device ownership mismatch' });
         }
 
         const updateData = {

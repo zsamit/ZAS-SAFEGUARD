@@ -36,7 +36,9 @@ const DashboardLayout = () => {
 
     const isActive = ['trialing', 'active'].includes(planStatus) || plan === 'lifetime';
     const isTrial = planStatus === 'trialing';
-    const isExpired = !isActive && user && userProfile;
+    // UI-04: Don't show "Expired" for new users who haven't had a subscription yet
+    const hasSubscription = !!subscription && (!!planStatus || !!plan);
+    const isExpired = hasSubscription && !isActive && user && userProfile;
     const isPremium = isActive && !isTrial;
 
     const planName = plan === 'lifetime' ? 'Lifetime' :
@@ -71,9 +73,12 @@ const DashboardLayout = () => {
         { icon: Settings, label: 'Settings', path: '/app/settings', mode: 'A' },
     ];
 
-    // Compute trial days remaining
-    const trialDaysLeft = isTrial && subscription?.trialEnd
-        ? Math.max(0, Math.ceil((new Date(subscription.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    // UI-03: Firestore field is 'trial_end', not 'trialEnd'
+    const trialEnd = subscription?.trial_end;
+    const trialDaysLeft = isTrial && trialEnd
+        ? Math.max(0, Math.ceil((
+            (trialEnd.toDate ? trialEnd.toDate().getTime() : new Date(trialEnd).getTime()) - Date.now()
+        ) / (1000 * 60 * 60 * 24)))
         : null;
 
     return (
@@ -159,8 +164,8 @@ const DashboardLayout = () => {
                     </div>
                 )}
 
-                {/* Expired Banner */}
-                {isExpired && !isCheckoutPage && (
+                {/* UI-11: Don't show expired banner on dashboard (Overview has its own) */}
+                {isExpired && !isCheckoutPage && !location.pathname.includes('/dashboard') && (
                     <div className={styles.expiredBanner}>
                         <div className={styles.expiredBannerContent}>
                             <div className={styles.expiredBannerIcon}>

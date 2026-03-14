@@ -35,10 +35,8 @@ const sendToExtension = async (message) => {
     const urlParams = new URLSearchParams(window.location.search);
     let extensionId = urlParams.get('ext') || localStorage.getItem('zasExtensionId');
 
-    // Known extension IDs (add yours here if unpacked)
-    const KNOWN_EXTENSION_IDS = [
-        'anclbiffkkdjjfgpnmmndjoefejdekkf', // User's unpacked extension
-    ];
+    // UI-08: No hardcoded IDs — extension auto-announces via content script
+    const KNOWN_EXTENSION_IDS = [];
 
     // If no ID found, try known ones (with timeout)
     if (!extensionId && window.chrome?.runtime?.sendMessage) {

@@ -117,6 +117,7 @@
                 "warnings/malwareBlocked.html",
                 "warnings/suspiciousWarning.html",
                 "lib/urlPatterns.js",
+                "lib/urlPatterns.json",
                 "lib/urlScanner.js",
                 "lib/malwareSignatures.json",
                 "shared/quotes.js",

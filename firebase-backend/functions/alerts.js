@@ -579,37 +579,25 @@ exports.logSecurityEvent = onCall({ memory: '512MiB' }, async (request) => {
     }
 
     try {
-        // Verify or auto-create device
+        // M-06: Verify device exists and belongs to user (no auto-creation)
         const deviceRef = db.doc(`devices/${deviceId}`);
         const deviceDoc = await deviceRef.get();
         let deviceName = 'Unknown Device';
 
         if (!deviceDoc.exists) {
-            // Auto-create device if it doesn't exist
-            console.log(`Auto-creating device ${deviceId} for user ${userId}`);
-            await deviceRef.set({
-                userId,
-                deviceId,
-                deviceType: metadata.deviceType || 'browser',
-                deviceName: metadata.deviceName || 'Browser Extension',
-                status: 'active',
-                lastSeen: FieldValue.serverTimestamp(),
-                createdAt: FieldValue.serverTimestamp(),
-                autoCreated: true
-            });
-            deviceName = metadata.deviceName || 'Browser Extension';
-        } else {
-            // Verify ownership
-            if (deviceDoc.data().userId !== userId) {
-                throw new Error('Unauthorized: device does not belong to user');
-            }
-            deviceName = deviceDoc.data().deviceName || 'Unknown Device';
-
-            // Update lastSeen
-            await deviceRef.update({
-                lastSeen: FieldValue.serverTimestamp()
-            });
+            throw new Error('Device not found. Register device first.');
         }
+
+        // Verify ownership
+        if (deviceDoc.data().userId !== userId) {
+            throw new Error('Unauthorized: device does not belong to user');
+        }
+        deviceName = deviceDoc.data().deviceName || 'Unknown Device';
+
+        // Update lastSeen
+        await deviceRef.update({
+            lastSeen: FieldValue.serverTimestamp()
+        });
 
         // Log the security event with standardized schema
         const eventRef = await db.collection(`security_events/${userId}/${deviceId}`).add({
@@ -828,26 +816,23 @@ exports.logSecurityEventHttp = onRequest({ cors: true }, async (req, res) => {
             return res.json({ success: true, skipped: true });
         }
 
-        // Get device info
+        // M-06: Verify device exists and belongs to caller (no auto-creation)
         const deviceDoc = await db.doc(`devices/${deviceId}`).get();
         let deviceName = 'Unknown Device';
 
         if (!deviceDoc.exists) {
-            // Auto-create device
-            await db.doc(`devices/${deviceId}`).set({
-                userId,
-                deviceId,
-                deviceName: metadata.deviceName || 'Browser Extension',
-                status: 'active',
-                lastSeen: FieldValue.serverTimestamp(),
-                createdAt: FieldValue.serverTimestamp()
-            });
-        } else {
-            deviceName = deviceDoc.data().deviceName || 'Unknown Device';
-            await db.doc(`devices/${deviceId}`).update({
-                lastSeen: FieldValue.serverTimestamp()
-            });
+            return res.status(404).json({ error: 'Device not found. Register device first.' });
         }
+
+        // Verify ownership
+        if (deviceDoc.data().userId !== userId) {
+            return res.status(403).json({ error: 'Device does not belong to user' });
+        }
+        deviceName = deviceDoc.data().deviceName || 'Unknown Device';
+
+        await db.doc(`devices/${deviceId}`).update({
+            lastSeen: FieldValue.serverTimestamp()
+        });
 
         // Log the security event
         const eventRef = await db.collection(`security_events/${userId}/${deviceId}`).add({

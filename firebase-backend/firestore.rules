@@ -414,5 +414,26 @@ service cloud.firestore {
     match /failed_deletions/{failId} {
       allow read, write: if false;
     }
+    
+    // M-01: Previously missing server-only collections
+    // Admin SDK bypasses these rules, so Cloud Functions still work
+    
+    match /digest_queue/{queueId} {
+      allow read, write: if false;
+    }
+    
+    match /email_caps/{capId} {
+      allow read, write: if false;
+    }
+    
+    match /alert_cooldown/{cooldownId} {
+      allow read, write: if false;
+    }
+    
+    // User blocks subcollection (written by AI classification)
+    match /users/{userId}/blocks/{blockId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only Cloud Functions
+    }
   }
 }

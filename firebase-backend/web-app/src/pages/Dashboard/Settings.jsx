@@ -23,6 +23,9 @@ import {
 } from 'lucide-react';
 import styles from './Settings.module.css';
 
+// UI-07: Inline CheckCircle2 and XCircle for toast
+import { CheckCircle2, XCircle } from 'lucide-react';
+
 const Settings = () => {
     const { user, userProfile, logout } = useAuth();
     const functions = getFunctions(app);
@@ -43,6 +46,13 @@ const Settings = () => {
     const [deleting, setDeleting] = useState(false);
     const [loadingPortal, setLoadingPortal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
+
+    // UI-07: Toast notification state (replaces native alert())
+    const [toast, setToast] = useState(null);
+    const showToast = (message, type = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     // Load notification settings from Firestore
     useEffect(() => {
@@ -91,10 +101,10 @@ const Settings = () => {
                     updatedAt: new Date(),
                 }
             }, { merge: true });
-            alert('Settings saved!');
+            showToast('Settings saved!', 'success');
         } catch (error) {
             console.error('Error saving settings:', error);
-            alert('Failed to save settings');
+            showToast('Failed to save settings', 'error');
         } finally {
             setSaving(false);
         }
@@ -107,7 +117,7 @@ const Settings = () => {
             // Debug: Check if user is authenticated
             const currentUser = auth.currentUser;
             if (!currentUser) {
-                alert('You are not logged in. Please log in first.');
+                showToast('You are not logged in. Please log in first.', 'error');
                 setLoadingPortal(false);
                 return;
             }
@@ -122,11 +132,11 @@ const Settings = () => {
             if (result.data?.url) {
                 window.open(result.data.url, '_blank');
             } else {
-                alert('Could not open billing portal. Please try again.');
+                showToast('Could not open billing portal. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Portal error:', error);
-            alert('Error opening billing portal: ' + error.message);
+            showToast('Error opening billing portal: ' + error.message, 'error');
         } finally {
             setLoadingPortal(false);
         }
@@ -142,18 +152,18 @@ const Settings = () => {
                 const invoice = result.data.invoices[0];
                 window.open(invoice.hostedUrl || invoice.pdfUrl, '_blank');
             } else {
-                alert('No invoices found.');
+                showToast('No invoices found.', 'info');
             }
         } catch (error) {
             console.error('Invoices error:', error);
-            alert('Error loading invoices: ' + error.message);
+            showToast('Error loading invoices: ' + error.message, 'error');
         }
     };
 
     // Handle Delete Account
     const handleDeleteAccount = async () => {
         if (deleteConfirm !== 'DELETE') {
-            alert('Please type DELETE to confirm');
+            showToast('Please type DELETE to confirm', 'error');
             return;
         }
 
@@ -163,7 +173,7 @@ const Settings = () => {
             // Verify user is authenticated before calling Cloud Function
             const currentUser = auth.currentUser;
             if (!currentUser) {
-                alert('You are not logged in. Please log in first.');
+                showToast('You are not logged in. Please log in first.', 'error');
                 setDeleting(false);
                 return;
             }
@@ -175,7 +185,7 @@ const Settings = () => {
 
             const deleteAccount = httpsCallable(functions, 'deleteAccount');
             await deleteAccount({ confirmDelete: 'DELETE_MY_ACCOUNT' });
-            alert('Account deleted. Goodbye!');
+            showToast('Account deleted. Goodbye!', 'success');
 
             // Force sign out directly from auth
             try {
@@ -188,7 +198,7 @@ const Settings = () => {
             window.location.replace('/');
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Error deleting account: ' + error.message);
+            showToast('Error deleting account: ' + error.message, 'error');
         } finally {
             setDeleting(false);
         }
@@ -236,6 +246,21 @@ const Settings = () => {
 
     return (
         <div className={styles.page}>
+            {/* UI-07: Toast notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed', top: 24, right: 24, zIndex: 9999,
+                    padding: '12px 20px', borderRadius: 10,
+                    background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#6366f1',
+                    color: '#fff', display: 'flex', alignItems: 'center', gap: 8,
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.18)', fontSize: 14, fontWeight: 500,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    {toast.type === 'success' ? <CheckCircle2 size={16} /> : toast.type === 'error' ? <XCircle size={16} /> : null}
+                    {toast.message}
+                </div>
+            )}
+
             <header className={styles.header}>
                 <h1>Settings</h1>
                 <p>Manage your account and preferences.</p>

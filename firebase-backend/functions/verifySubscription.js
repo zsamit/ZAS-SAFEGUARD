@@ -174,27 +174,39 @@ exports.verifySubscription = functions
                 }
             }
 
-            // Past due — allow grace period but flag it
+            // Past due — allow grace period but cap at 48 hours
             const isPastDue = planStatus === 'past_due';
+            let pastDueInGrace = false;
             if (isPastDue) {
                 await logVerification(uid, 'past_due_grace', plan);
+                // M-05: Cap grace period at 48 hours from period end
+                const graceLimitMs = 48 * 60 * 60 * 1000; // 48 hours
+                const periodEndMs = periodEnd instanceof Date ? periodEnd.getTime()
+                    : periodEnd?.toMillis ? periodEnd.toMillis()
+                        : periodEnd?.seconds ? periodEnd.seconds * 1000
+                            : 0;
+                pastDueInGrace = periodEndMs > 0 && (Date.now() - periodEndMs) < graceLimitMs;
+                if (!pastDueInGrace) {
+                    await logVerification(uid, 'past_due_grace_expired', plan);
+                }
             }
 
             // Build verified response
-            const capabilities = getCapabilities(rawPlan, isActive || isPastDue);
+            const capabilities = getCapabilities(rawPlan, isActive || pastDueInGrace);
             const duration = Date.now() - startTime;
 
             await logVerification(uid, isActive ? 'verified_active' : 'verified_inactive', plan, duration);
 
             return {
                 verified: true,
-                active: isActive || isPastDue,
+                active: isActive || pastDueInGrace,
                 plan: plan,
                 plan_status: planStatus,
                 trial_end: trialEnd,
                 current_period_end: periodEnd,
                 capabilities: capabilities,
-                grace_period: isPastDue,
+                grace_period: pastDueInGrace,
+                grace_expired: isPastDue && !pastDueInGrace,
                 server_timestamp: new Date().toISOString(),
                 ttl: 600 // 10 minutes
             };

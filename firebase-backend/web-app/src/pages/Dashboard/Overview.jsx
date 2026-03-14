@@ -97,7 +97,9 @@ const Overview = () => {
 
             // Check if subscription is expired OR user is on free plan after trial
             const isExpired = expiredStatuses.includes(status);
-            const isFreeAfterTrial = plan === 'free' && sub.trial_active === false;
+            // H-05: Guard — only show modal if user actually started a trial
+            const hasStartedTrial = !!sub.trial_start || sub.trial_used === true;
+            const isFreeAfterTrial = plan === 'free' && sub.trial_active === false && hasStartedTrial;
 
             // Check if trial ended without converting
             const trialEnd = sub.trial_end;
@@ -274,6 +276,30 @@ const Overview = () => {
                 <p>Overview of your protection status.</p>
             </header>
 
+            {/* UI-10: Status Card FIRST — before expired section */}
+            <Card variant={isProtected ? 'success' : 'warning'} className={styles.statusCard}>
+                <div className={styles.statusContent}>
+                    <div className={styles.statusIcon}>
+                        {isProtected ? (
+                            <ShieldCheck size={36} />
+                        ) : (
+                            <ShieldAlert size={36} className={styles.pulseIcon} />
+                        )}
+                    </div>
+                    <div className={styles.statusText}>
+                        <h2>{isProtected ? 'Protected' : 'Attention Needed'}</h2>
+                        <p>
+                            {isProtected
+                                ? 'All systems operational. No threats detected.'
+                                : 'Some protection features need your attention.'}
+                        </p>
+                    </div>
+                </div>
+                <Badge variant={isProtected ? 'success' : 'warning'}>
+                    {isProtected ? 'Active' : 'Review'}
+                </Badge>
+            </Card>
+
             {/* Expired/Free User: Account State Section */}
             {isExpired && (
                 <div className={styles.expiredSection}>
@@ -368,37 +394,19 @@ const Overview = () => {
                 </div>
             )}
 
-            {/* Status Card */}
-            <Card variant={isProtected ? 'success' : 'warning'} className={styles.statusCard}>
-                <div className={styles.statusContent}>
-                    <div className={styles.statusIcon}>
-                        {isProtected ? (
-                            <ShieldCheck size={36} />
-                        ) : (
-                            <ShieldAlert size={36} className={styles.pulseIcon} />
-                        )}
-                    </div>
-                    <div className={styles.statusText}>
-                        <h2>{isProtected ? 'Protected' : 'Attention Needed'}</h2>
-                        <p>
-                            {isProtected
-                                ? 'All systems operational. No threats detected.'
-                                : 'Some protection features need your attention.'}
-                        </p>
-                    </div>
-                </div>
-                <Badge variant={isProtected ? 'success' : 'warning'}>
-                    {isProtected ? 'Active' : 'Review'}
-                </Badge>
-            </Card>
+
 
             {/* Stats Grid - REAL DATA FROM FIRESTORE */}
             <div className={styles.statsGrid}>
                 <StatCard
                     icon={<Ban />}
                     label="Ads Blocked"
-                    value={stats.loading ? '—' : stats.adsBlockedToday.toLocaleString()}
-                    subtext="Today"
+                    value={stats.loading ? '—' : (
+                        extensionStats?.adsBlocked != null
+                            ? extensionStats.adsBlocked.toLocaleString()
+                            : stats.adsBlockedToday.toLocaleString()
+                    )}
+                    subtext={extensionStats?.adsBlocked != null ? 'Extension (live)' : 'Today (Firestore)'}
                     iconColor="var(--zas-indigo)"
                     loading={stats.loading}
                 />
@@ -471,7 +479,6 @@ const Overview = () => {
                     </div>
                 </div>
 
-                {/* Quote Section */}
                 <Card className={styles.quoteCard}>
                     <p className={styles.quoteText}>"{quote.text}"</p>
                     <span className={styles.quoteAuthor}>— {quote.author}</span>

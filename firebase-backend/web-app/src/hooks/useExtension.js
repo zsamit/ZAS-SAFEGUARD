@@ -50,10 +50,8 @@ const getStoredExtensionId = () => {
         return storedId;
     }
 
-    // Known extension IDs - try these if nothing stored
-    const KNOWN_IDS = [
-        'anclbiffkkdjjfgpnmmndjoefejdekkf', // User's unpacked extension
-    ];
+    // UI-08: No hardcoded IDs — extension announces via EXTENSION_ID_ANNOUNCEMENT
+    const KNOWN_IDS = [];
 
     // Return first known ID to try (will be validated on use)
     if (KNOWN_IDS.length > 0) {

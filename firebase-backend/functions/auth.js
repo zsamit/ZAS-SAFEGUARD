@@ -69,6 +69,30 @@ exports.verifyPhone = functions.https.onCall(async (data, context) => {
 
     try {
         if (action === 'send') {
+            // H-06: Rate limit — max 5 SMS sends per hour per user
+            const rateLimitRef = db.doc(`rate_limits/${uid}_phone_verify`);
+            const limitDoc = await rateLimitRef.get();
+            if (limitDoc.exists) {
+                const { count, windowStart } = limitDoc.data();
+                const elapsed = Date.now() - (windowStart || 0);
+                if (elapsed < 3600000 && count >= 5) {
+                    throw new functions.https.HttpsError(
+                        'resource-exhausted',
+                        'Too many verification requests. Please try again later.'
+                    );
+                }
+                // Reset window if expired
+                if (elapsed >= 3600000) {
+                    await rateLimitRef.set({ count: 1, windowStart: Date.now() });
+                } else {
+                    await rateLimitRef.update({
+                        count: admin.firestore.FieldValue.increment(1),
+                    });
+                }
+            } else {
+                await rateLimitRef.set({ count: 1, windowStart: Date.now() });
+            }
+
             // Send verification code
             const verification = await twilio.verify.v2
                 .services(twilioServiceSid)

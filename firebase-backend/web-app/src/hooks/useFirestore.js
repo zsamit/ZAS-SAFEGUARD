@@ -64,10 +64,11 @@ export const useDashboardStats = () => {
             where('timestamp', '>=', todayStart)
         );
 
-        // Query for devices
+        // UI-09: Query for ACTIVE devices only (not offline/disconnected)
         const devicesQuery = query(
             collection(db, 'devices'),
-            where('userId', '==', user.uid)
+            where('userId', '==', user.uid),
+            where('status', '==', 'active')
         );
 
         // Query for unread alerts
@@ -90,9 +91,10 @@ export const useDashboardStats = () => {
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         if (data.action === 'ad_blocked') {
-                            adsBlocked++;
+                            // UI-02: Read count field for batched logs, fallback to 1
+                            adsBlocked += (data.count || 1);
                         } else if (data.action === 'navigate_blocked') {
-                            sitesBlocked++;
+                            sitesBlocked += (data.count || 1);
                         }
                     });
 
@@ -200,10 +202,11 @@ export const useAlerts = (limitCount = 50) => {
             return;
         }
 
+        // UI-06: Field is 'createdAt' not 'timestamp'
         const alertsQuery = query(
             collection(db, 'alerts'),
             where('userId', '==', user.uid),
-            orderBy('timestamp', 'desc'),
+            orderBy('createdAt', 'desc'),
             limit(limitCount)
         );
 
@@ -213,7 +216,8 @@ export const useAlerts = (limitCount = 50) => {
                 const alertsList = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
-                    timestamp: doc.data().timestamp?.toDate() || null
+                    // UI-06: Read createdAt, fallback to timestamp
+                    timestamp: doc.data().createdAt?.toDate() || doc.data().timestamp?.toDate() || null
                 }));
                 setAlerts(alertsList);
                 setLoading(false);
@@ -375,25 +379,52 @@ export const useAdBlockerStats = () => {
 
 /**
  * Hook to get protection status
+ * UI-05: Check actual extension connection, not just category settings
  */
 export const useProtectionStatus = () => {
     const { user, userProfile } = useAuth();
+    const [extensionConnected, setExtensionConnected] = useState(null);
 
-    // Derive status from user profile
+    useEffect(() => {
+        let isMounted = true;
+        const checkExtension = async () => {
+            try {
+                const extId = localStorage.getItem('zasExtensionId');
+                if (extId && window.chrome?.runtime?.sendMessage) {
+                    window.chrome.runtime.sendMessage(extId, { type: 'PING' }, (response) => {
+                        if (isMounted) {
+                            setExtensionConnected(!chrome.runtime.lastError && response?.status === 'alive');
+                        }
+                    });
+                } else {
+                    if (isMounted) setExtensionConnected(false);
+                }
+            } catch {
+                if (isMounted) setExtensionConnected(false);
+            }
+        };
+        checkExtension();
+        const interval = setInterval(checkExtension, 30000);
+        return () => { isMounted = false; clearInterval(interval); };
+    }, []);
+
     const categories = userProfile?.settings?.categories || {};
-    const hasAlerts = false; // Could be derived from alerts count
-
-    // Check if all core protections are enabled
     const coreProtectionsEnabled =
-        categories.porn?.enabled !== false && // Adult content is always on
+        categories.porn?.enabled !== false &&
         categories.gambling?.enabled !== false;
 
-    const status = coreProtectionsEnabled ? 'protected' : 'attention';
+    // UI-05: Protection requires both: core categories ON + extension connected
+    const isProtected = coreProtectionsEnabled && extensionConnected === true;
+    const status = extensionConnected === null ? 'checking'
+        : isProtected ? 'protected'
+            : extensionConnected === false ? 'disconnected'
+                : 'attention';
 
     return {
         status,
-        isProtected: status === 'protected',
+        isProtected,
+        extensionConnected,
         categories,
-        loading: !userProfile
+        loading: !userProfile || extensionConnected === null
     };
 };

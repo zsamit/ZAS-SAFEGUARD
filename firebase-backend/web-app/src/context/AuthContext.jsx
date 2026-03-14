@@ -85,7 +85,29 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         });
 
-        return () => unsubscribeAuth();
+        // L-02: Listen for token refreshes (Firebase auto-refreshes ~every 55 min)
+        // Re-sync fresh token to extension on every refresh so it never goes stale
+        const unsubscribeToken = auth.onIdTokenChanged(async (firebaseUser) => {
+            if (firebaseUser) {
+                try {
+                    const freshToken = await firebaseUser.getIdToken();
+                    console.log('[AuthContext] Token refreshed, re-syncing to extension');
+                    sendMessageToExtension({
+                        type: 'LOGIN',
+                        token: freshToken,
+                        userId: firebaseUser.uid,
+                        email: firebaseUser.email
+                    });
+                } catch (e) {
+                    console.warn('[AuthContext] Token refresh sync failed:', e.message);
+                }
+            }
+        });
+
+        return () => {
+            unsubscribeAuth();
+            unsubscribeToken();
+        };
     }, []);
 
     // Real-time listener for user profile changes

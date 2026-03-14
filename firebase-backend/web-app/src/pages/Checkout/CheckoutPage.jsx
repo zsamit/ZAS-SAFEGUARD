@@ -9,7 +9,8 @@ import Logo from '../../components/Logo';
 import styles from './CheckoutPage.module.css';
 
 // Initialize Stripe
-const stripePromise = loadStripe('pk_live_51SROIVRwbGN3ywzEmYipPR4iUh1nM6QDVDzQlbaaO7oWSicFgUHR7Aaczgh1sIXizRzNgvs6IfDP2C1uu5v9yTaY00C2MzNjDV');
+// L-03: Stripe publishable key from env var (set VITE_STRIPE_PUBLISHABLE_KEY in .env)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51SROIVRwbGN3ywzEmYipPR4iUh1nM6QDVDzQlbaaO7oWSicFgUHR7Aaczgh1sIXizRzNgvs6IfDP2C1uu5v9yTaY00C2MzNjDV');
 
 // Plan details
 const PLANS = {

@@ -234,7 +234,8 @@ exports.logBlockEventHttp = functions.https.onRequest(async (req, res) => {
         'https://zasgloballlc.com'
     ];
     const origin = req.headers.origin;
-    const isAllowedOrigin = allowedOrigins.includes(origin);
+    // H-02: Extension service worker sends no Origin header — allow it
+    const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || origin?.startsWith('chrome-extension://');
 
     // Handle preflight request
     if (req.method === 'OPTIONS') {
@@ -249,13 +250,13 @@ exports.logBlockEventHttp = functions.https.onRequest(async (req, res) => {
         return res.status(204).send('');
     }
 
-    // Reject non-allowed origins on actual requests
+    // For extension requests (no origin), set a generic CORS header
     if (!isAllowedOrigin) {
         console.warn('CORS request rejected for origin:', origin);
         return res.status(403).json({ error: 'Origin not allowed' });
     }
 
-    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Origin', origin || '*');
 
     try {
         // Verify auth token
@@ -297,6 +298,12 @@ exports.updateCustomBlocklist = functions.https.onCall(async (data, context) => 
 
     const { action, domain, type } = data; // type: 'blocked' or 'allowed'
     const uid = context.auth.uid;
+
+    // H-04: Domain format validation
+    const DOMAIN_REGEX = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    if (action === 'add' && (!domain || domain.length > 253 || !DOMAIN_REGEX.test(domain))) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid domain format');
+    }
 
     try {
         const blocklistRef = db.doc(`blocklists/custom/${uid}`);

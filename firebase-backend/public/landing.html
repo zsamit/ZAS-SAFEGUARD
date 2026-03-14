@@ -1,0 +1,612 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>ZAS Safeguard — The Internet, Made Safe</title><meta name="description" content="AI-powered browser security and parental control."><link rel="preconnect" href="https://api.fontshare.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet"><link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"><style>
+:root{--bg-base:#090B10;--bg-surface:#0E1117;--bg-elevated:#141821;--accent-primary:#5B5EF4;--accent-glow:rgba(91,94,244,0.2);--accent-teal:#0AFFE0;--text-primary:#F0F2F7;--text-secondary:#8892A4;--text-tertiary:#4A5568;--border-subtle:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.15);--glass-bg:rgba(255,255,255,0.04);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;--space-9:96px;--space-10:128px;--radius-sm:6px;--radius-md:12px;--radius-lg:20px;--radius-full:9999px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg-base);color:var(--text-primary);font-family:'Satoshi',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;line-height:1.1;letter-spacing:-0.02em}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 var(--space-5)}
+/* Glass card */
+.glass{background:var(--glass-bg);border:1px solid var(--border-subtle);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--radius-lg);transition:border-color .3s,box-shadow .3s}
+.glass:hover{border-color:var(--border-strong);box-shadow:0 0 30px rgba(91,94,244,0.12)}
+/* Buttons */
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--accent-primary);color:#fff;border:none;border-radius:var(--radius-full);padding:14px 28px;font:500 15px 'Satoshi',sans-serif;cursor:pointer;animation:pulse-glow 3s ease-in-out infinite;transition:transform .2s,filter .2s}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-primary);border:1px solid var(--border-strong);border-radius:var(--radius-full);padding:14px 28px;font:500 15px 'Satoshi',sans-serif;cursor:pointer;transition:border-color .2s,background .2s}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.3);background:var(--glass-bg)}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(91,94,244,0.4)}50%{box-shadow:0 0 0 8px rgba(91,94,244,0)}}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(91,94,244,0.12);border:1px solid rgba(91,94,244,0.3);border-radius:var(--radius-full);padding:6px 14px;font:400 12px 'JetBrains Mono',monospace;color:#A5A8FA;letter-spacing:0.04em}
+/* Animate system */
+.animate{opacity:0;transform:translateY(24px);transition:opacity 600ms cubic-bezier(0.16,1,0.3,1),transform 600ms cubic-bezier(0.16,1,0.3,1)}
+.animate.visible{opacity:1;transform:translateY(0)}
+[data-stagger="1"]{transition-delay:80ms}[data-stagger="2"]{transition-delay:160ms}[data-stagger="3"]{transition-delay:240ms}[data-stagger="4"]{transition-delay:320ms}[data-stagger="5"]{transition-delay:400ms}[data-stagger="6"]{transition-delay:480ms}
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;transition:background .3s ease,backdrop-filter .3s ease}
+.nav.scrolled{background:rgba(9,11,16,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.nav .container{display:flex;align-items:center;justify-content:space-between;width:100%}
+.nav-logo{display:flex;align-items:center;gap:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:600;font-size:17px}
+.nav-logo svg{width:28px;height:28px}
+.nav-links{display:flex;gap:32px}
+.nav-links a{font-size:14px;color:var(--text-secondary);transition:color .2s}
+.nav-links a:hover{color:var(--text-primary)}
+.nav-buttons{display:flex;gap:12px;align-items:center}
+.nav-buttons .btn-ghost,.nav-buttons .btn-primary{padding:8px 18px;font-size:14px}
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.hamburger span{display:block;width:20px;height:2px;background:var(--text-primary);border-radius:2px;transition:transform .3s,opacity .3s}
+.mobile-menu{display:none;position:fixed;inset:0;z-index:99;background:var(--bg-base);flex-direction:column;align-items:center;justify-content:center;gap:32px;transform:translateX(100%);transition:transform .3s ease}
+.mobile-menu.open{transform:translateX(0)}
+.mobile-menu a{font-size:18px;color:var(--text-primary);padding:12px 24px}
+.mobile-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--text-primary);font-size:28px;cursor:pointer}
+/* HERO */
+.hero{min-height:100vh;display:grid;grid-template-columns:1.5fr 1fr;align-items:center;gap:var(--space-8);padding-top:80px;position:relative;overflow:hidden}
+.hero-text{position:relative;z-index:2}
+.hero-badge{margin-bottom:var(--space-5)}
+.hero-badge .pill{position:relative}
+.hero-badge .pill::after{content:'';position:absolute;inset:-3px;border-radius:var(--radius-full);border:1px solid rgba(91,94,244,0.4);animation:badge-pulse 2s ease-in-out infinite}
+@keyframes badge-pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:0;transform:scale(1.15)}}
+.hero h1{font-size:clamp(56px,7vw,96px);margin-bottom:var(--space-5)}
+.hero h1 .word{display:inline-block;opacity:0;transform:translateY(32px);animation:word-in .6s cubic-bezier(0.16,1,0.3,1) forwards}
+@keyframes word-in{to{opacity:1;transform:translateY(0)}}
+.hero-sub{font-size:18px;color:var(--text-secondary);max-width:520px;margin-bottom:var(--space-6)}
+.hero-ctas{display:flex;gap:16px;margin-bottom:var(--space-5)}
+.hero-trust{font-size:13px;color:var(--text-tertiary);display:flex;gap:8px;align-items:center}
+.hero-trust span:not(:last-child)::after{content:'·';margin-left:8px}
+.hero-3d{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;min-height:400px}
+#shield-canvas{width:100%;height:100%;min-height:400px}
+#particle-canvas{position:absolute;inset:0;z-index:0;pointer-events:none}
+.scroll-indicator{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-tertiary);font-size:12px;z-index:2;transition:opacity .5s}
+.scroll-indicator.hidden{opacity:0;pointer-events:none}
+.scroll-indicator svg{animation:scroll-bounce 1.5s ease-in-out infinite}
+@keyframes scroll-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+/* Orbiting tags */
+.orbit-container{position:absolute;inset:0;z-index:3;pointer-events:none}
+.orbit-tag{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation-timing-function:linear;animation-iteration-count:infinite}
+.orbit-tag .pill{font-size:11px;padding:4px 10px;background:rgba(91,94,244,0.08);border-color:rgba(91,94,244,0.2)}
+@keyframes orbit1{0%{transform:translate(-50%,-50%) rotate(0deg) translateX(160px) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg) translateX(160px) rotate(-360deg)}}
+@keyframes orbit2{0%{transform:translate(-50%,-50%) rotate(0deg) translateX(130px) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg) translateX(130px) rotate(-360deg)}}
+@keyframes orbit3{0%{transform:translate(-50%,-50%) rotate(0deg) translateX(190px) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg) translateX(190px) rotate(-360deg)}}
+@keyframes orbit4{0%{transform:translate(-50%,-50%) rotate(0deg) translateX(150px) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg) translateX(150px) rotate(-360deg)}}
+@keyframes orbit5{0%{transform:translate(-50%,-50%) rotate(0deg) translateX(170px) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg) translateX(170px) rotate(-360deg)}}
+/* Social proof */
+.social-proof{padding:var(--space-6) 0;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0%,black 10%,black 90%,transparent 100%)}
+.social-proof p{text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:var(--space-4)}
+.marquee{overflow:hidden}.marquee-inner{display:flex;gap:48px;animation:marquee 30s linear infinite;width:max-content}
+.marquee-inner:hover{animation-play-state:paused}
+.marquee-item{display:flex;align-items:center;gap:8px;color:var(--text-tertiary);font-size:13px;white-space:nowrap}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* Bento grid */
+.features{padding:var(--space-10) 0}
+.features h2{font-size:clamp(36px,4vw,52px);text-align:center;max-width:640px;margin:0 auto var(--space-7)}
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.bento .glass{padding:28px;position:relative;overflow:hidden}
+.bento-large{grid-column:span 2}
+.bento .glass h3{font-size:20px;font-weight:700;margin-bottom:var(--space-3)}
+.bento .glass p{font-size:14px;color:var(--text-secondary)}
+.badge-active{display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-full);padding:4px 10px;font-size:11px;color:#10b981;font-family:'JetBrains Mono',monospace}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-primary),transparent);animation:scan 2s linear infinite}
+@keyframes scan{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+/* How it works */
+.how-it-works{padding:var(--space-10) 0}
+.how-it-works h2{font-size:clamp(36px,4vw,52px);text-align:center;margin-bottom:var(--space-8)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-6);position:relative}
+.step{text-align:center;position:relative}
+.step-number{font-family:'Cabinet Grotesk',sans-serif;font-size:64px;font-weight:800;color:rgba(91,94,244,0.3);line-height:1;margin-bottom:var(--space-3)}
+.step-icon{width:64px;height:64px;border-radius:50%;background:var(--glass-bg);border:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-4);backdrop-filter:blur(8px)}
+.step h3{font-size:18px;font-weight:700;margin-bottom:var(--space-2)}
+.step p{font-size:14px;color:var(--text-secondary)}
+.steps-line{position:absolute;top:32px;left:16.66%;right:16.66%;height:2px}
+.steps-line svg{width:100%;height:2px}
+/* Stats */
+.stats-section{padding:var(--space-9) 0}
+.stats-card{background:linear-gradient(135deg,rgba(91,94,244,0.06),rgba(10,255,224,0.03));border:1px solid rgba(91,94,244,0.2);border-radius:var(--radius-lg);padding:var(--space-8) var(--space-7);display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-6);text-align:center}
+.stat-item{position:relative}
+.stat-item:not(:last-child)::after{content:'';position:absolute;right:0;top:10%;height:80%;width:1px;background:rgba(91,94,244,0.2)}
+.stat-number{font-family:'JetBrains Mono',monospace;font-size:clamp(40px,5vw,64px);color:var(--text-primary);font-weight:700;margin-bottom:var(--space-2)}
+.stat-label{font-size:14px;color:var(--text-secondary)}
+/* Pricing */
+.pricing{padding:var(--space-10) 0}
+.pricing h2{font-size:clamp(36px,4vw,52px);text-align:center;margin-bottom:var(--space-6)}
+.pricing-toggle{display:flex;align-items:center;justify-content:center;gap:var(--space-3);margin-bottom:var(--space-7)}
+.toggle-wrap{position:relative;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-full);padding:4px;display:flex}
+.toggle-wrap input{display:none}
+.toggle-wrap label{padding:8px 20px;font-size:14px;cursor:pointer;border-radius:var(--radius-full);transition:background .3s,color .3s;color:var(--text-secondary);position:relative;z-index:1}
+.toggle-wrap input:checked+label{color:var(--text-primary)}
+.toggle-pill{position:absolute;top:4px;left:4px;height:calc(100% - 8px);width:calc(50% - 4px);background:var(--accent-primary);border-radius:var(--radius-full);transition:transform .3s ease}
+.toggle-pill.yearly{transform:translateX(100%)}
+.save-badge{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent-teal);border:1px solid rgba(10,255,224,0.3);background:rgba(10,255,224,0.08);padding:2px 8px;border-radius:var(--radius-full);opacity:0;transition:opacity .3s}
+.save-badge.show{opacity:1}
+.pricing-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:800px;margin:0 auto}
+.price-card{padding:var(--space-6)}
+.price-card.pro{border-color:rgba(91,94,244,0.4);box-shadow:0 0 60px rgba(91,94,244,0.15);position:relative}
+.popular-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent-primary);color:#fff;font:500 12px 'JetBrains Mono',monospace;padding:4px 16px;border-radius:var(--radius-full)}
+.price-card h3{font-size:22px;font-weight:700;margin-bottom:var(--space-3)}
+.price-amount{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;margin-bottom:var(--space-1)}
+.price-period{font-size:14px;color:var(--text-secondary)}
+.price-sub{font-size:13px;color:var(--text-tertiary);margin-bottom:var(--space-5)}
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:var(--space-6)}
+.feature-list li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-secondary)}
+.feature-list li svg{flex-shrink:0;color:var(--accent-primary)}
+.feature-list li.locked{opacity:.5}
+.feature-list li.locked svg{color:var(--text-tertiary)}
+/* Testimonials */
+.testimonials{padding:var(--space-10) 0;display:none}
+.testimonials h2{font-size:clamp(36px,4vw,52px);text-align:center;margin-bottom:var(--space-7)}
+.testimonial-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.testimonial-card{padding:var(--space-5)}
+.testimonial-stars{display:flex;gap:4px;margin-bottom:var(--space-3);color:#f59e0b}
+.testimonial-text{font-size:15px;font-style:italic;color:var(--text-secondary);margin-bottom:var(--space-4)}
+.testimonial-author{display:flex;align-items:center;gap:12px}
+.testimonial-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),#818cf8);display:flex;align-items:center;justify-content:center;font:600 14px 'Cabinet Grotesk',sans-serif;color:#fff}
+.testimonial-name{font-size:15px;font-weight:500}
+.testimonial-role{font-size:13px;color:var(--text-secondary)}
+/* Final CTA */
+.final-cta{padding:var(--space-10) 0;text-align:center;position:relative}
+.final-cta::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80%;height:60%;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(91,94,244,0.12) 0%,transparent 70%);pointer-events:none}
+#cta-shield{width:200px;height:200px;margin:0 auto var(--space-6);position:relative;z-index:1}
+.final-cta h2{font-size:clamp(36px,4vw,52px);position:relative;z-index:1;margin-bottom:var(--space-4)}
+.final-cta p{font-size:18px;color:var(--text-secondary);margin-bottom:var(--space-6);position:relative;z-index:1}
+.final-cta .cta-buttons{display:flex;gap:12px;justify-content:center;position:relative;z-index:1}
+.final-cta .btn-primary,.final-cta .btn-ghost{height:52px;display:inline-flex;align-items:center}
+/* Footer */
+footer{background:#0A0C11;border-top:1px solid rgba(255,255,255,0.06);padding:var(--space-8) 0 var(--space-6)}
+.footer-grid{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:var(--space-7);margin-bottom:var(--space-7)}
+.footer-brand p{font-size:14px;color:var(--text-secondary);margin:var(--space-3) 0 var(--space-4)}
+.footer-social{display:flex;gap:16px}
+.footer-social a{color:var(--text-tertiary);transition:color .2s}
+.footer-social a:hover{color:var(--text-primary)}
+.footer-social svg{width:20px;height:20px}
+.footer-col h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);margin-bottom:var(--space-4);font-family:'JetBrains Mono',monospace}
+.footer-col a{display:block;font-size:14px;color:var(--text-secondary);padding:4px 0;transition:color .2s}
+.footer-col a:hover{color:var(--text-primary)}
+.footer-bottom{display:flex;justify-content:space-between;padding-top:var(--space-5);border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:var(--text-tertiary)}
+/* Focus rings */
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;border-radius:4px}
+/* RESPONSIVE */
+@media(max-width:1024px){.bento{grid-template-columns:repeat(2,1fr)}.bento-large{grid-column:span 2}}
+@media(max-width:768px){
+.nav-links,.nav-buttons{display:none}.hamburger{display:flex}
+.hero{grid-template-columns:1fr;text-align:center;padding-top:100px;gap:var(--space-5)}
+.hero-sub{margin-left:auto;margin-right:auto}
+.hero-ctas{justify-content:center}
+.hero-trust{justify-content:center}
+.hero-3d{min-height:280px;order:-1}
+.orbit-container{display:none}
+.bento{grid-template-columns:1fr}.bento-large{grid-column:span 1}
+.steps{grid-template-columns:1fr;gap:var(--space-7)}.steps-line{display:none}
+.stats-card{grid-template-columns:repeat(2,1fr);gap:var(--space-5)}
+.stat-item:nth-child(2)::after{display:none}
+.pricing-cards{grid-template-columns:1fr}
+.testimonial-cards{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;padding-bottom:16px}
+.testimonial-cards .glass{min-width:300px;scroll-snap-align:start}
+.footer-grid{grid-template-columns:1fr 1fr;gap:var(--space-5)}
+.footer-bottom{flex-direction:column;gap:8px;text-align:center}
+}
+@media(max-width:640px){.stats-card{grid-template-columns:1fr}.stat-item::after{display:none!important}.footer-grid{grid-template-columns:1fr}}
+/* prefers-reduced-motion */
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;animation-iteration-count:1!important}}
+/* CSS 3D mobile shield fallback */
+.css-shield{display:none;width:200px;height:200px;margin:0 auto;perspective:800px}
+.css-shield-inner{width:100%;height:100%;transform-style:preserve-3d;animation:css-rotate 8s linear infinite;position:relative}
+.css-shield-face{position:absolute;inset:15%;border:2px solid rgba(91,94,244,0.5);border-radius:20%;background:rgba(91,94,244,0.04)}
+.css-shield-face:nth-child(2){transform:rotateY(60deg)}
+.css-shield-face:nth-child(3){transform:rotateY(120deg)}
+@keyframes css-rotate{to{transform:rotateY(360deg)}}
+@media(max-width:767px){.css-shield{display:block}#shield-canvas{display:none}}
+</style></head><body>
+<nav class="nav" role="navigation" aria-label="Main navigation">
+<div class="container">
+<a href="/" class="nav-logo"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2L3 7v6c0 5.25 3.82 10.15 9 11.25 5.18-1.1 9-6 9-11.25V7l-9-5z" fill="#5B5EF4"/></svg>ZAS Safeguard</a>
+<div class="nav-links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a></div>
+<div class="nav-buttons"><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div>
+<button class="hamburger" aria-label="Open menu" onclick="document.getElementById('mobileMenu').classList.add('open')"><span></span><span></span><span></span></button>
+</div>
+</nav>
+<div id="mobileMenu" class="mobile-menu" role="dialog" aria-label="Mobile navigation">
+<button class="mobile-close" aria-label="Close menu" onclick="this.parentElement.classList.remove('open')">×</button>
+<a href="#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+<a href="#pricing" onclick="this.parentElement.classList.remove('open')">Pricing</a>
+<a href="/about">About</a><a href="/blog">Blog</a>
+<a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a>
+</div>
+
+<section class="hero container" id="hero">
+<canvas id="particle-canvas" aria-hidden="true"></canvas>
+<div class="hero-text">
+<div class="hero-badge"><span class="pill">🛡 AI-Powered Protection</span></div>
+<h1 id="hero-headline"></h1>
+<p class="hero-sub">Block threats, filter harmful content, and keep your family protected — all from one extension.</p>
+<div class="hero-ctas"><a href="/register" class="btn-primary">Start Free Trial</a><a href="#" class="btn-ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>Watch Demo</a></div>
+<div class="hero-trust"><span>Free 7-day trial</span><span>No credit card required</span><span>Cancel anytime</span></div>
+</div>
+<div class="hero-3d">
+<div id="shield-canvas"></div>
+<div class="css-shield"><div class="css-shield-inner"><div class="css-shield-face"></div><div class="css-shield-face"></div><div class="css-shield-face"></div></div></div>
+<div class="orbit-container">
+<div class="orbit-tag" style="animation:orbit1 12s linear infinite"><span class="pill">Phishing</span></div>
+<div class="orbit-tag" style="animation:orbit2 10s linear infinite;animation-delay:-3s"><span class="pill">Malware</span></div>
+<div class="orbit-tag" style="animation:orbit3 15s linear infinite;animation-delay:-7s"><span class="pill">Adult Content</span></div>
+<div class="orbit-tag" style="animation:orbit4 8s linear infinite;animation-delay:-2s"><span class="pill">Trackers</span></div>
+<div class="orbit-tag" style="animation:orbit5 18s linear infinite;animation-delay:-5s"><span class="pill">Scams</span></div>
+</div>
+</div>
+<div class="scroll-indicator" id="scrollIndicator"><svg width="20" height="28" viewBox="0 0 20 28" fill="none" aria-hidden="true"><rect x="1" y="1" width="18" height="26" rx="9" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="8" r="2" fill="currentColor"><animate attributeName="cy" values="8;16;8" dur="1.5s" repeatCount="indefinite"/></circle></svg><span>Scroll to explore</span></div>
+</section>
+
+<section class="social-proof" aria-label="Social proof">
+<p class="animate">Trusted by families across 40+ countries</p>
+<div class="marquee"><div class="marquee-inner">
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>Chrome Web Store</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>Firefox Add-ons</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/></svg>256-bit Encryption</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>GDPR Compliant</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/></svg>Zero Data Logging</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>Chrome Web Store</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>Firefox Add-ons</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/></svg>256-bit Encryption</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>GDPR Compliant</div>
+<div class="marquee-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/></svg>Zero Data Logging</div>
+</div></div>
+</section>
+
+<section class="features container" id="features">
+<h2 class="animate">Everything you need. Nothing you don't.</h2>
+<div class="bento">
+<div class="glass bento-large animate" data-stagger="1"><div class="scan-line"></div><h3>Real-Time Threat Detection</h3><p>Every URL is scanned instantly against our AI-powered threat database. Phishing links, malware sites, and suspicious domains are blocked before they load.</p></div>
+<div class="glass bento-large animate" data-stagger="2"><h3>AI Content Analysis</h3><p>Our neural network classifies page content in real time, identifying harmful material with 99.7% accuracy before it reaches your screen.</p></div>
+<div class="glass animate" data-stagger="3"><h3>Adult Content Blocking</h3><span class="badge-active">● Always Active</span><p>Comprehensive filtering powered by AI classification — no whitelist workarounds.</p></div>
+<div class="glass animate" data-stagger="4"><h3>Ad &amp; Tracker Removal</h3><p>Strip invasive ads and tracking scripts. Pages load faster, your data stays private.</p></div>
+<div class="glass animate" data-stagger="5"><h3>Focus Mode</h3><p>Block distracting sites during work hours. Set schedules or activate instantly.</p></div>
+<div class="glass animate" data-stagger="6"><h3>Family Dashboard</h3><p>Monitor browsing activity, set protection levels, and manage devices — all from one place.</p></div>
+</div>
+</section>
+
+<section class="how-it-works container" id="how-it-works">
+<h2 class="animate">Up and running in 60 seconds.</h2>
+<div class="steps">
+<div class="steps-line" id="stepsLine"><svg><line x1="0" y1="1" x2="100%" y2="1" stroke="rgba(91,94,244,0.3)" stroke-width="2" stroke-dasharray="8 6"/></svg></div>
+<div class="step animate" data-stagger="1">
+<div class="step-number">1</div>
+<div class="step-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+<h3>Install the extension</h3><p>One click from the Chrome Web Store. No configuration needed.</p>
+</div>
+<div class="step animate" data-stagger="2">
+<div class="step-number">2</div>
+<div class="step-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/></svg></div>
+<h3>Set your protection level</h3><p>Choose what to block — content categories, ads, trackers, or everything.</p>
+</div>
+<div class="step animate" data-stagger="3">
+<div class="step-number">3</div>
+<div class="step-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9,12 11,14 15,10"/></svg></div>
+<h3>Browse with confidence</h3><p>Every page is scanned in real time. Threats are blocked before they load.</p>
+</div>
+</div>
+</section>
+
+<section class="stats-section container" id="stats">
+<div class="stats-card glass animate">
+<div class="stat-item"><div class="stat-number" data-target="40" data-suffix="+">0</div><div class="stat-label">Countries</div></div>
+<div class="stat-item"><div class="stat-number" data-target="99.7" data-suffix="%" data-decimal="1">0</div><div class="stat-label">Threat detection</div></div>
+<div class="stat-item"><div class="stat-number" data-target="50" data-prefix="<" data-suffix="ms">0</div><div class="stat-label">Scan time</div></div>
+<div class="stat-item"><div class="stat-number" data-target="2" data-suffix="M+">0</div><div class="stat-label">Sites blocked / month</div></div>
+</div>
+</section>
+
+<section class="pricing container" id="pricing">
+<h2 class="animate">Simple, honest pricing.</h2>
+<div class="pricing-toggle animate">
+<div class="toggle-wrap">
+<input type="radio" name="billing" id="monthly" checked><label for="monthly" onclick="togglePricing('monthly')">Monthly</label>
+<input type="radio" name="billing" id="yearly"><label for="yearly" onclick="togglePricing('yearly')">Yearly</label>
+<div class="toggle-pill" id="togglePill"></div>
+</div>
+<span class="save-badge" id="saveBadge">Save 17%</span>
+</div>
+<div class="pricing-cards">
+<div class="glass price-card animate" data-stagger="1">
+<h3>Free</h3>
+<div class="price-amount">$0</div><div class="price-period">forever</div>
+<div class="price-sub">Basic protection for everyone</div>
+<ul class="feature-list">
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Adult content blocking <span class="badge-active" style="margin-left:8px;font-size:10px">Locked On</span></li>
+<li class="locked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Malware &amp; phishing protection</li>
+<li class="locked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Ad &amp; tracker blocking</li>
+<li class="locked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Focus Mode</li>
+<li class="locked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Family Dashboard</li>
+</ul>
+<a href="/register" class="btn-ghost" style="width:100%;justify-content:center">Get Started Free</a>
+</div>
+<div class="glass price-card pro animate" data-stagger="2">
+<div class="popular-badge">Most Popular</div>
+<h3>Pro</h3>
+<div class="price-amount" id="proPrice">$4.99</div><div class="price-period" id="proPeriod">/month</div>
+<div class="price-sub" id="proSub"> </div>
+<ul class="feature-list">
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Adult content blocking</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Malware &amp; phishing protection</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Safe browsing alerts</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Ad &amp; tracker blocking</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Unlimited devices</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Focus Mode</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Real-time threat detection</li>
+<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Priority support</li>
+</ul>
+<a href="/register" class="btn-primary" style="width:100%;justify-content:center">Start Free Trial</a>
+</div>
+</div>
+</section>
+
+<section class="testimonials container" id="testimonials">
+<h2>What our users say.</h2>
+<p style="text-align:center;color:var(--text-secondary);margin-bottom:var(--space-7)">Early access users — reviews coming soon.</p>
+<div class="testimonial-cards">
+<div class="glass testimonial-card"></div>
+<div class="glass testimonial-card"></div>
+<div class="glass testimonial-card"></div>
+</div>
+</section>
+
+<section class="final-cta container" id="cta">
+<div id="cta-shield"></div>
+<h2 class="animate">Start protecting your family today.</h2>
+<p class="animate">Join thousands of families browsing safely. Free 7-day trial, no card required.</p>
+<div class="cta-buttons animate"><a href="/register" class="btn-primary">Start Free Trial</a><a href="/login" class="btn-ghost">Sign In</a></div>
+</section>
+
+<footer>
+<div class="container">
+<div class="footer-grid">
+<div class="footer-brand">
+<a href="/" class="nav-logo"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="24" height="24"><path d="M12 2L3 7v6c0 5.25 3.82 10.15 9 11.25 5.18-1.1 9-6 9-11.25V7l-9-5z" fill="#5B5EF4"/></svg>ZAS Safeguard</a>
+<p>The Internet, Made Safe.</p>
+<div class="footer-social">
+<a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+<a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg></a>
+<a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+</div>
+</div>
+<div class="footer-col"><h4>Product</h4><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#">Changelog</a><a href="#">Status</a></div>
+<div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="#">Careers</a></div>
+<div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="#">Cookie Policy</a></div>
+<div class="footer-col"><h4>Support</h4><a href="#">Help Center</a><a href="#">Contact</a><a href="#">Security</a></div>
+</div>
+<div class="footer-bottom">
+<span>© 2025 ZAS Global LLC. All rights reserved.</span>
+<span>Payments secured by Stripe. All data encrypted.</span>
+</div>
+</div>
+</footer>
+<script>
+/* === ZAS Safeguard Landing Page JS === */
+(function(){
+'use strict';
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* --- Hero headline word stagger --- */
+const headline = document.getElementById('hero-headline');
+if(headline){
+  const words = 'The Internet, Made Safe.'.split(' ');
+  headline.innerHTML = words.map((w,i) =>
+    `<span class="word" style="animation-delay:${i*60}ms">${w} </span>`
+  ).join('');
+}
+
+/* --- Nav scroll --- */
+const nav = document.querySelector('.nav');
+let scrolledClass = false;
+window.addEventListener('scroll', () => {
+  const s = window.scrollY > 80;
+  if(s !== scrolledClass){ scrolledClass = s; nav.classList.toggle('scrolled', s); }
+  // Hide scroll indicator
+  const si = document.getElementById('scrollIndicator');
+  if(si && window.scrollY > 100) si.classList.add('hidden');
+}, {passive:true});
+
+/* --- IntersectionObserver for scroll animations --- */
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, {threshold:0.15});
+document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+
+/* --- Stagger indices --- */
+document.querySelectorAll('[data-stagger]').forEach(el => {
+  el.style.transitionDelay = (parseInt(el.dataset.stagger) * 80) + 'ms';
+});
+
+/* --- Stats counter --- */
+let statsAnimated = false;
+const statsObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting && !statsAnimated){
+      statsAnimated = true;
+      document.querySelectorAll('.stat-number').forEach(el => {
+        const target = parseFloat(el.dataset.target);
+        const suffix = el.dataset.suffix || '';
+        const prefix = el.dataset.prefix || '';
+        const decimal = parseInt(el.dataset.decimal) || 0;
+        if(reducedMotion){ el.textContent = prefix + (decimal ? target.toFixed(decimal) : target) + suffix; return; }
+        const start = performance.now();
+        const duration = 1200;
+        function tick(now){
+          const t = Math.min((now - start) / duration, 1);
+          const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+          const val = target * ease;
+          el.textContent = prefix + (decimal ? val.toFixed(decimal) : Math.round(val)) + suffix;
+          if(t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      });
+      statsObs.unobserve(e.target);
+    }
+  });
+}, {threshold:0.3});
+const statsCard = document.querySelector('.stats-card');
+if(statsCard) statsObs.observe(statsCard);
+
+/* --- Pricing toggle --- */
+window.togglePricing = function(plan){
+  const pill = document.getElementById('togglePill');
+  const badge = document.getElementById('saveBadge');
+  const price = document.getElementById('proPrice');
+  const period = document.getElementById('proPeriod');
+  const sub = document.getElementById('proSub');
+  if(plan === 'yearly'){
+    pill.classList.add('yearly');
+    badge.classList.add('show');
+    price.textContent = '$49.99';
+    period.textContent = '/year';
+    sub.textContent = '$4.17/mo billed yearly';
+  } else {
+    pill.classList.remove('yearly');
+    badge.classList.remove('show');
+    price.textContent = '$4.99';
+    period.textContent = '/month';
+    sub.innerHTML = '\u00a0';
+  }
+};
+
+/* --- Particle canvas --- */
+const pCanvas = document.getElementById('particle-canvas');
+if(pCanvas){
+  const ctx = pCanvas.getContext('2d');
+  let pW, pH, particles = [], mouseX = -999, mouseY = -999, pRafId;
+  const isMobile = window.innerWidth < 768;
+  const PCOUNT = isMobile ? 60 : 120;
+  function resizeParticles(){
+    const hero = document.querySelector('.hero');
+    pW = pCanvas.width = hero.offsetWidth;
+    pH = pCanvas.height = hero.offsetHeight;
+  }
+  function initParticles(){
+    resizeParticles();
+    particles = [];
+    for(let i=0;i<PCOUNT;i++){
+      particles.push({x:Math.random()*pW,y:Math.random()*pH,vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.4,r:1.5});
+    }
+  }
+  function drawParticles(){
+    ctx.clearRect(0,0,pW,pH);
+    particles.forEach((p,i) => {
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0)p.x=pW; if(p.x>pW)p.x=0; if(p.y<0)p.y=pH; if(p.y>pH)p.y=0;
+      // Mouse repel
+      const dx=p.x-mouseX,dy=p.y-mouseY,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){const f=(120-dist)/120*2;p.x+=dx/dist*f;p.y+=dy/dist*f;}
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(91,94,244,0.5)'; ctx.fill();
+      // Connection lines (desktop only)
+      if(!isMobile){
+        for(let j=i+1;j<particles.length;j++){
+          const dx2=p.x-particles[j].x,dy2=p.y-particles[j].y,d=Math.sqrt(dx2*dx2+dy2*dy2);
+          if(d<80){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(91,94,244,${(1-d/80)*0.3})`;ctx.stroke();}
+        }
+      }
+    });
+    pRafId = requestAnimationFrame(drawParticles);
+  }
+  pCanvas.addEventListener('mousemove',e=>{const r=pCanvas.getBoundingClientRect();mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;});
+  pCanvas.addEventListener('mouseleave',()=>{mouseX=-999;mouseY=-999;});
+  window.addEventListener('resize', resizeParticles);
+  initParticles();
+  if(!reducedMotion) drawParticles();
+  // Pause when hidden
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){cancelAnimationFrame(pRafId);}else if(!reducedMotion){drawParticles();}
+  });
+}
+
+/* --- Three.js Shield (desktop only) --- */
+function initShield(){
+  if(window.innerWidth < 768 || !window.THREE || reducedMotion) return;
+  const container = document.getElementById('shield-canvas');
+  if(!container) return;
+  const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(container.offsetWidth, container.offsetHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+  const scene = new THREE.Scene();
+  const aspect = container.offsetWidth / container.offsetHeight;
+  const camera = new THREE.PerspectiveCamera(45,aspect,0.1,100);
+  camera.position.z = 5;
+  const geo = new THREE.IcosahedronGeometry(1.8,1);
+  const wireGeo = new THREE.WireframeGeometry(geo);
+  const mat = new THREE.LineBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.7});
+  const shield = new THREE.LineSegments(wireGeo,mat);
+  scene.add(shield);
+  const solidMesh = new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.04}));
+  scene.add(solidMesh);
+  const pointLight = new THREE.PointLight(0x5B5EF4,2.0,10);
+  scene.add(pointLight);
+  scene.add(new THREE.AmbientLight(0x1a1a3e,0.4));
+  let tX=0,tY=0,cX=0,cY=0;
+  document.addEventListener('mousemove',e=>{
+    const r=container.getBoundingClientRect();
+    tY=((e.clientX-r.left-r.width/2)/r.width)*Math.PI*0.26;
+    tX=-((e.clientY-r.top-r.height/2)/r.height)*Math.PI*0.26;
+  });
+  window.addEventListener('resize',()=>{
+    camera.aspect=container.offsetWidth/container.offsetHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.offsetWidth,container.offsetHeight);
+  });
+  let shieldRaf;
+  function animate(){
+    shieldRaf=requestAnimationFrame(animate);
+    shield.rotation.y+=0.003; solidMesh.rotation.y+=0.003;
+    cX+=(tX-cX)*0.05; cY+=(tY-cY)*0.05;
+    shield.rotation.x=cX; shield.rotation.z=cY*0.3;
+    const t=Date.now()*0.001;
+    pointLight.position.set(Math.cos(t)*4,Math.sin(t*0.7)*2,Math.sin(t)*4);
+    renderer.render(scene,camera);
+  }
+  animate();
+  container.appendChild(renderer.domElement);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) cancelAnimationFrame(shieldRaf); else animate();
+  });
+}
+
+/* --- CTA mini shield --- */
+function initCtaShield(){
+  if(window.innerWidth < 768 || !window.THREE || reducedMotion) return;
+  const c = document.getElementById('cta-shield');
+  if(!c) return;
+  const r = new THREE.WebGLRenderer({antialias:true,alpha:true});
+  r.setSize(200,200); r.setPixelRatio(Math.min(window.devicePixelRatio,2)); r.setClearColor(0x000000,0);
+  const s = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(45,1,0.1,100); cam.position.z=5;
+  const g = new THREE.IcosahedronGeometry(1.5,1);
+  const wg = new THREE.WireframeGeometry(g);
+  const m = new THREE.LineBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.6});
+  const sh = new THREE.LineSegments(wg,m); s.add(sh);
+  s.add(new THREE.AmbientLight(0x1a1a3e,0.5));
+  let cRaf;
+  function a(){cRaf=requestAnimationFrame(a);sh.rotation.y+=0.001;r.render(s,cam);}
+  a(); c.appendChild(r.domElement);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelAnimationFrame(cRaf);else a();});
+}
+
+/* --- SVG line draw on scroll --- */
+const stepsLine = document.getElementById('stepsLine');
+if(stepsLine){
+  const svg = stepsLine.querySelector('line');
+  if(svg){
+    window.addEventListener('scroll',()=>{
+      const rect = stepsLine.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      const progress = Math.max(0,Math.min(1,(viewH - rect.top) / (viewH + rect.height)));
+      svg.style.strokeDasharray = `${progress * 100}% 100%`;
+    },{passive:true});
+  }
+}
+
+/* --- Load Three.js then init --- */
+if(window.innerWidth >= 768 && !reducedMotion){
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  script.defer = true;
+  script.onload = () => { initShield(); initCtaShield(); };
+  document.head.appendChild(script);
+}
+})();
+</script></body></html>

@@ -43,6 +43,50 @@ const CONFIG = {
 // Current extension version
 const EXTENSION_VERSION = '1.0.0';
 
+// L-02: Token expiry constant (Firebase tokens expire after 1 hour)
+const TOKEN_MAX_AGE_MS = 55 * 60 * 1000; // 55 minutes — refresh before expiry
+
+/**
+ * L-02: Returns a valid (non-expired) token or null if expired/missing.
+ * Callers should handle null by skipping authenticated requests.
+ */
+async function getValidToken() {
+    const storage = await chrome.storage.local.get([CONFIG.USER_TOKEN_KEY, 'token_timestamp']);
+    const token = storage[CONFIG.USER_TOKEN_KEY];
+    const timestamp = storage.token_timestamp || 0;
+    if (!token) return null;
+    if (Date.now() - timestamp > TOKEN_MAX_AGE_MS) {
+        console.warn('[Auth] Token expired (>55 min). Requesting refresh.');
+        requestTokenRefreshFromWebApp();
+        return null;
+    }
+    return token;
+}
+
+/**
+ * L-02: Ask any open ZAS dashboard tab to send a refreshed Firebase token.
+ */
+async function requestTokenRefreshFromWebApp() {
+    try {
+        const tabs = await chrome.tabs.query({
+            url: ['*://*.zasgloballlc.com/*', '*://*.zas-safeguard.web.app/*', '*://localhost/*']
+        });
+        for (const tab of tabs) {
+            chrome.tabs.sendMessage(tab.id, { type: 'REFRESH_TOKEN' }).catch(() => { });
+        }
+    } catch (e) {
+        console.warn('[Auth] Token refresh request failed:', e.message);
+    }
+}
+
+// L-02: Set up periodic token refresh alarm (every 45 minutes)
+chrome.alarms.create('TOKEN_REFRESH', { periodInMinutes: 45 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'TOKEN_REFRESH') {
+        requestTokenRefreshFromWebApp();
+    }
+});
+
 // Default porn blocklist for offline/initial use
 const DEFAULT_BLOCKLIST = [
     '*://*.pornhub.com/*', '*://*.xvideos.com/*', '*://*.xnxx.com/*',
@@ -465,7 +509,9 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         if (message.token) {
             chrome.storage.local.set({
                 [CONFIG.USER_TOKEN_KEY]: message.token,
-                loggedInUserId: message.userId
+                loggedInUserId: message.userId,
+                // L-02: Track token issue time for expiry detection
+                token_timestamp: Date.now()
             }).then(async () => {
                 // Register device with Firebase (creates device in Firestore)
                 await registerDeviceWithFirebase(message.userId, message.token);
@@ -537,16 +583,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             childLocked: message.locked,
             childLockTime: new Date().toISOString()
         }).then(() => {
+            // M-07: Removed dead ESSENTIAL_SITES duplicate — CHILD_LOCK_WHITELIST is used by applyChildLock()
             if (message.locked) {
-                // Lock everything - only allow essential sites
-                const ESSENTIAL_SITES = [
-                    '*://*.google.com/*', '*://*.google.com/*',
-                    '*://*.zasgloballlc.com/*', '*://*.zas-safeguard.web.app/*'
-                ];
-                // Block all by redirecting all URLs except essential
                 applyChildLock(true);
             } else {
-                // Unlock - restore normal blocking
                 applyChildLock(false);
             }
             sendResponse({ success: true });
@@ -1141,6 +1181,7 @@ function cacheUrlResult(key, result) {
 
 /**
  * Log URL scan event to Firestore
+ * L-01: Strips query params & fragment to prevent PII / token leaks
  */
 async function logUrlScanEvent(scanResult) {
     try {
@@ -1148,6 +1189,13 @@ async function logUrlScanEvent(scanResult) {
         const storage = await chrome.storage.local.get(CONFIG.USER_TOKEN_KEY);
 
         if (!storage[CONFIG.USER_TOKEN_KEY]) return;
+
+        // L-01: Strip query parameters and fragment from URL for privacy
+        let safeUrl = scanResult.url;
+        try {
+            const parsed = new URL(safeUrl);
+            safeUrl = parsed.origin + parsed.pathname;
+        } catch (e) { /* keep original if URL can't be parsed */ }
 
         await fetch(`${CONFIG.FIREBASE_API_ENDPOINT}/logUrlScan`, {
             method: 'POST',
@@ -1157,6 +1205,7 @@ async function logUrlScanEvent(scanResult) {
             },
             body: JSON.stringify({
                 ...scanResult,
+                url: safeUrl,
                 deviceId,
                 timestamp: new Date().toISOString()
             })
@@ -1751,25 +1800,21 @@ async function sendGracefulOffline(reason = 'browser_closed') {
             }
         });
 
-        // Use sendBeacon for reliability during page unload
-        // Falls back to fetch if sendBeacon unavailable
-        // Using 2nd gen Cloud Run URL for updateDeviceStatus
+        // C-02 / M-02: Use fetch + keepalive instead of sendBeacon
+        // sendBeacon cannot attach Authorization headers, so the endpoint
+        // would receive unauthenticated requests. fetch + keepalive has the
+        // same reliability guarantee during page unload but supports headers.
         const url = CONFIG.UPDATE_DEVICE_STATUS_URL;
 
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
-        } else {
-            // Fallback with keepalive
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: data,
-                keepalive: true
-            }).catch(e => { console.warn('[ZAS] Graceful offline fetch failed:', e.message); });
-        }
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: data,
+            keepalive: true
+        }).catch(e => { console.warn('[ZAS] Graceful offline fetch failed:', e.message); });
 
         console.log('[ZAS] Graceful offline signal sent:', reason);
     } catch (error) {
@@ -2121,7 +2166,9 @@ async function getStatus() {
 
 async function handleLogin(token, userId) {
     await chrome.storage.local.set({
-        [CONFIG.USER_TOKEN_KEY]: token
+        [CONFIG.USER_TOKEN_KEY]: token,
+        // L-02: Track when token was stored for expiry detection
+        token_timestamp: Date.now()
     });
 
     // Sync immediately
