@@ -300,7 +300,7 @@ exports.updateCustomBlocklist = functions.https.onCall(async (data, context) => 
     const uid = context.auth.uid;
 
     // H-04: Domain format validation
-    const DOMAIN_REGEX = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    const DOMAIN_REGEX = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
     if (action === 'add' && (!domain || domain.length > 253 || !DOMAIN_REGEX.test(domain))) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid domain format');
     }
