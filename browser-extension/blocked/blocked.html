@@ -1,145 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Access Blocked — ZAS Safeguard</title>
-<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg-base:#090B10;--accent-primary:#5B5EF4;--text-primary:#F0F2F7;--text-secondary:#8892A4;--text-tertiary:#4A5568;--border-subtle:rgba(255,255,255,0.08);--glass-bg:rgba(255,255,255,0.04);--radius-lg:20px;--radius-full:9999px}
+:root{--bg-app:#0B0B0D;--bg-card:#1E1E22;--zas-indigo:#4C5EFF;--zas-indigo-subtle:rgba(76,94,255,0.08);--text-primary:#FFFFFF;--text-secondary:#B9BBC6;--text-muted:#6B6B76;--border-color:rgba(255,255,255,0.08);--emerald:#22C55E;--emerald-subtle:rgba(34,197,94,0.1);--crimson:#EF4444;--amber:#F59E0B;--radius-md:12px;--radius-lg:16px;--radius-full:9999px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;background:var(--bg-base);color:var(--text-primary);font-family:'Satoshi',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
-/* Radial glow bg */
-body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(91,94,244,0.1) 0%,transparent 70%);pointer-events:none;animation:glow-pulse 4s ease-in-out infinite}
-@keyframes glow-pulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
-/* Logo */
-.logo-bar{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--text-primary)}
-.logo-bar img{height:24px;width:auto}
-/* Shield canvas */
-.shield-wrap{width:120px;height:120px;margin:0 auto 32px;position:relative}
-#blocked-shield{width:100%;height:100%}
-/* Main card */
-.card{background:var(--glass-bg);border:1px solid var(--border-subtle);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--radius-lg);padding:40px 36px;max-width:440px;width:100%;text-align:center;position:relative;z-index:1}
-h1{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:32px;color:var(--text-primary);margin-bottom:12px;letter-spacing:-0.02em}
-.subtitle{font-size:16px;color:var(--text-secondary);margin-bottom:28px;line-height:1.6}
-/* Reason pill */
-.reason-box{background:rgba(91,94,244,0.08);border:1px solid rgba(91,94,244,0.2);border-radius:12px;padding:14px 20px;margin-bottom:28px;text-align:left}
-.reason-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+body{min-height:100vh;background:var(--bg-app);color:var(--text-primary);font-family:'Inter',-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(76,94,255,0.08) 0%,transparent 70%);pointer-events:none}
+.logo-bar{position:absolute;top:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--text-primary);white-space:nowrap}
+.logo-bar img{height:24px;width:auto;mix-blend-mode:screen;filter:brightness(1.05)}
+.wrap{background:rgba(30,30,34,0.6);border:1px solid var(--border-color);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:var(--radius-lg);padding:40px 36px;max-width:420px;width:100%;text-align:center;position:relative;z-index:1}
+.shield-wrap{width:80px;height:80px;margin:0 auto 28px}
+#blk-shield{width:100%;height:100%}
+h1{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin-bottom:10px}
+.subtitle{font-size:15px;color:var(--text-secondary);line-height:1.6;margin-bottom:24px}
+.reason-card{background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:14px 18px;margin-bottom:24px;text-align:left}
+.reason-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
 .reason-value{font-size:15px;font-weight:500;color:var(--text-primary)}
-/* Actions */
-.actions{display:flex;gap:12px;justify-content:center;margin-bottom:32px;flex-wrap:wrap}
-.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--accent-primary);color:#fff;border:none;border-radius:var(--radius-full);padding:13px 24px;font:500 14px 'Satoshi',sans-serif;cursor:pointer;transition:transform .2s,filter .2s;animation:none}
-.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.1)}
-.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-primary);border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-full);padding:13px 24px;font:500 14px 'Satoshi',sans-serif;cursor:pointer;transition:border-color .2s,background .2s;text-decoration:none}
-.btn-ghost:hover{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04)}
-/* Quote */
-.quote-box{background:rgba(91,94,244,0.06);border-left:3px solid rgba(91,94,244,0.4);border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:28px;text-align:left}
+.btns{display:flex;gap:10px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-md);font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:all 150ms ease;padding:10px 20px;border:none}
+.btn-primary{background:var(--zas-indigo);color:#fff}
+.btn-primary:hover{background:#3D4FE6}
+.btn-secondary{background:transparent;color:var(--text-primary);border:1px solid var(--border-color)}
+.btn-secondary:hover{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12)}
+.quote-box{background:rgba(255,255,255,0.03);border-left:2px solid rgba(76,94,255,0.4);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:24px;text-align:left}
 .quote-text{font-size:14px;font-style:italic;color:var(--text-secondary);line-height:1.6}
-/* Stats */
-.stats{display:flex;gap:0;border-top:1px solid var(--border-subtle);padding-top:20px;justify-content:center}
-.stat{text-align:center;flex:1}
-.stat:not(:last-child){border-right:1px solid var(--border-subtle)}
-.stat-num{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--accent-primary);display:block}
-.stat-label{font-size:11px;color:var(--text-tertiary);margin-top:4px}
-/* Footer */
-.page-footer{position:absolute;bottom:20px;font-size:12px;color:var(--text-tertiary)}
-.page-footer a{color:rgba(91,94,244,0.8);transition:color .2s}
-.page-footer a:hover{color:var(--accent-primary)}
-@media(max-width:480px){.card{padding:28px 20px}.actions{flex-direction:column}.btn-primary,.btn-ghost{justify-content:center}}
+.stats-row{display:flex;border-top:1px solid var(--border-color);padding-top:20px}
+.stat{flex:1;text-align:center}
+.stat:not(:last-child){border-right:1px solid var(--border-color)}
+.stat-num{font-size:26px;font-weight:700;color:var(--zas-indigo);display:block;font-family:monospace}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:3px}
+.page-footer{position:absolute;bottom:16px;font-size:12px;color:var(--text-muted)}
+.page-footer a{color:rgba(76,94,255,0.8)}
+@media(max-width:480px){.wrap{padding:28px 20px}.btns{flex-direction:column}}
 </style>
-</head>
-<body>
+</head><body>
+<div class="logo-bar"><img src="data:image/png;base64,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" alt="ZAS Safeguard">ZAS Safeguard</div>
 
-<div class="logo-bar">
-  <img src="../icons/logo-white.png" alt="ZAS Safeguard" onerror="this.style.display='none'">
-  ZAS Safeguard
-</div>
-
-<div class="card">
-  <div class="shield-wrap">
-    <canvas id="blocked-shield"></canvas>
-  </div>
-
+<div class="wrap">
+  <div class="shield-wrap"><canvas id="blk-shield"></canvas></div>
   <h1>Access Blocked</h1>
-  <p class="subtitle">ZAS Safeguard stopped this page from loading to keep you protected.</p>
-
-  <div class="reason-box">
-    <div class="reason-label">Block Reason</div>
-    <div class="reason-value" id="reason">Harmful Content</div>
+  <p class="subtitle">ZAS Safeguard stopped this page from loading.</p>
+  <div class="reason-card"><div class="reason-label">Block reason</div><div class="reason-value" id="reason">Harmful Content</div></div>
+  <div class="btns">
+    <button class="btn btn-primary" id="goBackBtn">&#8592; Go Back</button>
+    <a href="https://zassafeguard.com/app/dashboard" class="btn btn-secondary">Dashboard</a>
   </div>
-
-  <div class="actions">
-    <button class="btn-primary" id="goBackBtn">&#8592; Go Back</button>
-    <a href="https://zassafeguard.com/app/dashboard" class="btn-ghost">Dashboard</a>
-  </div>
-
-  <div class="quote-box">
-    <p class="quote-text" id="motivationText">Every time you resist, you become stronger. You are doing great.</p>
-  </div>
-
-  <div class="stats">
-    <div class="stat">
-      <span class="stat-num" id="blocksToday">0</span>
-      <div class="stat-label">Blocked Today</div>
-    </div>
-    <div class="stat">
-      <span class="stat-num" id="daysStreak">0</span>
-      <div class="stat-label">Day Streak</div>
-    </div>
+  <div class="quote-box"><p class="quote-text" id="quoteText">Every time you resist, you become stronger.</p></div>
+  <div class="stats-row">
+    <div class="stat"><span class="stat-num" id="blocksToday">0</span><div class="stat-label">Blocked Today</div></div>
+    <div class="stat"><span class="stat-num" id="daysStreak">0</span><div class="stat-label">Day Streak</div></div>
   </div>
 </div>
 
 <div class="page-footer">Protected by <a href="https://zassafeguard.com">ZAS Safeguard</a></div>
 
-<!-- Mini Three.js shield (r128) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script>
 (function(){
-  /* ── Reason from URL param ── */
   const params=new URLSearchParams(location.search);
-  const reason=params.get('reason')||'adult';
-  const reasons={adult:'Adult Content',malware:'Phishing / Malware',focus:'Focus Mode Active',lock:'Internet Lock',category:'Category Blocked'+(params.get('category')?': '+params.get('category').charAt(0).toUpperCase()+params.get('category').slice(1):'')};
-  document.getElementById('reason').textContent=reasons[reason]||'Harmful Content';
-
-  /* ── Go Back ── */
-  document.getElementById('goBackBtn').addEventListener('click',()=>{
-    if(window.history.length>1){window.history.back();}else{window.close();}
+  const r=params.get('reason')||'adult';
+  const map={adult:'Adult Content',malware:'Phishing / Malware',focus:'Focus Mode Active',lock:'Internet Lock',category:'Category Blocked'+(params.get('category')?' — '+params.get('category').charAt(0).toUpperCase()+params.get('category').slice(1):'')};
+  document.getElementById('reason').textContent=map[r]||'Harmful Content';
+  document.getElementById('goBackBtn').addEventListener('click',()=>{window.history.length>1?window.history.back():window.close();});
+  const quotes=['Every time you resist, you become stronger.','Remember your goals. This feeling is temporary.','Your future self will thank you for this moment.','Think about why you set this protection up.','Strength is choosing what is better for you.'];
+  document.getElementById('quoteText').textContent=quotes[Math.floor(Math.random()*quotes.length)];
+  if(typeof chrome!=='undefined'&&chrome.storage){chrome.storage.local.get(['blocksToday','dayStreak'],s=>{if(s.blocksToday)document.getElementById('blocksToday').textContent=s.blocksToday;if(s.dayStreak)document.getElementById('daysStreak').textContent=s.dayStreak;});}
+  window.addEventListener('load',()=>{
+    if(!window.THREE)return;
+    const canvas=document.getElementById('blk-shield');
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setSize(80,80);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0,0);
+    const scene=new THREE.Scene();
+    const cam=new THREE.PerspectiveCamera(45,1,0.1,100);cam.position.z=4;
+    const geo=new THREE.IcosahedronGeometry(1.4,1);
+    const mesh=new THREE.LineSegments(new THREE.WireframeGeometry(geo),new THREE.LineBasicMaterial({color:0x4C5EFF,transparent:true,opacity:.8}));
+    scene.add(mesh);
+    scene.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x4C5EFF,transparent:true,opacity:.04})));
+    scene.add(new THREE.PointLight(0x4C5EFF,2,10));
+    scene.add(new THREE.AmbientLight(0x1a1a3e,.5));
+    (function loop(){requestAnimationFrame(loop);mesh.rotation.y+=.008;mesh.rotation.x=Math.sin(Date.now()*.0005)*.1;renderer.render(scene,cam);})();
   });
-
-  /* ── Stats from chrome storage ── */
-  if(typeof chrome!=='undefined'&&chrome.storage){
-    chrome.storage.local.get(['blocksToday','dayStreak'],s=>{
-      if(s.blocksToday)document.getElementById('blocksToday').textContent=s.blocksToday;
-      if(s.dayStreak)document.getElementById('daysStreak').textContent=s.dayStreak;
-    });
-  }
-
-  /* ── Quotes ── */
-  const quotes=['Every time you resist, you become stronger. You are doing great.','Think about why you installed this protection.','You are stronger than this moment. This urge will pass.','Your future self will thank you for waiting.','Remember your goals. This feeling is temporary.'];
-  document.getElementById('motivationText').textContent=quotes[Math.floor(Math.random()*quotes.length)];
-
-  /* ── Mini 3D shield ── */
-  if(!window.THREE)return;
-  const canvas=document.getElementById('blocked-shield');
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-  renderer.setSize(120,120);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0,0);
-  const scene=new THREE.Scene();
-  const camera=new THREE.PerspectiveCamera(45,1,0.1,100);camera.position.z=4;
-  const geo=new THREE.IcosahedronGeometry(1.4,1);
-  const wire=new THREE.WireframeGeometry(geo);
-  const mesh=new THREE.LineSegments(wire,new THREE.LineBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.8}));
-  scene.add(mesh);
-  const solid=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.05}));
-  scene.add(solid);
-  const pl=new THREE.PointLight(0x5B5EF4,2,10);scene.add(pl);
-  scene.add(new THREE.AmbientLight(0x1a1a3e,0.5));
-  (function animate(){requestAnimationFrame(animate);mesh.rotation.y+=0.008;solid.rotation.y+=0.008;const t=Date.now()*.001;pl.position.set(Math.cos(t)*3,Math.sin(t*.7)*1.5,Math.sin(t)*3);renderer.render(scene,camera);})();
 })();
 </script>
-</body>
-</html>
+</body></html>

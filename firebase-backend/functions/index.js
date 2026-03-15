@@ -204,3 +204,6 @@ exports.weeklyDeepCleanup = dataCleanup.weeklyDeepCleanup; // Sunday 4 AM UTC - 
 // Note: cleanupOldLogs is exported from cleanup.js as cleanupOldLogsV2
 // It runs daily at 3 AM UTC and cleans up logs older than 30 days
 
+const contactAndBlog = require('./contactAndBlog');
+exports.submitContactForm = contactAndBlog.submitContactForm;
+exports.subscribeBlog = contactAndBlog.subscribeBlog;

@@ -1,33 +1,61 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Blog — ZAS Safeguard</title><link rel="preconnect" href="https://api.fontshare.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet"><link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/zas-shared.css">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Blog — ZAS Safeguard</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/zas-shared.css">
 <style>
-.blog-hero{padding:calc(64px + var(--space-10)) 0 var(--space-8);position:relative;overflow:hidden}
-.blog-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:400px;background:radial-gradient(ellipse 70% 50% at 60% 0%,rgba(91,94,244,0.12) 0%,transparent 70%);pointer-events:none}
-.blog-hero h1{font-size:clamp(44px,6vw,72px);margin-bottom:var(--space-4)}
-.blog-hero p{font-size:18px;color:var(--text-secondary);max-width:520px;margin-bottom:var(--space-7)}
-.empty-state{text-align:center;padding:var(--space-9) 0;max-width:500px;margin:0 auto}
-.empty-icon{width:72px;height:72px;border-radius:50%;background:rgba(91,94,244,0.08);border:1px solid rgba(91,94,244,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-5)}
-.empty-state h2{font-size:26px;margin-bottom:var(--space-3)}
-.empty-state p{color:var(--text-secondary);margin-bottom:var(--space-6)}
-.email-row{display:flex;gap:10px;max-width:400px;margin:0 auto}
-.email-row input{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:var(--radius-full);padding:12px 18px;font:400 14px 'Satoshi',sans-serif;color:var(--text-primary);outline:none;transition:border-color .2s}
-.email-row input:focus{border-color:rgba(91,94,244,0.5)}
-.email-row input::placeholder{color:var(--text-tertiary)}
-.sub-msg{font-size:13px;color:var(--accent-primary);margin-top:10px;text-align:center;min-height:20px}
-.cat-tabs{display:flex;gap:8px;margin-bottom:var(--space-6);flex-wrap:wrap}
-.cat-tab{font-size:13px;padding:6px 16px;border-radius:var(--radius-full);border:1px solid var(--border-subtle);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .2s;font-family:'Satoshi',sans-serif}
-.cat-tab.active,.cat-tab:hover{border-color:rgba(91,94,244,0.4);color:var(--text-primary);background:rgba(91,94,244,0.08)}
+.blog-hero{padding:calc(64px + var(--space-20)) 0 var(--space-10);position:relative;overflow:hidden}
+.blog-hero::before{content:'';position:absolute;top:0;right:0;width:60%;height:400px;background:radial-gradient(ellipse 60% 50% at 80% 0%,rgba(76,94,255,0.08) 0%,transparent 70%);pointer-events:none}
+.blog-hero h1{font-size:clamp(36px,5vw,64px);margin-bottom:var(--space-4)}
+.blog-hero p{font-size:var(--text-lg);color:var(--text-secondary);max-width:480px;margin-bottom:var(--space-8)}
+.cat-row{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-10)}
+.cat{font-size:var(--text-sm);font-weight:var(--font-medium);padding:6px 16px;border-radius:var(--radius-full);border:1px solid var(--border-color);background:transparent;color:var(--text-muted);cursor:pointer;transition:all var(--transition-base);font-family:inherit}
+.cat.active,.cat:hover{border-color:rgba(76,94,255,0.4);color:var(--text-primary);background:var(--zas-indigo-subtle)}
+.empty-state{text-align:center;padding:var(--space-20) 0;max-width:480px;margin:0 auto}
+.empty-icon{width:64px;height:64px;border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-6)}
+.empty-icon svg{width:26px;height:26px;color:var(--zas-indigo)}
+.empty-state h2{font-size:var(--text-2xl);margin-bottom:var(--space-3)}
+.empty-state>p{font-size:var(--text-base);margin-bottom:var(--space-8)}
+.email-row{display:flex;gap:var(--space-3);max-width:380px;margin:0 auto}
+.email-row input{flex:1;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:10px var(--space-4);font-size:var(--text-sm);color:var(--text-primary);outline:none;transition:border-color var(--transition-base)}
+.email-row input:focus{border-color:var(--border-focus)}
+.email-row input::placeholder{color:var(--text-muted)}
+.sub-msg{font-size:var(--text-xs);color:var(--zas-indigo);margin-top:var(--space-3);text-align:center;min-height:16px}
 </style>
 </head><body>
-<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog" aria-current="page">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav>
-<div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div>
-<main class="page-main"><div class="blog-hero"><div class="container"><div class="animate"><span class="pill">Insights</span></div><h1 class="animate" data-stagger="1">Internet Safety &amp; Privacy</h1><p class="animate" data-stagger="2">Guides, research, and product updates from the ZAS Safeguard team.</p><div class="cat-tabs animate" data-stagger="3"><button class="cat-tab active">All</button><button class="cat-tab">Internet Safety</button><button class="cat-tab">Parental Controls</button><button class="cat-tab">Privacy</button><button class="cat-tab">Product Updates</button></div></div></div>
-<div class="container"><div class="empty-state animate"><div class="empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B5EF4" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><h2>First article coming soon</h2><p>We are working on practical guides about internet safety, parental controls, and privacy. Be the first to know when they are published.</p>
-<div class="email-row"><input type="email" id="blogEmail" placeholder="your@email.com"><button class="btn-primary" style="padding:12px 22px;font-size:14px;animation:none" onclick="subscribeEmail()">Notify me</button></div>
-<p class="sub-msg" id="subMsg"></p></div></div></main>
-<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer>
-<script src="/assets/zas-shared.js"></script>
+<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn btn-secondary">Sign In</a><a href="/register" class="btn btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav><div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn btn-secondary">Sign In</a><a href="/register" class="btn btn-primary">Start Free Trial</a></div>
+<main class="page-main">
+<div class="blog-hero"><div class="container">
+  <div class="hero-eyebrow animate">Blog</div>
+  <h1 class="animate" data-stagger="1">Internet Safety &amp; Privacy</h1>
+  <p class="animate" data-stagger="2">Guides, research, and product updates from the ZAS Safeguard team.</p>
+  <div class="cat-row animate" data-stagger="3">
+    <button class="cat active">All</button>
+    <button class="cat">Internet Safety</button>
+    <button class="cat">Parental Controls</button>
+    <button class="cat">Privacy</button>
+    <button class="cat">Product Updates</button>
+  </div>
+</div></div>
+<div class="container">
+  <div class="empty-state animate">
+    <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+    <h2>First article coming soon</h2>
+    <p>We are working on practical guides about internet safety, parental controls, and digital privacy. Be the first to know.</p>
+    <div class="email-row">
+      <input type="email" id="blogEmail" placeholder="your@email.com">
+      <button class="btn btn-primary" style="animation:none;flex-shrink:0" onclick="subscribeBlog()">Notify me</button>
+    </div>
+    <p class="sub-msg" id="subMsg"></p>
+  </div>
+</div>
+</main>
+<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer><script src="/assets/zas-shared.js"></script>
 <script>
-function subscribeEmail(){const v=document.getElementById('blogEmail').value.trim();const msg=document.getElementById('subMsg');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){msg.textContent='Please enter a valid email address';msg.style.color='#f87171';return;}
-fetch('https://us-central1-YOUR_PROJECT.cloudfunctions.net/subscribeBlog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:v,timestamp:new Date().toISOString()})}).then(()=>{msg.textContent='You are on the list!';msg.style.color='var(--accent-primary)';document.getElementById('blogEmail').value='';}).catch(()=>{msg.textContent='Something went wrong. Try again.';msg.style.color='#f87171';});}
-document.querySelectorAll('.cat-tab').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.cat-tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');}));
-</script></body></html>
+document.querySelectorAll('.cat').forEach(b=>b.addEventListener('click',function(){document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));this.classList.add('active');}));
+function subscribeBlog(){
+  const v=document.getElementById('blogEmail').value.trim();
+  const msg=document.getElementById('subMsg');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){msg.textContent='Please enter a valid email address';msg.style.color='var(--crimson)';return;}
+  fetch('https://us-central1-zas-safeguard.cloudfunctions.net/subscribeBlog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:v,timestamp:new Date().toISOString()})})
+  .then(()=>{msg.textContent='You are on the list!';msg.style.color='var(--emerald)';document.getElementById('blogEmail').value='';})
+  .catch(()=>{msg.textContent='Something went wrong. Try again.';msg.style.color='var(--crimson)';});
+}
+</script>
+</body></html>

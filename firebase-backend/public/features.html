@@ -1,294 +1,240 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Features — ZAS Safeguard</title>
-<meta name="description" content="Every protection layer in ZAS Safeguard. Adult blocking, AI threat detection, ad removal, focus mode and more.">
-<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<meta name="description" content="Eight layers of AI-powered browser protection in one extension.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/zas-shared.css">
 <style>
-.features-hero{padding:calc(64px + var(--space-10)) 0 var(--space-10);text-align:center;position:relative;overflow:hidden}
-.features-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:400px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(91,94,244,0.14) 0%,transparent 70%);pointer-events:none}
-.features-hero h1{font-size:clamp(44px,6vw,80px);max-width:720px;margin:0 auto var(--space-5)}
-.features-hero p{font-size:18px;color:var(--text-secondary);max-width:520px;margin:0 auto var(--space-7)}
-/* Feature rows */
-.feature-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-8);align-items:center;padding:var(--space-9) 0;border-bottom:1px solid var(--border-subtle)}
-.feature-row:last-child{border-bottom:none}
-.feature-row.reverse{direction:rtl}
-.feature-row.reverse>*{direction:ltr}
-.feature-text{max-width:480px}
-.feature-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent-primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:var(--space-4)}
-.feature-text h2{font-size:clamp(28px,3vw,40px);margin-bottom:var(--space-4)}
-.feature-text p{font-size:16px;color:var(--text-secondary);line-height:1.75;margin-bottom:var(--space-4)}
-.feature-text .who{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);padding:8px 14px;background:rgba(91,94,244,0.06);border-radius:var(--radius-sm);display:inline-block}
-.feature-visual{border-radius:var(--radius-lg);overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;position:relative}
-/* Visual cards */
-.vis-card{width:100%;height:100%;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;min-height:240px}
-.vis-icon{width:80px;height:80px;border-radius:50%;background:rgba(91,94,244,0.12);border:1px solid rgba(91,94,244,0.3);display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
-.vis-icon svg{width:36px;height:36px;color:var(--accent-primary)}
-/* Scan line animation */
-.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-primary),transparent);animation:scan 2s linear infinite;z-index:3}
-@keyframes scan{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
-/* Pulse rings */
-.pulse-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.ring{position:absolute;border-radius:50%;border:1px solid rgba(91,94,244,0.3);animation:ring-expand 3s ease-out infinite}
-.ring:nth-child(1){width:80px;height:80px;animation-delay:0s}
-.ring:nth-child(2){width:120px;height:120px;animation-delay:1s}
-.ring:nth-child(3){width:160px;height:160px;animation-delay:2s}
-@keyframes ring-expand{0%{opacity:1;transform:scale(.8)}100%{opacity:0;transform:scale(1.5)}}
-/* Shield glow */
-.shield-glow{width:60px;height:60px;position:relative}
-.shield-glow svg{width:100%;height:100%;filter:drop-shadow(0 0 12px rgba(91,94,244,0.6))}
-/* CTA strip */
-.features-cta{padding:var(--space-10) 0;text-align:center;border-top:1px solid var(--border-subtle);margin-top:var(--space-7)}
-.features-cta h2{font-size:clamp(28px,4vw,44px);margin-bottom:var(--space-4)}
-.features-cta p{color:var(--text-secondary);margin-bottom:var(--space-6)}
-.cta-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-@media(max-width:768px){.feature-row,.feature-row.reverse{grid-template-columns:1fr;direction:ltr}.feature-text{max-width:100%}.feature-visual{min-height:180px}}
+.feat-hero{padding:calc(64px + var(--space-20)) 0 var(--space-16);position:relative;overflow:hidden;text-align:center}
+.feat-hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(76,94,255,0.12) 0%,transparent 70%);pointer-events:none}
+.feat-hero h1{font-size:clamp(36px,5vw,60px);margin-bottom:var(--space-5);position:relative}
+.feat-hero p{font-size:var(--text-lg);color:var(--text-secondary);max-width:500px;margin:0 auto;position:relative}
+.feat-grid{padding:var(--space-16) 0}
+.feat-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-16);align-items:center;padding:var(--space-16) 0;border-top:1px solid var(--border-subtle)}
+.feat-row:first-child{border-top:none}
+.feat-row.flip{direction:rtl}
+.feat-row.flip>*{direction:ltr}
+.feat-tag{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--font-semibold);color:var(--zas-indigo);text-transform:uppercase;letter-spacing:var(--tracking-wider);background:var(--zas-indigo-subtle);border:1px solid rgba(76,94,255,0.2);padding:3px 10px;border-radius:var(--radius-full);margin-bottom:var(--space-4)}
+.feat-tag.free{color:var(--emerald);background:var(--emerald-subtle);border-color:rgba(34,197,94,0.2)}
+.feat-text h2{font-size:clamp(24px,3vw,36px);margin-bottom:var(--space-4)}
+.feat-text p{font-size:var(--text-base);line-height:var(--leading-relaxed);margin-bottom:var(--space-3)}
+.feat-text p.dim{font-size:var(--text-sm);color:var(--text-muted)}
+.who-tag{display:inline-flex;font-size:var(--text-xs);font-weight:var(--font-medium);color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid var(--border-color);padding:4px 12px;border-radius:var(--radius-full);margin-top:var(--space-4)}
+.vis{border-radius:var(--radius-lg);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center;background:var(--bg-card);border:1px solid var(--border-color);position:relative}
+/* Scan vis */
+.scan-frame{width:100%;height:100%;min-height:260px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--zas-indigo),transparent);animation:scandown 2s linear infinite;opacity:.8}
+@keyframes scandown{0%{top:0;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.vis-icon-wrap{width:72px;height:72px;border-radius:var(--radius-lg);background:var(--zas-indigo-subtle);border:1px solid rgba(76,94,255,0.2);display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
+.vis-icon-wrap svg{width:32px;height:32px;color:var(--zas-indigo)}
+/* Ring pulse */
+.rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(76,94,255,0.2);animation:rpulse 3s ease-out infinite}
+.ring:nth-child(1){width:80px;height:80px}
+.ring:nth-child(2){width:130px;height:130px;animation-delay:1s}
+.ring:nth-child(3){width:180px;height:180px;animation-delay:2s}
+@keyframes rpulse{0%{opacity:.8;transform:scale(.8)}100%{opacity:0;transform:scale(1.5)}}
+/* Timer vis */
+.timer-vis{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding:var(--space-8)}
+.timer-num{font-size:48px;font-weight:var(--font-bold);color:var(--zas-indigo);letter-spacing:.04em;font-family:'Inter',monospace}
+.timer-label{font-size:var(--text-sm);color:var(--text-muted)}
+.block-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:220px}
+.chip{font-size:var(--text-xs);color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border-color);padding:4px 10px;border-radius:var(--radius-full)}
+/* Device list vis */
+.dev-list{width:100%;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-3)}
+.dev-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-elevated);border:1px solid var(--border-color)}
+.dev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dev-name{flex:1;font-size:var(--text-sm);font-weight:var(--font-medium)}
+.dev-status{font-size:var(--text-xs);color:var(--text-muted)}
+/* Alert vis */
+.alert-list{width:100%;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-3)}
+.alert-item{padding:var(--space-3) var(--space-4);border-radius:var(--radius-md)}
+.alert-title{font-size:var(--text-sm);font-weight:var(--font-semibold);margin-bottom:4px}
+.alert-sub{font-size:var(--text-xs);color:var(--text-secondary)}
+/* Neural */
+.neural-wrap{width:100%;height:100%;min-height:260px;display:flex;align-items:center;justify-content:center}
+/* CTA */
+.feat-cta{padding:var(--space-20) 0;text-align:center;border-top:1px solid var(--border-subtle)}
+.feat-cta h2{font-size:clamp(28px,4vw,44px);margin-bottom:var(--space-4)}
+.feat-cta p{color:var(--text-secondary);margin-bottom:var(--space-8)}
+.cta-row{display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap}
+@media(max-width:768px){.feat-row,.feat-row.flip{grid-template-columns:1fr;direction:ltr}.vis{min-height:200px}}
 </style>
-</head>
-<body>
-<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features" aria-current="page">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav>
-<div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div>
+</head><body>
+<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features" aria-current="page">Features</a><a href="/pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn btn-secondary">Sign In</a><a href="/register" class="btn btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav>
+<div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn btn-secondary">Sign In</a><a href="/register" class="btn btn-primary">Start Free Trial</a></div>
 
 <main class="page-main">
-  <section class="features-hero">
-    <div class="container">
-      <div class="animate"><span class="pill">8 layers of protection</span></div>
-      <h1 class="animate" data-stagger="1">Everything ZAS Safeguard does</h1>
-      <p class="animate" data-stagger="2">One extension. Eight intelligent layers working together to keep you and your family safe online.</p>
+<section class="feat-hero"><div class="container">
+  <div class="hero-eyebrow animate">8 layers of protection</div>
+  <h1 class="animate" data-stagger="1">Everything ZAS Safeguard does</h1>
+  <p class="animate" data-stagger="2">One extension. Eight intelligent layers working in the background, all the time.</p>
+</div></section>
+
+<div class="feat-grid container">
+
+  <div class="feat-row animate">
+    <div class="feat-text">
+      <span class="feat-tag free">Always On — Free</span>
+      <h2>Adult Content Blocking</h2>
+      <p>Blocks explicit content and adult sites at the network level before it reaches your screen. This protection is permanently active — it cannot be toggled off, even by the person who installed the extension.</p>
+      <p class="dim">Powered by a continuously updated blocklist of millions of domains combined with AI-based URL pattern matching for newly created sites.</p>
+      <span class="who-tag">Parents &amp; self-protection</span>
     </div>
-  </section>
-
-  <div class="container">
-
-    <!-- Adult Blocking -->
-    <div class="feature-row animate">
-      <div class="feature-text">
-        <div class="feature-tag">Always Active</div>
-        <h2>Adult Content Blocking</h2>
-        <p>Blocks explicit content, adult websites, and inappropriate material at the network level — before it ever reaches your screen. This protection is always on and cannot be disabled, even if the extension is temporarily toggled off.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Uses a continuously updated blocklist of millions of domains combined with AI-powered URL pattern matching for sites too new to be listed.</p>
-        <span class="who">For parents &amp; self-protection</span>
+    <div class="vis">
+      <div class="scan-frame">
+        <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+        <div class="vis-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
       </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div class="pulse-rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
-          <div class="vis-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
+    </div>
+  </div>
+
+  <div class="feat-row flip animate">
+    <div class="feat-text">
+      <span class="feat-tag">Real-time · Pro</span>
+      <h2>Phishing &amp; Malware Detection</h2>
+      <p>Every URL you visit is checked in under 50ms against threat intelligence databases. Phishing sites, malware distributors, and scam pages are stopped before they load — not after.</p>
+      <p class="dim">Google Safe Browsing + our own threat database + AI pattern recognition trained on millions of malicious URLs.</p>
+      <span class="who-tag">Everyone</span>
+    </div>
+    <div class="vis">
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+        <div class="vis-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feat-row animate">
+    <div class="feat-text">
+      <span class="feat-tag">Pro</span>
+      <h2>Ad &amp; Tracker Removal</h2>
+      <p>Removes banner ads, pop-ups, video pre-rolls, and autoplay ads from every page. Simultaneously blocks over 200 known trackers from following your activity across websites.</p>
+      <p class="dim">Pages load measurably faster. Your browsing history stays yours. No cross-site profiles built from your behaviour.</p>
+      <span class="who-tag">Privacy-conscious users</span>
+    </div>
+    <div class="vis">
+      <div class="scan-frame" style="flex-direction:column;gap:10px;padding:var(--space-8)">
+        <div style="display:flex;gap:8px;width:100%;max-width:200px">
+          <div style="width:48px;height:32px;border-radius:6px;background:var(--zas-indigo-subtle);border:1px solid rgba(76,94,255,0.2);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4C5EFF" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <div style="flex:1;height:32px;border-radius:6px;background:var(--bg-elevated);border:1px solid var(--border-color)"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Malware -->
-    <div class="feature-row reverse animate">
-      <div class="feature-text">
-        <div class="feature-tag">Real-time</div>
-        <h2>Phishing &amp; Malware Protection</h2>
-        <p>Every URL you navigate to is scanned in under 50ms against our threat intelligence database. Phishing sites, malware distributors, scam pages, and deceptive redirect chains are blocked before they load.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Powered by Google Safe Browsing, our own threat database, and AI pattern recognition trained on millions of malicious URLs.</p>
-        <span class="who">For everyone</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div class="scan-line"></div>
-          <div class="vis-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          </div>
+        <div style="display:flex;gap:8px;width:100%;max-width:200px">
+          <div style="flex:1;height:32px;border-radius:6px;background:var(--bg-elevated);border:1px solid var(--border-color)"></div>
+          <div style="width:48px;height:32px;border-radius:6px;background:var(--zas-indigo-subtle);border:1px solid rgba(76,94,255,0.2);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4C5EFF" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
         </div>
+        <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px">2 ads removed from this page</div>
       </div>
     </div>
+  </div>
 
-    <!-- Ads -->
-    <div class="feature-row animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro</div>
-        <h2>Ad &amp; Tracker Removal</h2>
-        <p>Removes intrusive ads from every page you visit — banners, pop-ups, video pre-rolls, autoplay ads. Simultaneously blocks over 200 known trackers from following your browsing activity across sites.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Pages load faster and use less bandwidth. Your browsing history stays yours.</p>
-        <span class="who">For privacy-conscious users</span>
+  <div class="feat-row flip animate">
+    <div class="feat-text">
+      <span class="feat-tag">AI · Pro</span>
+      <h2>AI Content Analysis</h2>
+      <p>When keyword matching is not enough, AI analyses page content in real time to detect harmful material that slips through traditional blocklists — including newly created sites and reworded content.</p>
+      <p class="dim">GPT-4o-mini for content classification. Analysis runs server-side. Your data is never used for training.</p>
+      <span class="who-tag">Parents</span>
+    </div>
+    <div class="vis neural-wrap">
+      <canvas id="neural-canvas" width="220" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="feat-row animate">
+    <div class="feat-text">
+      <span class="feat-tag">Pro</span>
+      <h2>Focus Mode</h2>
+      <p>Block distracting websites — social media, video platforms, gaming sites, forums — for a set duration you choose. Start a session from the dashboard or the extension popup with one click.</p>
+      <p class="dim">Sessions sync across all your devices instantly. 30 min · 1 hr · 2 hr · 4 hr · until midnight · until tomorrow.</p>
+      <span class="who-tag">Productivity</span>
+    </div>
+    <div class="vis">
+      <div class="timer-vis">
+        <div class="timer-num" id="focusTimer">25:00</div>
+        <div class="timer-label">Focus session active</div>
+        <div class="block-chips"><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">YouTube</span><span class="chip">Reddit</span><span class="chip">Twitter</span></div>
       </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div class="vis-icon" style="flex-direction:column;gap:8px;width:auto;height:auto;background:transparent;border:none">
-            <div style="display:flex;gap:8px">
-              <div style="width:60px;height:36px;border-radius:8px;background:rgba(91,94,244,0.15);border:1px solid rgba(91,94,244,0.3);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B5EF4" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-              <div style="width:100px;height:36px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"></div>
-            </div>
-            <div style="display:flex;gap:8px">
-              <div style="width:100px;height:36px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"></div>
-              <div style="width:60px;height:36px;border-radius:8px;background:rgba(91,94,244,0.15);border:1px solid rgba(91,94,244,0.3);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B5EF4" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-            </div>
-          </div>
+    </div>
+  </div>
+
+  <div class="feat-row flip animate">
+    <div class="feat-text">
+      <span class="feat-tag">Pro</span>
+      <h2>Internet Lock</h2>
+      <p>One tap to lock down internet access completely. Only a small whitelist of essential sites — Google, Gmail, educational platforms, your work tools — stays accessible.</p>
+      <p class="dim">Use it for total focus, to prevent late-night browsing on shared devices, or as a scheduled automatic lock.</p>
+      <span class="who-tag">Self-control &amp; parenting</span>
+    </div>
+    <div class="vis">
+      <div style="text-align:center;padding:var(--space-8)">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--zas-indigo-subtle);border:1px solid rgba(76,94,255,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-4);cursor:pointer" id="lockBtn">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4C5EFF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
+        <div style="font-size:var(--text-sm);color:var(--text-secondary)" id="lockLabel">Internet unlocked</div>
       </div>
     </div>
+  </div>
 
-    <!-- AI Content -->
-    <div class="feature-row reverse animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro · AI</div>
-        <h2>AI Content Analysis</h2>
-        <p>When keyword matching is not enough, our AI analyses page content in real time to detect harmful material that slips through traditional blocklists — including new sites, reworded content, and context-dependent material.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Uses GPT-4o-mini for content classification. Analysis runs server-side so your browsing data never leaves securely.</p>
-        <span class="who">For parents</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-            <canvas id="neural-canvas" width="220" height="180" style="opacity:0.9"></canvas>
-          </div>
-        </div>
+  <div class="feat-row animate">
+    <div class="feat-text">
+      <span class="feat-tag">Pro</span>
+      <h2>Family Dashboard</h2>
+      <p>Monitor all protected devices from one place. See what was blocked, when, and on which device. Set different rules per device. Manage everything from one account.</p>
+      <p class="dim">Works across unlimited devices. All modern browsers supported.</p>
+      <span class="who-tag">Parents</span>
+    </div>
+    <div class="vis">
+      <div class="dev-list">
+        <div class="dev-item"><div class="dev-dot" style="background:var(--emerald);box-shadow:0 0 6px rgba(34,197,94,0.4)"></div><div class="dev-name">MacBook Pro</div><span class="badge badge-success">Active</span></div>
+        <div class="dev-item"><div class="dev-dot" style="background:var(--emerald);box-shadow:0 0 6px rgba(34,197,94,0.4)"></div><div class="dev-name">Kids iPad</div><span class="badge badge-success">Active</span></div>
+        <div class="dev-item"><div class="dev-dot" style="background:var(--text-disabled)"></div><div class="dev-name">Work Laptop</div><span class="badge badge-neutral">Offline</span></div>
       </div>
     </div>
+  </div>
 
-    <!-- Focus Mode -->
-    <div class="feature-row animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro</div>
-        <h2>Focus Mode</h2>
-        <p>Blocks distracting websites — social media, video platforms, gaming sites, forums — for a set duration you choose. Start a focus session from the dashboard or the extension popup.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Choose 30 minutes, 1 hour, 2 hours, 4 hours, until midnight, or until tomorrow. Sessions sync across all your devices instantly.</p>
-        <span class="who">For productivity</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div style="text-align:center">
-            <div id="focus-timer" style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;color:var(--accent-primary);letter-spacing:.05em">25:00</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:8px">Focus session active</div>
-            <div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap">
-              <span style="font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:20px">Instagram</span>
-              <span style="font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:20px">TikTok</span>
-              <span style="font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:20px">YouTube</span>
-              <span style="font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:20px">Reddit</span>
-            </div>
-          </div>
-        </div>
+  <div class="feat-row flip animate">
+    <div class="feat-text">
+      <span class="feat-tag">Pro</span>
+      <h2>Parent Alerts</h2>
+      <p>Get instant email notifications when the extension is tampered with, a device goes offline unexpectedly, or blocked content attempts spike above your threshold.</p>
+      <p class="dim">Quiet hours, daily caps, and cooldown periods prevent notification fatigue. You only hear about what matters.</p>
+      <span class="who-tag">Parents</span>
+    </div>
+    <div class="vis">
+      <div class="alert-list">
+        <div class="alert-item card-danger"><div class="alert-title" style="color:var(--crimson)">&#9888; Extension Disabled</div><div class="alert-sub">Kids iPad &mdash; 2 min ago</div></div>
+        <div class="alert-item card-warning"><div class="alert-title" style="color:var(--amber)">&#128683; Multiple Block Attempts</div><div class="alert-sub">5 attempts in 1 minute</div></div>
+        <div class="alert-item card-info"><div class="alert-title" style="color:var(--zas-indigo)">&#128737; Malware Blocked</div><div class="alert-sub">Phishing site stopped</div></div>
       </div>
     </div>
+  </div>
 
-    <!-- Internet Lock -->
-    <div class="feature-row reverse animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro</div>
-        <h2>Internet Lock</h2>
-        <p>One tap to lock down internet access completely — only essential sites remain accessible. Use it when you need total focus, or to prevent late-night browsing on shared devices.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Essential sites like Google, Gmail, educational platforms, and your company tools are always allowed through the lock.</p>
-        <span class="who">For self-control &amp; parenting</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card">
-          <div style="text-align:center">
-            <div id="lock-btn" style="width:72px;height:72px;border-radius:50%;background:rgba(91,94,244,0.15);border:2px solid rgba(91,94,244,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;cursor:pointer;transition:all .3s;animation:pulse-lock 3s ease-in-out infinite">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B5EF4" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <div style="font-size:14px;color:var(--text-secondary)">Tap to lock internet access</div>
-          </div>
-        </div>
-      </div>
-    </div>
+</div>
 
-    <!-- Family Dashboard -->
-    <div class="feature-row animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro</div>
-        <h2>Family Dashboard</h2>
-        <p>Monitor all protected devices from one place. See what was blocked, when, and on which device. Set different rules for each family member. Get instant alerts when something concerning happens.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Works across unlimited devices. iOS, Android, Chrome, Firefox, Edge — all managed from a single dashboard.</p>
-        <span class="who">For parents</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card" style="padding:16px">
-          <div style="background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid var(--border-subtle);padding:12px;width:100%">
-            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Connected Devices</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(91,94,244,0.06);border-radius:8px;border:1px solid rgba(91,94,244,0.15)"><div style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><div style="font-size:13px;flex:1">Ahmed's MacBook</div><div style="font-size:11px;color:var(--text-tertiary)">Active</div></div>
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border-subtle)"><div style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><div style="font-size:13px;flex:1">Kids iPad</div><div style="font-size:11px;color:var(--text-tertiary)">Active</div></div>
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border-subtle)"><div style="width:8px;height:8px;border-radius:50%;background:#4A5568;flex-shrink:0"></div><div style="font-size:13px;flex:1">Work Laptop</div><div style="font-size:11px;color:var(--text-tertiary)">Offline</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Alerts -->
-    <div class="feature-row reverse animate">
-      <div class="feature-text">
-        <div class="feature-tag">Pro</div>
-        <h2>Parent Alerts</h2>
-        <p>Get instant email notifications when the extension is tampered with, when a device goes offline unexpectedly, or when blocked content attempts spike above your threshold.</p>
-        <p style="color:var(--text-secondary);font-size:15px">Quiet hours, daily caps, and alert cooldowns prevent notification fatigue. You only hear about what matters.</p>
-        <span class="who">For parents</span>
-      </div>
-      <div class="feature-visual">
-        <div class="vis-card" style="padding:16px">
-          <div style="display:flex;flex-direction:column;gap:8px;width:100%">
-            <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 14px"><div style="font-size:12px;font-weight:500;color:#f87171;margin-bottom:4px">&#9888; Extension Disabled</div><div style="font-size:12px;color:var(--text-secondary)">Ahmed's MacBook — 2 min ago</div></div>
-            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px 14px"><div style="font-size:12px;font-weight:500;color:#fbbf24;margin-bottom:4px">&#128683; Multiple Block Attempts</div><div style="font-size:12px;color:var(--text-secondary)">Kids iPad — 5 attempts in 1 min</div></div>
-            <div style="background:rgba(91,94,244,0.08);border:1px solid rgba(91,94,244,0.2);border-radius:10px;padding:12px 14px"><div style="font-size:12px;font-weight:500;color:#a5a8fa;margin-bottom:4px">&#128737; Malware Blocked</div><div style="font-size:12px;color:var(--text-secondary)">Work Laptop — phishing site stopped</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /container -->
-
-  <!-- CTA -->
-  <section class="features-cta container animate">
-    <h2>One extension. Every protection.</h2>
-    <p>Start your free 7-day trial. No credit card required.</p>
-    <div class="cta-btns">
-      <a href="/register" class="btn-primary">Start Free Trial</a>
-      <a href="/#pricing" class="btn-ghost">See Pricing</a>
-    </div>
-  </section>
+<section class="feat-cta container animate">
+  <h2>One extension. Every protection.</h2>
+  <p>7-day free trial. No credit card required.</p>
+  <div class="cta-row">
+    <a href="/register" class="btn btn-primary btn-lg">Start Free Trial</a>
+    <a href="/pricing" class="btn btn-secondary btn-lg">See Pricing</a>
+  </div>
+</section>
 </main>
 
-<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer>
+<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer>
 
 <script src="/assets/zas-shared.js"></script>
 <script>
-/* Neural net canvas animation */
 (function(){
-  const c=document.getElementById('neural-canvas');if(!c)return;
-  const ctx=c.getContext('2d');
-  const nodes=[{x:40,y:40},{x:40,y:90},{x:40,y:140},{x:110,y:60},{x:110,y:90},{x:110,y:120},{x:180,y:40},{x:180,y:90},{x:180,y:140}];
-  const conns=[[0,3],[1,3],[1,4],[2,4],[2,5],[3,6],[3,7],[4,7],[4,8],[5,7],[5,8]];
-  let t=0;
-  function draw(){
-    ctx.clearRect(0,0,220,180);t+=0.02;
-    conns.forEach(([a,b],i)=>{
-      const pulse=(Math.sin(t+i*.5)+1)/2;
-      ctx.strokeStyle=`rgba(91,94,244,${0.1+pulse*0.4})`;
-      ctx.lineWidth=1+pulse;
-      ctx.beginPath();ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);ctx.stroke();
-    });
-    nodes.forEach((n,i)=>{
-      const pulse=(Math.sin(t+i*.7)+1)/2;
-      ctx.beginPath();ctx.arc(n.x,n.y,4+pulse*2,0,Math.PI*2);
-      ctx.fillStyle=`rgba(91,94,244,${0.4+pulse*0.6})`;ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* Focus timer countdown */
-(function(){
-  let s=1500;
-  setInterval(()=>{
-    s=s>0?s-1:1500;
-    const m=Math.floor(s/60),sec=s%60;
-    const el=document.getElementById('focus-timer');
-    if(el)el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
-  },1000);
+  /* Neural net */
+  const c=document.getElementById('neural-canvas');
+  if(c){const ctx=c.getContext('2d');const nodes=[{x:40,y:40},{x:40,y:100},{x:40,y:160},{x:110,y:60},{x:110,y:100},{x:110,y:140},{x:180,y:40},{x:180,y:100},{x:180,y:160}];const conns=[[0,3],[1,3],[1,4],[2,4],[2,5],[3,6],[3,7],[4,7],[4,8],[5,7],[5,8]];let t=0;function draw(){ctx.clearRect(0,0,220,200);t+=0.018;conns.forEach(([a,b],i)=>{const p=(Math.sin(t+i*.5)+1)/2;ctx.strokeStyle=`rgba(76,94,255,${.08+p*.35})`;ctx.lineWidth=.8+p*.8;ctx.beginPath();ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);ctx.stroke();});nodes.forEach((n,i)=>{const p=(Math.sin(t+i*.7)+1)/2;ctx.beginPath();ctx.arc(n.x,n.y,3+p*2,0,Math.PI*2);ctx.fillStyle=`rgba(76,94,255,${.4+p*.6})`;ctx.fill();});requestAnimationFrame(draw);}draw();}
+  /* Focus timer */
+  let s=1500;setInterval(()=>{s=s>0?s-1:1500;const m=Math.floor(s/60),sec=s%60;const el=document.getElementById('focusTimer');if(el)el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');},1000);
+  /* Lock toggle */
+  let locked=false;const btn=document.getElementById('lockBtn');const lbl=document.getElementById('lockLabel');if(btn)btn.addEventListener('click',()=>{locked=!locked;btn.style.background=locked?'rgba(239,68,68,0.1)':'var(--zas-indigo-subtle)';btn.style.borderColor=locked?'rgba(239,68,68,0.3)':'rgba(76,94,255,0.3)';btn.querySelector('svg').style.stroke=locked?'#EF4444':'#4C5EFF';if(lbl)lbl.textContent=locked?'Internet locked':'Internet unlocked';});
 })();
 </script>
-</body>
-</html>
+</body></html>
