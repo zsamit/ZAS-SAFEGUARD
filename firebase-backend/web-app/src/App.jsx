@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/Auth/AuthPage';
 import DashboardLayout from './pages/Dashboard/Layout';
 import Overview from './pages/Dashboard/Overview';
@@ -15,6 +14,13 @@ import Settings from './pages/Dashboard/Settings';
 import TermsOfUse from './pages/Legal/TermsOfUse';
 import PrivacyPolicy from './pages/Legal/PrivacyPolicy';
 import CheckoutPage from './pages/Checkout/CheckoutPage';
+
+// Hard redirect — forces a full page load so Firebase Hosting serves the correct static HTML
+// (React Router Navigate stays in-app; window.location breaks out to Firebase routing)
+const HardRedirect = ({ to }) => {
+  React.useEffect(() => { window.location.href = to; }, [to]);
+  return null;
+};
 
 // Protected Route wrapper - redirects to login if not authenticated
 const ProtectedRoute = ({ children }) => {
@@ -51,7 +57,8 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* / is served by Firebase as landing.html — hard redirect out of React */}
+          <Route path="/" element={<HardRedirect to="/" />} />
 
           {/* Auth Routes */}
           <Route path="/login" element={<AuthPage />} />
@@ -79,8 +86,8 @@ function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          {/* Catch all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch all — hard redirect so Firebase serves landing.html */}
+          <Route path="*" element={<HardRedirect to="/" />} />
         </Routes>
       </Router>
     </AuthProvider>

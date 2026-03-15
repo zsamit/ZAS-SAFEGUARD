@@ -40,7 +40,10 @@ const AuthPage = () => {
             if (user) {
                 // Get redirect URL from sessionStorage (most reliable) or location state
                 const storedRedirect = sessionStorage.getItem('redirectAfterLogin');
-                const from = storedRedirect || location.state?.from?.pathname + (location.state?.from?.search || '') || '/app/dashboard';
+                const stateFrom = location.state?.from?.pathname
+                    ? location.state.from.pathname + (location.state.from.search || '')
+                    : null;
+                const from = storedRedirect || stateFrom || '/app/dashboard';
                 sessionStorage.removeItem('redirectAfterLogin');
                 navigate(from, { replace: true });
             }
@@ -82,7 +85,10 @@ const AuthPage = () => {
             console.log('[Auth] Navigating to destination');
             // Get redirect URL from sessionStorage (most reliable) or location state
             const storedRedirect = sessionStorage.getItem('redirectAfterLogin');
-            const from = storedRedirect || (location.state?.from?.pathname ? location.state.from.pathname + location.state.from.search : '/app/dashboard');
+            const stateFrom = location.state?.from?.pathname
+                ? location.state.from.pathname + (location.state.from.search || '')
+                : null;
+            const from = storedRedirect || stateFrom || '/app/dashboard';
             sessionStorage.removeItem('redirectAfterLogin');
             navigate(from, { replace: true });
         } catch (err) {
