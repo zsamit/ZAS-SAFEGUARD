@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2025-12-28T16:00:00Z",
+  "services": [
+    {"name":"ZAS Dashboard","description":"Web app and user accounts","status":"operational"},
+    {"name":"Extension Sync","description":"Extension ↔ dashboard real-time sync","status":"operational"},
+    {"name":"Threat Detection API","description":"URL scanning and malware detection","status":"operational"},
+    {"name":"Ad Block Engine","description":"Ad and tracker filtering","status":"operational"},
+    {"name":"Email Alerts","description":"Parent notification emails","status":"operational"},
+    {"name":"Firebase Functions","description":"Backend Cloud Functions","status":"operational"}
+  ]
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Contact — ZAS Safeguard</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/zas-shared.css">
+<style>
+.contact-wrap{padding:calc(64px + var(--space-10)) 0 var(--space-10);position:relative;overflow:hidden}
+.contact-wrap::before{content:'';position:absolute;top:0;right:0;width:50%;height:400px;background:radial-gradient(ellipse 60% 60% at 80% 20%,rgba(91,94,244,0.1) 0%,transparent 70%);pointer-events:none}
+.contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:var(--space-8);align-items:start;max-width:960px;margin:0 auto}
+.contact-info h1{font-size:clamp(36px,4.5vw,56px);margin-bottom:var(--space-5)}
+.contact-info p{font-size:17px;color:var(--text-secondary);line-height:1.75;margin-bottom:var(--space-6)}
+.contact-detail{display:flex;flex-direction:column;gap:12px}
+.contact-item{display:flex;align-items:flex-start;gap:14px;padding:16px;border-radius:var(--radius-md);background:var(--glass-bg);border:1px solid var(--border-subtle)}
+.contact-item-icon{width:38px;height:38px;border-radius:10px;background:rgba(91,94,244,0.12);border:1px solid rgba(91,94,244,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.contact-item-icon svg{width:18px;height:18px;color:var(--accent-primary)}
+.contact-item-text .label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.contact-item-text a,.contact-item-text span{font-size:14px;color:var(--text-secondary)}
+.contact-item-text a{color:var(--accent-primary)}
+/* Form */
+.contact-form-wrap{padding:36px;border-radius:var(--radius-lg);background:var(--glass-bg);border:1px solid var(--border-subtle);backdrop-filter:blur(12px)}
+.contact-form-wrap h2{font-size:24px;margin-bottom:var(--space-5)}
+.field{margin-bottom:var(--space-4)}
+.field label{display:block;font-size:13px;color:var(--text-secondary);margin-bottom:8px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 16px;font:400 15px 'Satoshi',sans-serif;color:var(--text-primary);outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(91,94,244,0.5)}
+.field input::placeholder,.field textarea::placeholder{color:var(--text-tertiary)}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892A4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;cursor:pointer}
+.field select option{background:#0E1117;color:var(--text-primary)}
+.field textarea{resize:vertical;min-height:120px}
+.field-error{font-size:12px;color:#f87171;margin-top:6px;display:none}
+.field.has-error input,.field.has-error select,.field.has-error textarea{border-color:rgba(248,113,113,0.5)}
+.field.has-error .field-error{display:block}
+.form-submit{width:100%;padding:14px;font-size:15px}
+.form-success{display:none;text-align:center;padding:32px}
+.form-success h3{font-size:22px;margin-bottom:12px;color:var(--accent-primary)}
+.form-success p{color:var(--text-secondary)}
+.response-time{font-size:13px;color:var(--text-tertiary);text-align:center;margin-top:16px}
+@media(max-width:768px){.contact-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav>
+<div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div>
+
+<main class="page-main">
+  <div class="contact-wrap">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-info animate">
+          <div class="pill" style="margin-bottom:var(--space-4)">Get in touch</div>
+          <h1>We are here to help</h1>
+          <p>Have a question, a billing issue, or want to report a bug? Send us a message and we will get back to you.</p>
+          <div class="contact-detail">
+            <div class="contact-item">
+              <div class="contact-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div class="contact-item-text"><div class="label">General &amp; Support</div><a href="mailto:support@zassafeguard.com">support@zassafeguard.com</a></div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+              <div class="contact-item-text"><div class="label">Security Disclosures</div><a href="mailto:security@zassafeguard.com">security@zassafeguard.com</a></div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+              <div class="contact-item-text"><div class="label">Response Time</div><span>We typically respond within 24–48 hours</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-form-wrap animate" data-stagger="2">
+          <h2>Send a message</h2>
+          <div id="contactForm">
+            <div class="field" id="field-name">
+              <label for="name">Your name</label>
+              <input type="text" id="name" placeholder="Ahmed Al-Rashid">
+              <div class="field-error">Please enter your name</div>
+            </div>
+            <div class="field" id="field-email">
+              <label for="email">Email address</label>
+              <input type="email" id="email" placeholder="ahmed@example.com">
+              <div class="field-error">Please enter a valid email address</div>
+            </div>
+            <div class="field" id="field-subject">
+              <label for="subject">Subject</label>
+              <select id="subject">
+                <option value="">Select a topic</option>
+                <option value="general">General Question</option>
+                <option value="billing">Billing</option>
+                <option value="technical">Technical Support</option>
+                <option value="bug">Report a Bug</option>
+                <option value="partnership">Partnership</option>
+              </select>
+              <div class="field-error">Please select a topic</div>
+            </div>
+            <div class="field" id="field-message">
+              <label for="message">Message</label>
+              <textarea id="message" placeholder="Tell us how we can help..."></textarea>
+              <div class="field-error">Please write a message</div>
+            </div>
+            <button class="btn-primary form-submit" onclick="submitForm()">Send Message</button>
+            <p class="response-time">We typically respond within 24–48 hours</p>
+          </div>
+          <div class="form-success" id="formSuccess">
+            <div style="font-size:40px;margin-bottom:16px">&#10003;</div>
+            <h3>Message sent</h3>
+            <p>Thank you for reaching out. We will get back to you within 24–48 hours.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer>
+<script src="/assets/zas-shared.js"></script>
+<script>
+function submitForm(){
+  let valid=true;
+  ['name','email','subject','message'].forEach(id=>{
+    const f=document.getElementById('field-'+id);
+    const inp=document.getElementById(id);
+    const val=inp.value.trim();
+    let ok=val.length>0;
+    if(id==='email')ok=ok&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    f.classList.toggle('has-error',!ok);
+    if(!ok)valid=false;
+  });
+  if(!valid)return;
+  const btn=document.querySelector('.form-submit');
+  btn.textContent='Sending...';btn.disabled=true;
+  /* Write to Firestore via Cloud Function */
+  fetch('https://us-central1-YOUR_PROJECT.cloudfunctions.net/submitContactForm',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:document.getElementById('name').value,email:document.getElementById('email').value,subject:document.getElementById('subject').value,message:document.getElementById('message').value,timestamp:new Date().toISOString()})
+  }).then(r=>r.ok?r.json():Promise.reject())
+  .then(()=>{document.getElementById('contactForm').style.display='none';document.getElementById('formSuccess').style.display='block';})
+  .catch(()=>{btn.textContent='Send Message';btn.disabled=false;alert('Something went wrong. Please email support@zassafeguard.com directly.');});
+}
+</script>
+</body>
+</html>

@@ -1,302 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Blocked - ZAS Safeguard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #1e1e2e 0%, #0f0f1a 100%);
-            color: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-
-        .container {
-            max-width: 500px;
-            text-align: center;
-        }
-
-        /* UI-native state block - structural containment for restricted state */
-        .state-block {
-            width: 100%;
-            max-width: 280px;
-            margin: 0 auto 48px;
-            padding: 32px 24px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            border-radius: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        /* Shield mark - primary state indicator */
-        .state-mark {
-            width: 48px;
-            height: 56px;
-        }
-
-        .state-mark svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .state-mark path {
-            fill: none;
-            stroke: rgba(148, 163, 184, 0.5);
-            stroke-width: 1.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        /* Rhythm lines - suggest system order/rules */
-        .state-lines {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .state-line {
-            height: 1px;
-            background: rgba(148, 163, 184, 0.15);
-            border-radius: 1px;
-        }
-
-        .state-line:nth-child(1) {
-            width: 80%;
-        }
-
-        .state-line:nth-child(2) {
-            width: 60%;
-        }
-
-        .state-line:nth-child(3) {
-            width: 40%;
-        }
-
-        h1 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .message {
-            font-size: 18px;
-            color: #9ca3af;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        /* Status Panel - reusable structured component */
-        .status-panel {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            border-left: 3px solid rgba(99, 102, 241, 0.5);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 40px;
-            text-align: left;
-        }
-
-        .status-label {
-            font-size: 11px;
-            font-weight: 500;
-            color: rgba(148, 163, 184, 0.7);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .status-value {
-            font-size: 15px;
-            font-weight: 500;
-            color: rgba(248, 250, 252, 0.85);
-        }
-
-        .actions {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 14px 32px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #f8fafc;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .motivation {
-            margin-top: 60px;
-            padding: 24px;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-            border-radius: 16px;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .motivation-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-
-        .motivation-text {
-            font-size: 18px;
-            font-weight: 500;
-            color: #10b981;
-            line-height: 1.5;
-        }
-
-        .footer {
-            margin-top: 60px;
-            font-size: 12px;
-            color: #4b5563;
-        }
-
-        .footer a {
-            color: #6366f1;
-            text-decoration: none;
-        }
-
-        .stats {
-            display: flex;
-            gap: 40px;
-            justify-content: center;
-            margin-top: 40px;
-            padding-top: 40px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .stat {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #3b82f6;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Access Blocked — ZAS Safeguard</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--bg-base:#090B10;--accent-primary:#5B5EF4;--text-primary:#F0F2F7;--text-secondary:#8892A4;--text-tertiary:#4A5568;--border-subtle:rgba(255,255,255,0.08);--glass-bg:rgba(255,255,255,0.04);--radius-lg:20px;--radius-full:9999px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:var(--bg-base);color:var(--text-primary);font-family:'Satoshi',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+/* Radial glow bg */
+body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(91,94,244,0.1) 0%,transparent 70%);pointer-events:none;animation:glow-pulse 4s ease-in-out infinite}
+@keyframes glow-pulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+/* Logo */
+.logo-bar{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--text-primary)}
+.logo-bar img{height:24px;width:auto}
+/* Shield canvas */
+.shield-wrap{width:120px;height:120px;margin:0 auto 32px;position:relative}
+#blocked-shield{width:100%;height:100%}
+/* Main card */
+.card{background:var(--glass-bg);border:1px solid var(--border-subtle);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--radius-lg);padding:40px 36px;max-width:440px;width:100%;text-align:center;position:relative;z-index:1}
+h1{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:32px;color:var(--text-primary);margin-bottom:12px;letter-spacing:-0.02em}
+.subtitle{font-size:16px;color:var(--text-secondary);margin-bottom:28px;line-height:1.6}
+/* Reason pill */
+.reason-box{background:rgba(91,94,244,0.08);border:1px solid rgba(91,94,244,0.2);border-radius:12px;padding:14px 20px;margin-bottom:28px;text-align:left}
+.reason-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.reason-value{font-size:15px;font-weight:500;color:var(--text-primary)}
+/* Actions */
+.actions{display:flex;gap:12px;justify-content:center;margin-bottom:32px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--accent-primary);color:#fff;border:none;border-radius:var(--radius-full);padding:13px 24px;font:500 14px 'Satoshi',sans-serif;cursor:pointer;transition:transform .2s,filter .2s;animation:none}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-primary);border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-full);padding:13px 24px;font:500 14px 'Satoshi',sans-serif;cursor:pointer;transition:border-color .2s,background .2s;text-decoration:none}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04)}
+/* Quote */
+.quote-box{background:rgba(91,94,244,0.06);border-left:3px solid rgba(91,94,244,0.4);border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:28px;text-align:left}
+.quote-text{font-size:14px;font-style:italic;color:var(--text-secondary);line-height:1.6}
+/* Stats */
+.stats{display:flex;gap:0;border-top:1px solid var(--border-subtle);padding-top:20px;justify-content:center}
+.stat{text-align:center;flex:1}
+.stat:not(:last-child){border-right:1px solid var(--border-subtle)}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--accent-primary);display:block}
+.stat-label{font-size:11px;color:var(--text-tertiary);margin-top:4px}
+/* Footer */
+.page-footer{position:absolute;bottom:20px;font-size:12px;color:var(--text-tertiary)}
+.page-footer a{color:rgba(91,94,244,0.8);transition:color .2s}
+.page-footer a:hover{color:var(--accent-primary)}
+@media(max-width:480px){.card{padding:28px 20px}.actions{flex-direction:column}.btn-primary,.btn-ghost{justify-content:center}}
+</style>
 </head>
-
 <body>
-    <div class="container">
-        <!-- UI-native state block: structural containment -->
-        <div class="state-block">
-            <!-- ZAS Logo text -->
-            <div class="state-mark" style="width: auto; height: auto;">
-                <span
-                    style="font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;">ZAS</span>
-            </div>
-            <!-- Rhythm lines - system order indicators -->
-            <div class="state-lines">
-                <div class="state-line"></div>
-                <div class="state-line"></div>
-                <div class="state-line"></div>
-            </div>
-        </div>
 
-        <h1>Content Blocked</h1>
+<div class="logo-bar">
+  <img src="../icons/logo-white.png" alt="ZAS Safeguard" onerror="this.style.display='none'">
+  ZAS Safeguard
+</div>
 
-        <p class="message">
-            ZAS Safeguard has blocked this content to protect you.
-            This site was identified as potentially harmful.
-        </p>
+<div class="card">
+  <div class="shield-wrap">
+    <canvas id="blocked-shield"></canvas>
+  </div>
 
-        <div class="status-panel">
-            <div class="status-label">Restriction Type</div>
-            <div class="status-value" id="reason">Adult / Harmful Content</div>
-        </div>
+  <h1>Access Blocked</h1>
+  <p class="subtitle">ZAS Safeguard stopped this page from loading to keep you protected.</p>
 
-        <div class="actions">
-            <button class="btn btn-primary" id="goBackBtn">
-                ← Go Back
-            </button>
-            <a href="https://google.com" class="btn btn-secondary">
-                🏠 Go to Google
-            </a>
-        </div>
+  <div class="reason-box">
+    <div class="reason-label">Block Reason</div>
+    <div class="reason-value" id="reason">Harmful Content</div>
+  </div>
 
-        <div class="motivation">
-            <div class="motivation-icon">💪</div>
-            <p class="motivation-text" id="motivationText">
-                Every time you resist temptation, you become stronger.
-                You're doing great!
-            </p>
-        </div>
+  <div class="actions">
+    <button class="btn-primary" id="goBackBtn">&#8592; Go Back</button>
+    <a href="https://zassafeguard.com/app/dashboard" class="btn-ghost">Dashboard</a>
+  </div>
 
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-value" id="blocksToday">0</div>
-                <div class="stat-label">Blocked Today</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="daysStreak">0</div>
-                <div class="stat-label">Day Streak</div>
-            </div>
-        </div>
+  <div class="quote-box">
+    <p class="quote-text" id="motivationText">Every time you resist, you become stronger. You are doing great.</p>
+  </div>
 
-        <div class="footer">
-            Protected by <a href="https://zassafeguard.com">ZAS Safeguard</a>
-        </div>
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num" id="blocksToday">0</span>
+      <div class="stat-label">Blocked Today</div>
     </div>
+    <div class="stat">
+      <span class="stat-num" id="daysStreak">0</span>
+      <div class="stat-label">Day Streak</div>
+    </div>
+  </div>
+</div>
 
-    <script src="../shared/quotes.js"></script>
-    <script src="blocked.js"></script>
+<div class="page-footer">Protected by <a href="https://zassafeguard.com">ZAS Safeguard</a></div>
+
+<!-- Mini Three.js shield (r128) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  /* ── Reason from URL param ── */
+  const params=new URLSearchParams(location.search);
+  const reason=params.get('reason')||'adult';
+  const reasons={adult:'Adult Content',malware:'Phishing / Malware',focus:'Focus Mode Active',lock:'Internet Lock',category:'Category Blocked'+(params.get('category')?': '+params.get('category').charAt(0).toUpperCase()+params.get('category').slice(1):'')};
+  document.getElementById('reason').textContent=reasons[reason]||'Harmful Content';
+
+  /* ── Go Back ── */
+  document.getElementById('goBackBtn').addEventListener('click',()=>{
+    if(window.history.length>1){window.history.back();}else{window.close();}
+  });
+
+  /* ── Stats from chrome storage ── */
+  if(typeof chrome!=='undefined'&&chrome.storage){
+    chrome.storage.local.get(['blocksToday','dayStreak'],s=>{
+      if(s.blocksToday)document.getElementById('blocksToday').textContent=s.blocksToday;
+      if(s.dayStreak)document.getElementById('daysStreak').textContent=s.dayStreak;
+    });
+  }
+
+  /* ── Quotes ── */
+  const quotes=['Every time you resist, you become stronger. You are doing great.','Think about why you installed this protection.','You are stronger than this moment. This urge will pass.','Your future self will thank you for waiting.','Remember your goals. This feeling is temporary.'];
+  document.getElementById('motivationText').textContent=quotes[Math.floor(Math.random()*quotes.length)];
+
+  /* ── Mini 3D shield ── */
+  if(!window.THREE)return;
+  const canvas=document.getElementById('blocked-shield');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(120,120);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0,0);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(45,1,0.1,100);camera.position.z=4;
+  const geo=new THREE.IcosahedronGeometry(1.4,1);
+  const wire=new THREE.WireframeGeometry(geo);
+  const mesh=new THREE.LineSegments(wire,new THREE.LineBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.8}));
+  scene.add(mesh);
+  const solid=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x5B5EF4,transparent:true,opacity:0.05}));
+  scene.add(solid);
+  const pl=new THREE.PointLight(0x5B5EF4,2,10);scene.add(pl);
+  scene.add(new THREE.AmbientLight(0x1a1a3e,0.5));
+  (function animate(){requestAnimationFrame(animate);mesh.rotation.y+=0.008;solid.rotation.y+=0.008;const t=Date.now()*.001;pl.position.set(Math.cos(t)*3,Math.sin(t*.7)*1.5,Math.sin(t)*3);renderer.render(scene,camera);})();
+})();
+</script>
 </body>
-
 </html>

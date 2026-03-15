@@ -15,30 +15,23 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "/",
-        "destination": "/landing.html"
-      },
-      {
-        "source": "/app/**",
-        "destination": "/app.html"
-      },
-      {
-        "source": "/register",
-        "destination": "/app.html"
-      },
-      {
-        "source": "/login",
-        "destination": "/app.html"
-      },
-      {
-        "source": "/checkout/**",
-        "destination": "/app.html"
-      },
-      {
-        "source": "**",
-        "destination": "/app.html"
-      }
+      { "source": "/",              "destination": "/landing.html" },
+      { "source": "/features",      "destination": "/features.html" },
+      { "source": "/pricing",       "destination": "/pricing.html" },
+      { "source": "/changelog",     "destination": "/changelog.html" },
+      { "source": "/status",        "destination": "/status.html" },
+      { "source": "/about",         "destination": "/about.html" },
+      { "source": "/blog",          "destination": "/blog.html" },
+      { "source": "/careers",       "destination": "/careers.html" },
+      { "source": "/cookie-policy", "destination": "/cookie-policy.html" },
+      { "source": "/help",          "destination": "/help.html" },
+      { "source": "/contact",       "destination": "/contact.html" },
+      { "source": "/security",      "destination": "/security.html" },
+      { "source": "/app/**",        "destination": "/app.html" },
+      { "source": "/register",      "destination": "/app.html" },
+      { "source": "/login",         "destination": "/app.html" },
+      { "source": "/checkout/**",   "destination": "/app.html" },
+      { "source": "**",             "destination": "/app.html" }
     ]
   },
   "emulators": {

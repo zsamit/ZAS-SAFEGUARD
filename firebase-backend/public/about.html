@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>About — ZAS Safeguard</title>
+<meta name="description" content="Why we built ZAS Safeguard and what drives us.">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/zas-shared.css">
+<style>
+.about-hero{padding:calc(64px + var(--space-10)) 0 var(--space-9);position:relative;overflow:hidden}
+.about-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:500px;background:radial-gradient(ellipse 80% 60% at 30% 0%,rgba(91,94,244,0.12) 0%,transparent 70%);pointer-events:none}
+.about-hero .tagline{font-size:clamp(40px,5.5vw,72px);max-width:760px;line-height:1.05;margin-bottom:var(--space-6)}
+.about-hero .lead{font-size:20px;color:var(--text-secondary);max-width:600px;line-height:1.7}
+.about-section{padding:var(--space-9) 0;border-top:1px solid var(--border-subtle)}
+.about-section h2{font-size:clamp(28px,3.5vw,44px);margin-bottom:var(--space-5)}
+.about-section p{font-size:17px;color:var(--text-secondary);line-height:1.8;max-width:680px;margin-bottom:var(--space-4)}
+.about-section p:last-child{margin-bottom:0}
+.values-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:var(--space-6)}
+.value-card{padding:28px;position:relative}
+.value-card::before{content:'';position:absolute;top:0;left:28px;right:28px;height:1px;background:linear-gradient(90deg,transparent,var(--accent-primary),transparent)}
+.value-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent-primary);letter-spacing:.1em;text-transform:uppercase;margin-bottom:var(--space-3)}
+.value-card h3{font-size:20px;margin-bottom:var(--space-3)}
+.value-card p{font-size:14px;color:var(--text-secondary);line-height:1.7;margin:0}
+.zas-meaning{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:var(--space-6)}
+.zas-letter{padding:24px;text-align:center}
+.zas-letter .letter{font-family:'Cabinet Grotesk',sans-serif;font-size:56px;font-weight:800;color:var(--accent-primary);line-height:1;margin-bottom:8px;opacity:.9}
+.zas-letter .word{font-size:16px;font-weight:500;margin-bottom:6px}
+.zas-letter .desc{font-size:13px;color:var(--text-secondary)}
+.company-box{margin-top:var(--space-6);padding:28px 32px;border-left:3px solid rgba(91,94,244,0.5)}
+.company-box .label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.company-box p{font-size:15px;color:var(--text-secondary);line-height:1.7;margin-bottom:8px}
+.company-box p:last-child{margin:0}
+@media(max-width:768px){.values-grid{grid-template-columns:1fr}.zas-meaning{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="container"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="28" alt="" aria-hidden="true">ZAS Safeguard</a><div class="nav-links"><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about" aria-current="page">About</a><a href="/blog">Blog</a></div><div class="nav-buttons"><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div><button class="hamburger" aria-label="Open menu" onclick="zasOpenMenu()"><span></span><span></span><span></span></button></div></nav>
+<div id="mobileMenu" class="mobile-menu" style="display:none"><button class="mobile-close" onclick="zasCloseMenu()">&#215;</button><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/about">About</a><a href="/blog">Blog</a><a href="/login" class="btn-ghost">Sign In</a><a href="/register" class="btn-primary">Start Free Trial</a></div>
+
+<main class="page-main">
+  <section class="about-hero">
+    <div class="container">
+      <h1 class="tagline animate">The internet should protect you.<br>Not the other way around.</h1>
+      <p class="lead animate" data-stagger="1">We built ZAS Safeguard because the tools that existed were either too complicated, too expensive, or too easy to bypass. So we built something simpler and harder to get around.</p>
+    </div>
+  </section>
+
+  <div class="container">
+
+    <section class="about-section animate">
+      <h2>The problem we are solving</h2>
+      <p>Every parent who has ever handed a child a device knows the feeling. The internet contains things that no child should see — and the default settings on every browser, every platform, and every search engine are set to allow almost everything.</p>
+      <p>The existing parental control tools are expensive, require separate accounts, break constantly, and are often bypassed by any teenager who spends five minutes on YouTube. The free alternatives are either outdated blocklists that miss most modern adult sites, or surveillance tools that feel invasive rather than protective.</p>
+      <p>We also built this for adults who want to protect themselves. Who recognise that certain content is harmful to their own mental health, their relationships, or their productivity — and who want a tool that actually helps, not one they can easily disable when willpower fails.</p>
+    </section>
+
+    <section class="about-section animate">
+      <h2>What ZAS stands for</h2>
+      <div class="zas-meaning">
+        <div class="zas-letter glass">
+          <div class="letter">Z</div>
+          <div class="word">Zero</div>
+          <div class="desc">Zero compromise on what matters. Zero tolerance for harmful content.</div>
+        </div>
+        <div class="zas-letter glass">
+          <div class="letter">A</div>
+          <div class="word">Access</div>
+          <div class="desc">Access to the tools you need to stay safe, for everyone — not just enterprise.</div>
+        </div>
+        <div class="zas-letter glass">
+          <div class="letter">S</div>
+          <div class="word">Safeguard</div>
+          <div class="desc">A real safeguard. Not a checkbox. Not a setting buried in a menu.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section animate">
+      <h2>What we believe</h2>
+      <div class="values-grid">
+        <div class="value-card glass">
+          <div class="value-num">01</div>
+          <h3>Protection should be unconditional</h3>
+          <p>Adult content blocking is always on. Not toggleable. Not bypassable with a simple click. If you built protection that turns off when someone really wants to turn it off, you built nothing.</p>
+        </div>
+        <div class="value-card glass">
+          <div class="value-num">02</div>
+          <h3>Simplicity is a form of respect</h3>
+          <p>You should not need a technical degree to protect your family online. One extension. One dashboard. Real protection working in the background without you thinking about it.</p>
+        </div>
+        <div class="value-card glass">
+          <div class="value-num">03</div>
+          <h3>Privacy is not optional</h3>
+          <p>We do not sell your browsing data. We do not build profiles. We do not serve ads. Your protection data is used only to protect you — nothing else.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section animate">
+      <h2>ZAS Global LLC</h2>
+      <div class="company-box glass">
+        <div class="label">Company Information</div>
+        <p>ZAS Safeguard is a product of ZAS Global LLC. We are a small, focused team building practical internet safety tools for families and individuals.</p>
+        <p>We are not backed by advertising revenue. We are not selling your data. The product is funded entirely by the people who use it — which means our interests are aligned with yours.</p>
+        <p>Questions, feedback, or press inquiries: <a href="mailto:hello@zassafeguard.com" style="color:var(--accent-primary)">hello@zassafeguard.com</a></p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="nav-logo"><img src="/assets/logo-white.png" height="24" alt="" aria-hidden="true">ZAS Safeguard</a><p>The Internet, Made Safe.</p></div><div class="footer-col"><h4>Product</h4><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/changelog">Changelog</a><a href="/status">Status</a></div><div class="footer-col"><h4>Company</h4><a href="/about">About</a><a href="/blog">Blog</a><a href="/careers">Careers</a></div><div class="footer-col"><h4>Legal</h4><a href="/privacy-policy">Privacy Policy</a><a href="/terms-of-use">Terms of Use</a><a href="/cookie-policy">Cookie Policy</a></div><div class="footer-col"><h4>Support</h4><a href="/help">Help Center</a><a href="/contact">Contact</a><a href="/security">Security</a></div></div><div class="footer-bottom"><span>&copy; 2025 ZAS Global LLC. All rights reserved.</span><span>Payments secured by Stripe. All data encrypted.</span></div></div></footer>
+<script src="/assets/zas-shared.js"></script>
+</body>
+</html>
