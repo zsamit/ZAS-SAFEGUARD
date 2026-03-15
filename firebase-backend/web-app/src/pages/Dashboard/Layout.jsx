@@ -59,14 +59,15 @@ const DashboardLayout = () => {
 
     // Navigation items with premium lock indicators
     // Mode A: Always accessible | Mode B: Locked when not entitled
+    // Order: Overview → Alerts (most actionable) → Protection → Devices → Family → Tools
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', mode: 'A' },
-        { icon: Smartphone, label: 'Devices', path: '/app/devices', mode: 'B' },
-        { icon: Shield, label: 'Protection', path: '/app/protection', mode: 'A' },
-        { icon: EyeOff, label: 'Ad Blocker', path: '/app/adblock', mode: 'B' },
-        { icon: ScanLine, label: 'Link Scanner', path: '/app/scanner', mode: 'B' },
         { icon: Bell, label: 'Alerts', path: '/app/alerts', mode: 'B' },
+        { icon: Shield, label: 'Protection', path: '/app/protection', mode: 'A' },
+        { icon: Smartphone, label: 'Devices', path: '/app/devices', mode: 'B' },
         { icon: Users, label: 'Family', path: '/app/family', mode: 'B' },
+        { icon: ScanLine, label: 'Link Scanner', path: '/app/scanner', mode: 'B' },
+        { icon: EyeOff, label: 'Ad Blocker', path: '/app/adblock', mode: 'B' },
     ];
 
     const bottomNavItems = [

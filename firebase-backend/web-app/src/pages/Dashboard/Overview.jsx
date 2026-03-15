@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
-import { useDashboardStats, useProtectionStatus } from '../../hooks/useFirestore';
+import { useDashboardStats, useProtectionStatus, useAlerts } from '../../hooks/useFirestore';
 import { useFocusMode, useInternetLock } from '../../hooks/useExtension';
 import TrialExpiredModal from './TrialExpiredModal';
 import {
@@ -27,7 +27,12 @@ import {
     BookOpen,
     BarChart3,
     Users,
-    ArrowRight
+    ArrowRight,
+    Activity,
+    ChevronRight,
+    AlertTriangle,
+    CheckCircle,
+    Zap,
 } from 'lucide-react';
 import styles from './Overview.module.css';
 
@@ -56,71 +61,142 @@ const DURATION_OPTIONS = [
     { label: 'Until tomorrow', minutes: 'tomorrow' },
 ];
 
+// Threat type labels + icons
+const THREAT_LABELS = {
+    adult: { label: 'Adult Content', color: 'var(--crimson)' },
+    malware: { label: 'Malware', color: 'var(--crimson)' },
+    phishing: { label: 'Phishing', color: 'var(--crimson)' },
+    ad_blocked: { label: 'Ad Blocked', color: 'var(--zas-indigo)' },
+    tracker_blocked: { label: 'Tracker', color: 'var(--zas-indigo)' },
+    focus_blocked: { label: 'Focus Block', color: 'var(--amber)' },
+    extension_disabled: { label: 'Extension Disabled', color: 'var(--amber)' },
+    devtools_opened: { label: 'Tamper Attempt', color: 'var(--crimson)' },
+};
+
+/**
+ * Compute a 0-100 Security Score from available data.
+ * Factors:
+ *   Extension connected        30 pts
+ *   No high-severity alerts today 25 pts
+ *   Protections enabled (3×10) 30 pts
+ *   Active devices > 0         15 pts
+ */
+function computeSecurityScore(isProtected, userProfile, stats, recentAlerts) {
+    let score = 0;
+
+    if (isProtected) score += 30;
+
+    const settings = userProfile?.protectionSettings || {};
+    if (settings.malware !== false) score += 10;
+    if (settings.adblock !== false) score += 10;
+    if (settings.trackers !== false) score += 10;
+
+    const highToday = (recentAlerts || []).filter(a => {
+        if (a.severity !== 'high') return false;
+        const ts = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        return Date.now() - ts < 24 * 60 * 60 * 1000;
+    });
+    if (highToday.length === 0) score += 25;
+    else if (highToday.length <= 2) score += 12;
+
+    if (!stats.loading && stats.activeDevices > 0) score += 15;
+
+    return Math.min(100, score);
+}
+
+/** Friendly "X min ago / X hr ago / Yesterday" */
+function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return 'Yesterday';
+}
+
+// ─── Security Score Ring ───────────────────────────────────────────────────
+const SecurityScoreRing = ({ score }) => {
+    const r = 46;
+    const circ = 2 * Math.PI * r;
+    const filled = (score / 100) * circ;
+    const color =
+        score >= 80 ? 'var(--emerald)' :
+        score >= 50 ? 'var(--amber)' :
+        'var(--crimson)';
+    const label =
+        score >= 80 ? 'Excellent' :
+        score >= 50 ? 'Fair' :
+        'At Risk';
+
+    return (
+        <div className={styles.scoreRingWrap}>
+            <svg viewBox="0 0 110 110" width="110" height="110" aria-label={`Security score ${score}`}>
+                {/* Track */}
+                <circle cx="55" cy="55" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                {/* Progress */}
+                <circle
+                    cx="55" cy="55" r={r}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="8"
+                    strokeDasharray={`${filled} ${circ}`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 55 55)"
+                    style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+                />
+                <text x="55" y="50" textAnchor="middle" fill="var(--text-primary)" fontSize="20" fontWeight="700" fontFamily="inherit">{score}</text>
+                <text x="55" y="65" textAnchor="middle" fill="var(--text-muted)" fontSize="10" fontFamily="inherit">{label}</text>
+            </svg>
+        </div>
+    );
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────
 const Overview = () => {
     const navigate = useNavigate();
     const { isActive, isExpired, isTrial, isPremium, planName } = useOutletContext();
 
-    // Real data from Firebase
     const { userProfile } = useAuth();
     const stats = useDashboardStats();
     const { status, isProtected } = useProtectionStatus();
+    const { alerts: recentAlerts, loading: alertsLoading } = useAlerts(8);
 
-    // Extension-controlled states (persisted)
     const { isActive: focusModeActive, toggleFocusMode, loading: focusLoading, endTime: focusEndTime, startFocusWithDuration } = useFocusMode();
     const { isLocked: internetLockActive, toggleInternetLock, loading: lockLoading } = useInternetLock();
 
-    // Extension stats (real-time from extension)
     const [extensionStats, setExtensionStats] = useState(null);
-
-    // Duration picker modal
     const [showDurationPicker, setShowDurationPicker] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
-
-    // Trial expired modal state
     const [showTrialExpired, setShowTrialExpired] = useState(false);
 
-    // Check if trial/subscription is expired on mount
-    useEffect(() => {
-        console.log('[TrialCheck] userProfile:', userProfile);
-        console.log('[TrialCheck] subscription:', userProfile?.subscription);
+    // Security Score (live computed)
+    const securityScore = useMemo(
+        () => computeSecurityScore(isProtected, userProfile, stats, recentAlerts),
+        [isProtected, userProfile, stats, recentAlerts]
+    );
 
+    // Trial/expired modal check
+    useEffect(() => {
         if (userProfile?.subscription) {
             const sub = userProfile.subscription;
-            // Check both 'status' and 'plan_status' fields (Firestore structure varies)
-            const status = (sub.status || sub.plan_status || '').toLowerCase();
+            const subStatus = (sub.status || sub.plan_status || '').toLowerCase();
             const plan = (sub.plan || '').toLowerCase();
-
-            console.log('[TrialCheck] Status:', status, '| Plan:', plan);
-
-            // Show popup for these statuses
             const expiredStatuses = ['canceled', 'cancelled', 'unpaid', 'past_due', 'incomplete_expired', 'expired', 'inactive'];
-
-            // Check if subscription is expired OR user is on free plan after trial
-            const isExpired = expiredStatuses.includes(status);
-            // H-05: Guard — only show modal if user actually started a trial
+            const isSubExpired = expiredStatuses.includes(subStatus);
             const hasStartedTrial = !!sub.trial_start || sub.trial_used === true;
             const isFreeAfterTrial = plan === 'free' && sub.trial_active === false && hasStartedTrial;
-
-            // Check if trial ended without converting
             const trialEnd = sub.trial_end;
             let trialEnded = false;
             if (trialEnd) {
                 const endDate = trialEnd.toDate ? trialEnd.toDate() : new Date(trialEnd);
-                trialEnded = endDate < new Date() && status !== 'active';
-                console.log('[TrialCheck] Trial end date:', endDate, '| Ended:', trialEnded);
+                trialEnded = endDate < new Date() && subStatus !== 'active';
             }
-
-            console.log('[TrialCheck] isExpired:', isExpired, '| isFreeAfterTrial:', isFreeAfterTrial, '| trialEnded:', trialEnded);
-
-            // Show popup if any condition is true
-            if (isExpired || isFreeAfterTrial || trialEnded) {
-                // Check if user already dismissed (don't show again for 24 hours)
+            if (isSubExpired || isFreeAfterTrial || trialEnded) {
                 const uid = userProfile?.uid || 'unknown';
-                const dismissKey = `trialExpiredDismissed_${uid}`;
-                const dismissedAt = localStorage.getItem(dismissKey);
-                const shouldShow = !dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000;
-                console.log('[TrialCheck] Should show popup:', shouldShow);
-                if (shouldShow) {
+                const dismissedAt = localStorage.getItem(`trialExpiredDismissed_${uid}`);
+                if (!dismissedAt || Date.now() - parseInt(dismissedAt) > 24 * 60 * 60 * 1000) {
                     setShowTrialExpired(true);
                 }
             }
@@ -129,142 +205,78 @@ const Overview = () => {
 
     const handleDismissTrialModal = () => {
         const uid = userProfile?.uid || 'unknown';
-        const dismissKey = `trialExpiredDismissed_${uid}`;
-        localStorage.setItem(dismissKey, Date.now().toString());
+        localStorage.setItem(`trialExpiredDismissed_${uid}`, Date.now().toString());
         setShowTrialExpired(false);
     };
 
-    // Fetch extension stats with unmount guard and timeout
+    // Extension stats polling
     useEffect(() => {
         let isMounted = true;
-        const TIMEOUT_MS = 3000;
-
         const fetchExtensionStats = async () => {
             try {
-                // Get extension ID
                 const extId = localStorage.getItem('zasExtensionId');
                 if (extId && window.chrome?.runtime?.sendMessage) {
-                    // Use timeout to prevent hanging callbacks
                     let responded = false;
-                    const timeout = setTimeout(() => {
-                        responded = true; // Just mark as responded, don't update state
-                    }, TIMEOUT_MS);
-
+                    const timeout = setTimeout(() => { responded = true; }, 3000);
                     window.chrome.runtime.sendMessage(extId, { type: 'ADBLOCK_GET_STATS' }, (response) => {
                         if (!responded) {
                             clearTimeout(timeout);
-                            // Guard: only update state if component is still mounted
                             if (isMounted && !chrome.runtime.lastError && response?.stats) {
                                 setExtensionStats(response.stats);
                             }
                         }
                     });
                 }
-            } catch (e) {
-                // Extension not available
-            }
+            } catch (_) {}
         };
-
         fetchExtensionStats();
         const interval = setInterval(fetchExtensionStats, 30000);
-
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
+        return () => { isMounted = false; clearInterval(interval); };
     }, []);
 
-    // Calculate time remaining
+    // Focus mode countdown
     useEffect(() => {
-        if (!focusModeActive || !focusEndTime) {
-            setTimeRemaining('');
-            return;
-        }
-
-        const updateRemaining = () => {
-            const end = new Date(focusEndTime);
-            const now = new Date();
-            const diff = end - now;
-
-            if (diff <= 0) {
-                setTimeRemaining('Ending...');
-                return;
-            }
-
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-            if (hours > 0) {
-                setTimeRemaining(`${hours}h ${minutes}m remaining`);
-            } else {
-                setTimeRemaining(`${minutes}m remaining`);
-            }
+        if (!focusModeActive || !focusEndTime) { setTimeRemaining(''); return; }
+        const update = () => {
+            const diff = new Date(focusEndTime) - new Date();
+            if (diff <= 0) { setTimeRemaining('Ending...'); return; }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            setTimeRemaining(h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`);
         };
-
-        updateRemaining();
-        const interval = setInterval(updateRemaining, 60000); // Update every minute
+        update();
+        const interval = setInterval(update, 60000);
         return () => clearInterval(interval);
     }, [focusModeActive, focusEndTime]);
 
-    // Simple locale detection for quote selection
     const quote = useMemo(() => {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const islamicTimezones = ['Asia/Riyadh', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Jakarta', 'Asia/Kuala_Lumpur', 'Africa/Cairo', 'Asia/Tehran'];
-        const useIslamic = islamicTimezones.some(tz => timezone.includes(tz.split('/')[1]));
-        const quoteList = useIslamic ? quotes.islamic : quotes.motivational;
-        return quoteList[Math.floor(Math.random() * quoteList.length)];
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const islamicTZs = ['Asia/Riyadh', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Jakarta', 'Asia/Kuala_Lumpur', 'Africa/Cairo', 'Asia/Tehran'];
+        const useIslamic = islamicTZs.some(t => tz.includes(t.split('/')[1]));
+        const list = useIslamic ? quotes.islamic : quotes.motivational;
+        return list[Math.floor(Math.random() * list.length)];
     }, []);
 
-    // Quick action handlers
-    const handleScanLink = () => {
-        navigate('/app/scanner');
-    };
-
     const handleFocusMode = async () => {
-        if (focusModeActive) {
-            // If already active, stop it
-            await toggleFocusMode();
-        } else {
-            // Show duration picker
-            setShowDurationPicker(true);
-        }
+        if (focusModeActive) await toggleFocusMode();
+        else setShowDurationPicker(true);
     };
 
     const handleSelectDuration = async (option) => {
         setShowDurationPicker(false);
-
-        let durationMinutes;
-        if (option.minutes === 'midnight') {
-            // Calculate minutes until midnight
-            const now = new Date();
-            const midnight = new Date(now);
-            midnight.setHours(24, 0, 0, 0);
-            durationMinutes = Math.floor((midnight - now) / (1000 * 60));
-        } else if (option.minutes === 'tomorrow') {
-            // Calculate minutes until tomorrow midnight
-            const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(24, 0, 0, 0);
-            durationMinutes = Math.floor((tomorrow - now) / (1000 * 60));
-        } else {
-            durationMinutes = option.minutes;
+        let mins = option.minutes;
+        if (mins === 'midnight') {
+            const m = new Date(); const mid = new Date(m); mid.setHours(24, 0, 0, 0);
+            mins = Math.floor((mid - m) / 60000);
+        } else if (mins === 'tomorrow') {
+            const m = new Date(); const tom = new Date(m); tom.setDate(tom.getDate() + 1); tom.setHours(24, 0, 0, 0);
+            mins = Math.floor((tom - m) / 60000);
         }
-
-        await startFocusWithDuration(durationMinutes);
-    };
-
-    const handleInternetLock = async () => {
-        const newState = await toggleInternetLock();
-    };
-
-    const handleViewAlerts = () => {
-        navigate('/app/alerts');
+        await startFocusWithDuration(mins);
     };
 
     return (
         <div className={styles.page}>
-            {/* Trial Expired Modal */}
             <TrialExpiredModal
                 isOpen={showTrialExpired}
                 onClose={handleDismissTrialModal}
@@ -273,37 +285,229 @@ const Overview = () => {
 
             <header className={styles.header}>
                 <h1>Dashboard</h1>
-                <p>Overview of your protection status.</p>
+                <p>Your security overview at a glance.</p>
             </header>
 
-            {/* UI-10: Status Card FIRST — before expired section */}
-            <Card variant={isProtected ? 'success' : 'warning'} className={styles.statusCard}>
-                <div className={styles.statusContent}>
-                    <div className={styles.statusIcon}>
-                        {isProtected ? (
-                            <ShieldCheck size={36} />
-                        ) : (
-                            <ShieldAlert size={36} className={styles.pulseIcon} />
-                        )}
-                    </div>
-                    <div className={styles.statusText}>
-                        <h2>{isProtected ? 'Protected' : 'Attention Needed'}</h2>
-                        <p>
+            {/* ── ROW 1: Status + Security Score ────────────────────────── */}
+            <div className={styles.topRow}>
+                <Card variant={isProtected ? 'success' : 'warning'} className={styles.statusCard}>
+                    <div className={styles.statusContent}>
+                        <div className={styles.statusIcon}>
                             {isProtected
-                                ? 'All systems operational. No threats detected.'
-                                : 'Some protection features need your attention.'}
-                        </p>
+                                ? <ShieldCheck size={36} />
+                                : <ShieldAlert size={36} className={styles.pulseIcon} />}
+                        </div>
+                        <div className={styles.statusText}>
+                            <h2>{isProtected ? 'Protected' : 'Attention Needed'}</h2>
+                            <p>
+                                {isProtected
+                                    ? 'All systems operational. Extension connected.'
+                                    : 'Install or reconnect the ZAS extension to activate protection.'}
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <Badge variant={isProtected ? 'success' : 'warning'}>
-                    {isProtected ? 'Active' : 'Review'}
-                </Badge>
-            </Card>
+                    <Badge variant={isProtected ? 'success' : 'warning'}>
+                        {isProtected ? 'Active' : 'Review'}
+                    </Badge>
+                </Card>
 
-            {/* Expired/Free User: Account State Section */}
+                {/* ── FEATURE 1: Security Score ─────────────────────────── */}
+                <Card className={styles.scoreCard}>
+                    <div className={styles.scoreHeader}>
+                        <div className={styles.scoreTitle}>
+                            <Activity size={16} />
+                            <span>Security Score</span>
+                        </div>
+                        <Badge
+                            variant={securityScore >= 80 ? 'success' : securityScore >= 50 ? 'warning' : 'error'}
+                        >
+                            {securityScore >= 80 ? 'Excellent' : securityScore >= 50 ? 'Fair' : 'At Risk'}
+                        </Badge>
+                    </div>
+                    <div className={styles.scoreBody}>
+                        <SecurityScoreRing score={securityScore} />
+                        <div className={styles.scoreFactors}>
+                            <ScoreFactor
+                                ok={isProtected}
+                                label="Extension connected"
+                            />
+                            <ScoreFactor
+                                ok={userProfile?.protectionSettings?.malware !== false}
+                                label="Malware protection on"
+                            />
+                            <ScoreFactor
+                                ok={userProfile?.protectionSettings?.adblock !== false}
+                                label="Ad blocker on"
+                            />
+                            <ScoreFactor
+                                ok={!stats.loading && stats.activeDevices > 0}
+                                label="Device active"
+                            />
+                        </div>
+                    </div>
+                    <p className={styles.scoreHint}>
+                        Score updates in real time as your protection changes.
+                    </p>
+                </Card>
+            </div>
+
+            {/* ── ROW 2: Quick Actions ───────────────────────────────────── */}
+            <section className={styles.actionsSection}>
+                <h3>Quick Actions</h3>
+                <div className={styles.actionsGrid}>
+                    <ActionCard
+                        icon={<ScanLine size={20} />}
+                        label="Scan a Link"
+                        sublabel="Check any URL instantly"
+                        iconBg="var(--zas-indigo-subtle)"
+                        iconColor="var(--zas-indigo)"
+                        onClick={() => navigate('/app/scanner')}
+                    />
+                    <ActionCard
+                        icon={focusLoading ? <Loader size={20} className={styles.spinner} /> : <Focus size={20} />}
+                        label={focusModeActive ? 'Stop Focus Mode' : 'Start Focus Mode'}
+                        sublabel={focusModeActive && timeRemaining ? timeRemaining : 'Block distractions'}
+                        iconBg={focusModeActive ? 'var(--emerald-subtle)' : 'var(--amber-subtle)'}
+                        iconColor={focusModeActive ? 'var(--emerald)' : 'var(--amber)'}
+                        onClick={handleFocusMode}
+                        active={focusModeActive}
+                        disabled={focusLoading}
+                    />
+                    <ActionCard
+                        icon={lockLoading ? <Loader size={20} className={styles.spinner} /> : <Wifi size={20} />}
+                        label={internetLockActive ? 'Unlock Internet' : 'Internet Lock'}
+                        sublabel={internetLockActive ? 'Whitelist only mode' : 'Block all browsing'}
+                        iconBg={internetLockActive ? 'var(--crimson-subtle)' : 'rgba(255,255,255,0.06)'}
+                        iconColor={internetLockActive ? 'var(--crimson)' : 'var(--text-secondary)'}
+                        onClick={() => toggleInternetLock()}
+                        active={internetLockActive}
+                        disabled={lockLoading}
+                    />
+                    <ActionCard
+                        icon={<Bell size={20} />}
+                        label="View Alerts"
+                        sublabel={stats.alertsCount > 0 ? `${stats.alertsCount} unread` : 'All clear'}
+                        iconBg="var(--amber-subtle)"
+                        iconColor="var(--amber)"
+                        onClick={() => navigate('/app/alerts')}
+                    />
+                </div>
+            </section>
+
+            {/* ── ROW 3: Stats Grid ──────────────────────────────────────── */}
+            <div className={styles.statsGrid}>
+                <StatCard
+                    icon={<Ban />}
+                    label="Ads Blocked"
+                    value={stats.loading ? '—' : (
+                        extensionStats?.adsBlocked != null
+                            ? extensionStats.adsBlocked.toLocaleString()
+                            : stats.adsBlockedToday.toLocaleString()
+                    )}
+                    subtext={extensionStats?.adsBlocked != null ? 'Live from extension' : 'Today'}
+                    iconColor="var(--zas-indigo)"
+                    loading={stats.loading}
+                />
+                <StatCard
+                    icon={<AlertCircle />}
+                    label="Sites Blocked"
+                    value={stats.loading ? '—' : stats.sitesBlockedToday.toLocaleString()}
+                    subtext="Today"
+                    iconColor="var(--crimson)"
+                    loading={stats.loading}
+                />
+                <StatCard
+                    icon={<Smartphone />}
+                    label="Active Devices"
+                    value={stats.loading ? '—' : stats.activeDevices.toString()}
+                    subtext="Connected"
+                    iconColor="var(--text-secondary)"
+                    loading={stats.loading}
+                    onClick={() => navigate('/app/devices')}
+                />
+                <StatCard
+                    icon={<Bell />}
+                    label="Alerts"
+                    value={stats.loading ? '—' : stats.alertsCount.toString()}
+                    subtext={stats.alertsCount === 0 ? 'No new alerts' : 'Needs attention'}
+                    iconColor="var(--amber)"
+                    loading={stats.loading}
+                    onClick={() => navigate('/app/alerts')}
+                />
+            </div>
+
+            {/* ── ROW 4: Threat Feed + Quote ─────────────────────────────── */}
+            <div className={styles.bottomGrid}>
+                {/* ── FEATURE 2: Live Threat Feed ──────────────────────── */}
+                <Card className={styles.threatFeedCard}>
+                    <div className={styles.threatFeedHeader}>
+                        <div className={styles.threatFeedTitle}>
+                            <Zap size={16} />
+                            <span>Live Threat Feed</span>
+                            <span className={styles.liveDot} aria-label="live" />
+                        </div>
+                        <button
+                            className={styles.viewAllBtn}
+                            onClick={() => navigate('/app/alerts')}
+                        >
+                            View all <ChevronRight size={14} />
+                        </button>
+                    </div>
+
+                    {alertsLoading ? (
+                        <div className={styles.threatFeedLoading}>
+                            <Loader size={18} className={styles.spinner} />
+                            <span>Loading threats…</span>
+                        </div>
+                    ) : recentAlerts.length === 0 ? (
+                        <div className={styles.threatFeedEmpty}>
+                            <CheckCircle size={32} style={{ color: 'var(--emerald)', marginBottom: 8 }} />
+                            <p>No threats detected recently.</p>
+                            <span>Your protection is working.</span>
+                        </div>
+                    ) : (
+                        <ul className={styles.threatList}>
+                            {recentAlerts.slice(0, 6).map((alert) => {
+                                const info = THREAT_LABELS[alert.type] || { label: alert.type || 'Unknown', color: 'var(--text-muted)' };
+                                const isHigh = alert.severity === 'high';
+                                return (
+                                    <li key={alert.id} className={styles.threatItem}>
+                                        <span
+                                            className={styles.threatDot}
+                                            style={{ background: info.color }}
+                                        />
+                                        <div className={styles.threatInfo}>
+                                            <span className={styles.threatLabel}>{info.label}</span>
+                                            {alert.url && (
+                                                <span className={styles.threatUrl}>
+                                                    {(() => { try { return new URL(alert.url).hostname; } catch { return alert.url.slice(0, 32); } })()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className={styles.threatMeta}>
+                                            {isHigh && (
+                                                <Badge variant="error" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                                                    High
+                                                </Badge>
+                                            )}
+                                            <span className={styles.threatTime}>{timeAgo(alert.timestamp)}</span>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </Card>
+
+                <Card className={styles.quoteCard}>
+                    <p className={styles.quoteText}>"{quote.text}"</p>
+                    <span className={styles.quoteAuthor}>— {quote.author}</span>
+                </Card>
+            </div>
+
+            {/* ── Expired / Free User Section ───────────────────────────── */}
             {isExpired && (
                 <div className={styles.expiredSection}>
-                    {/* Status Card */}
                     <Card className={styles.accountStateCard}>
                         <div className={styles.accountStateHeader}>
                             <div className={styles.accountStateIcon}>
@@ -330,7 +534,6 @@ const Overview = () => {
                         </div>
                     </Card>
 
-                    {/* Active vs Locked Features */}
                     <div className={styles.featureColumns}>
                         <Card className={styles.featureCard}>
                             <h4 className={styles.featureCardTitle}>
@@ -364,7 +567,7 @@ const Overview = () => {
                                     <div key={f.label} className={styles.featureItem}>
                                         <f.icon size={14} />
                                         <span>{f.label}</span>
-                                        {f.beta && <Badge variant="info" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>Beta Preview</Badge>}
+                                        {f.beta && <Badge variant="info" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>Beta</Badge>}
                                         <Lock size={12} className={styles.featureItemLock} />
                                     </div>
                                 ))}
@@ -372,7 +575,6 @@ const Overview = () => {
                         </Card>
                     </div>
 
-                    {/* Upgrade CTA */}
                     <Card className={styles.upgradeCta}>
                         <div className={styles.upgradeContent}>
                             <Sparkles size={20} className={styles.upgradeIcon} />
@@ -394,98 +596,7 @@ const Overview = () => {
                 </div>
             )}
 
-
-
-            {/* Stats Grid - REAL DATA FROM FIRESTORE */}
-            <div className={styles.statsGrid}>
-                <StatCard
-                    icon={<Ban />}
-                    label="Ads Blocked"
-                    value={stats.loading ? '—' : (
-                        extensionStats?.adsBlocked != null
-                            ? extensionStats.adsBlocked.toLocaleString()
-                            : stats.adsBlockedToday.toLocaleString()
-                    )}
-                    subtext={extensionStats?.adsBlocked != null ? 'Extension (live)' : 'Today (Firestore)'}
-                    iconColor="var(--zas-indigo)"
-                    loading={stats.loading}
-                />
-                <StatCard
-                    icon={<AlertCircle />}
-                    label="Sites Blocked"
-                    value={stats.loading ? '—' : stats.sitesBlockedToday.toLocaleString()}
-                    subtext="Today"
-                    iconColor="var(--crimson)"
-                    loading={stats.loading}
-                />
-                <StatCard
-                    icon={<Smartphone />}
-                    label="Active Devices"
-                    value={stats.loading ? '—' : stats.activeDevices.toString()}
-                    subtext="Connected"
-                    iconColor="var(--text-secondary)"
-                    loading={stats.loading}
-                    onClick={() => navigate('/app/devices')}
-                />
-                <StatCard
-                    icon={<Bell />}
-                    label="Alerts"
-                    value={stats.loading ? '—' : stats.alertsCount.toString()}
-                    subtext={stats.alertsCount === 0 ? 'No new alerts' : 'Needs attention'}
-                    iconColor="var(--amber)"
-                    loading={stats.loading}
-                    onClick={() => navigate('/app/alerts')}
-                />
-            </div>
-
-            {/* Quick Actions & Quote */}
-            <div className={styles.bottomGrid}>
-                <div className={styles.actionsSection}>
-                    <h3>Quick Actions</h3>
-                    <div className={styles.actionsGrid}>
-                        <ActionCard
-                            icon={<ScanLine size={20} />}
-                            label="Scan a Link"
-                            iconBg="var(--zas-indigo-subtle)"
-                            iconColor="var(--zas-indigo)"
-                            onClick={handleScanLink}
-                        />
-                        <ActionCard
-                            icon={focusLoading ? <Loader size={20} className={styles.spinner} /> : <Focus size={20} />}
-                            label={focusModeActive ? "Stop Focus" : "Start Focus Mode"}
-                            sublabel={focusModeActive && timeRemaining ? timeRemaining : null}
-                            iconBg={focusModeActive ? "var(--emerald-subtle)" : "var(--amber-subtle)"}
-                            iconColor={focusModeActive ? "var(--emerald)" : "var(--amber)"}
-                            onClick={handleFocusMode}
-                            active={focusModeActive}
-                            disabled={focusLoading}
-                        />
-                        <ActionCard
-                            icon={lockLoading ? <Loader size={20} className={styles.spinner} /> : <Wifi size={20} />}
-                            label={internetLockActive ? "Unlock Internet" : "Internet Lock"}
-                            iconBg={internetLockActive ? "var(--crimson-subtle)" : "var(--text-tertiary)"}
-                            iconColor={internetLockActive ? "var(--crimson)" : "var(--text-secondary)"}
-                            onClick={handleInternetLock}
-                            active={internetLockActive}
-                            disabled={lockLoading}
-                        />
-                        <ActionCard
-                            icon={<Bell size={20} />}
-                            label="View Alerts"
-                            iconBg="var(--amber-subtle)"
-                            iconColor="var(--amber)"
-                            onClick={handleViewAlerts}
-                        />
-                    </div>
-                </div>
-
-                <Card className={styles.quoteCard}>
-                    <p className={styles.quoteText}>"{quote.text}"</p>
-                    <span className={styles.quoteAuthor}>— {quote.author}</span>
-                </Card>
-            </div>
-
-            {/* Duration Picker Modal */}
+            {/* ── Focus Duration Picker Modal ────────────────────────────── */}
             {showDurationPicker && (
                 <div className={styles.modalOverlay} onClick={() => setShowDurationPicker(false)}>
                     <Card className={styles.durationModal} onClick={e => e.stopPropagation()}>
@@ -499,9 +610,9 @@ const Overview = () => {
                             </button>
                         </div>
                         <div className={styles.durationGrid}>
-                            {DURATION_OPTIONS.map((option, index) => (
+                            {DURATION_OPTIONS.map((option, i) => (
                                 <button
-                                    key={index}
+                                    key={i}
                                     className={styles.durationOption}
                                     onClick={() => handleSelectDuration(option)}
                                 >
@@ -520,7 +631,18 @@ const Overview = () => {
     );
 };
 
-// Stat Card Component
+// ─── Sub-components ────────────────────────────────────────────────────────
+
+const ScoreFactor = ({ ok, label }) => (
+    <div className={styles.scoreFactor}>
+        {ok
+            ? <CheckCircle size={13} style={{ color: 'var(--emerald)', flexShrink: 0 }} />
+            : <AlertTriangle size={13} style={{ color: 'var(--amber)', flexShrink: 0 }} />
+        }
+        <span className={ok ? styles.scoreFactorOk : styles.scoreFactorWarn}>{label}</span>
+    </div>
+);
+
 const StatCard = ({ icon, label, value, subtext, iconColor, loading, onClick }) => (
     <Card
         className={`${styles.statCard} ${onClick ? styles.clickable : ''}`}
@@ -537,7 +659,6 @@ const StatCard = ({ icon, label, value, subtext, iconColor, loading, onClick }) 
     </Card>
 );
 
-// Action Card Component
 const ActionCard = ({ icon, label, sublabel, iconBg, iconColor, onClick, active, disabled }) => (
     <button
         className={`${styles.actionCard} ${active ? styles.active : ''} ${disabled ? styles.disabled : ''}`}

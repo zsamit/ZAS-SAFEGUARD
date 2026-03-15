@@ -233,9 +233,11 @@ async function logSecurityEventToBackground() {
 logSecurityEventToBackground();
 
 function goBack() {
-    // Simply go to Google - the safest option
-    // History navigation doesn't work well in extension pages
-    window.location.href = 'https://google.com';
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.close();
+    }
 }
 
 // Attach event listener (CSP-compliant - no inline handlers)
