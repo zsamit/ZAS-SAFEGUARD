@@ -80,7 +80,7 @@ const LockedFeature = ({ feature, customTitle, customDescription }) => {
                     </Button>
                     <button
                         className={styles.compareLink}
-                        onClick={() => navigate('/')}
+                        onClick={() => window.open('/pricing', '_blank')}
                     >
                         Compare plans <ArrowRight size={14} />
                     </button>
