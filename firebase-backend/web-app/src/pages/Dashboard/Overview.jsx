@@ -588,7 +588,7 @@ const Overview = () => {
                                 <Sparkles size={14} />
                                 Upgrade Now
                             </Button>
-                            <button className={styles.comparePlansLink} onClick={() => navigate('/#pricing')}>
+                            <button className={styles.comparePlansLink} onClick={() => window.open('/pricing.html', '_blank')}>
                                 Compare plans <ArrowRight size={14} />
                             </button>
                         </div>

@@ -18,31 +18,35 @@ const PLANS = {
         name: 'Pro Monthly',
         price: '$4.99',
         period: '/month',
+        description: 'Everything you need to browse safely, block distractions, and protect your family — starting today. Adult content is blocked the moment you install. Ads and trackers are stripped from every page. The URL Scanner checks every link before it loads, catching phishing sites, malware, and scams that get past normal browsers. Focus Mode locks out social media and distractions for as long as you need. Internet Lock gives you or a parent total control with one tap. Manage every device from one dashboard and get instant alerts when something tries to get through. Cancel any time — no questions.',
+        trial: 'Try everything free for 7 days. No credit card charge until your trial ends. Cancel before day 7 and you pay nothing.',
         features: [
-            'Adult content blocking',
-            'Malware & phishing protection',
-            'Safe browsing alerts',
-            'Ad & tracker blocking',
-            'Unlimited devices',
-            'Focus Mode',
-            'Real-time threat detection',
-            'Priority support'
+            'Adult content blocked on install',
+            'Ads & trackers stripped from every page',
+            'URL Scanner — phishing, malware & scams',
+            'Focus Mode — block distractions on demand',
+            'Internet Lock — total control with one tap',
+            'Instant alerts for blocked threats',
+            'Manage all devices from one dashboard',
+            'Cancel any time — no questions'
         ]
     },
     yearly: {
         name: 'Pro Yearly',
         price: '$49.99',
         period: '/year',
-        savings: 'Save 17%',
+        savings: '2 months free',
+        description: 'Everything in Pro Monthly, billed once a year at just $4.17 per month. Two months completely free compared to paying monthly. One payment, twelve months of uninterrupted protection across every device in your home. No monthly reminders, no renewal anxiety — just protection running quietly in the background all year. The best option if you are serious about keeping your family safe online and want the lowest possible cost to do it.',
+        trial: 'Try everything free for 7 days. No credit card charge until your trial ends. Cancel before day 7 and you pay nothing.',
         features: [
-            'Everything in Monthly',
-            'Best value - $4.17/mo',
-            'Malware & phishing protection',
-            'Safe browsing alerts',
-            'Real-time threat detection',
-            'Family sharing (up to 5)',
-            'Early access to features',
-            'Priority support'
+            'Everything in Pro Monthly',
+            'Just $4.17/month — 2 months free',
+            'One payment, 12 months of protection',
+            'No monthly reminders or renewal anxiety',
+            'Adult content blocked on install',
+            'Ads & trackers stripped from every page',
+            'URL Scanner — phishing, malware & scams',
+            'Focus Mode, Internet Lock & instant alerts'
         ]
     }
 };
@@ -309,9 +313,10 @@ const CheckoutPage = () => {
                             </div>
                             {trialEligible && (
                                 <div className={styles.trialBadge}>
-                                    🎉 7-day free trial included!
+                                    🎉 {planDetails.trial}
                                 </div>
                             )}
+                            <p className={styles.planDescription}>{planDetails.description}</p>
                             <ul className={styles.featureList}>
                                 {planDetails.features.map((feature, i) => (
                                     <li key={i}>

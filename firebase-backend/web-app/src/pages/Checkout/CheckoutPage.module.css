@@ -173,6 +173,13 @@
     text-align: center;
 }
 
+.planDescription {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.65;
+    margin: 0 0 20px;
+}
+
 .featureList {
     list-style: none;
     padding: 0;
