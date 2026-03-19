@@ -479,7 +479,9 @@ const ALLOWED_MESSAGE_TYPES = [
     'STUDY_MODE_START', 'STUDY_MODE_STOP', 'CATEGORY_TOGGLE',
     'SETTINGS_UPDATE', 'CHILD_LOCK', 'GET_EXTENSION_ID',
     'ADBLOCK_GET_STATS', 'ADBLOCK_SET_CATEGORY',
-    'ADBLOCK_ADD_ALLOWLIST', 'ADBLOCK_REMOVE_ALLOWLIST'
+    'ADBLOCK_ADD_ALLOWLIST', 'ADBLOCK_REMOVE_ALLOWLIST',
+    'PING', 'GET_TOKEN', 'SCAN_URL',
+    'ADBLOCK_GET_CONFIG', 'ADBLOCK_GET_ALLOWLIST', 'ADBLOCK_SET_SITE_MODE'
 ];
 
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
@@ -639,6 +641,45 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         return true;
     }
 
+    if (message.type === 'PING') {
+        sendResponse({ status: 'alive', version: EXTENSION_VERSION });
+        return false;
+    }
+
+    if (message.type === 'GET_TOKEN') {
+        (async () => {
+            try {
+                const validToken = await getValidToken();
+                sendResponse({ token: validToken || null });
+            } catch (e) {
+                sendResponse({ token: null, error: e.message });
+            }
+        })();
+        return true;
+    }
+
+    if (message.type === 'SCAN_URL') {
+        scanUrlForThreats(message.url)
+            .then(result => sendResponse(result))
+            .catch(err => sendResponse({ safe: true, error: err.message }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_GET_CONFIG') {
+        handleAdBlockGetConfig().then(config => sendResponse({ config }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_GET_ALLOWLIST') {
+        handleAdBlockGetAllowlist().then(list => sendResponse({ allowlist: list }));
+        return true;
+    }
+
+    if (message.type === 'ADBLOCK_SET_SITE_MODE') {
+        handleAdBlockSetSiteMode(message.domain, message.mode).then(() => sendResponse({ success: true }));
+        return true;
+    }
+
     return true;
 });
 
@@ -655,11 +696,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Background] Message received:', message.type);
 
     // ── SYNC handlers — fire-and-forget, return false ──────────
-
-    if (message.type === 'PING') {
-        sendResponse({ status: 'alive', version: EXTENSION_VERSION });
-        return false;
-    }
 
     if (message.type === 'DEV_TOOLS_OPENED') {
         console.log('[Security] DevTools opened on:', message.url);
@@ -703,25 +739,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'ADBLOCK_SET_SITE_MODE') { handleAdBlockSetSiteMode(message.domain, message.mode).then(() => sendResponse({ success: true })); return true; }
     if (message.type === 'ADBLOCK_GET_STATS') { handleAdBlockGetStats().then(stats => sendResponse({ stats })); return true; }
     if (message.type === 'ADBLOCK_GET_CONFIG') { handleAdBlockGetConfig().then(config => sendResponse({ config })); return true; }
-
-    if (message.type === 'GET_TOKEN') {
-        (async () => {
-            try {
-                const validToken = await getValidToken();
-                sendResponse({ token: validToken || null });
-            } catch (e) {
-                sendResponse({ token: null, error: e.message });
-            }
-        })();
-        return true;
-    }
-
-    if (message.type === 'SCAN_URL') {
-        scanUrlForThreats(message.url)
-            .then(result => sendResponse(result))
-            .catch(err => sendResponse({ safe: true, error: err.message }));
-        return true;
-    }
 
     // ── Delegated popup/dashboard types ────────────────────────
     const delegated = [

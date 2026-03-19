@@ -51,7 +51,8 @@ const getStoredExtensionId = () => {
     }
 
     // UI-08: No hardcoded IDs — extension announces via EXTENSION_ID_ANNOUNCEMENT
-    const KNOWN_IDS = [];
+    // Temporary: unpacked dev ID for local testing (remove before store submission)
+    const KNOWN_IDS = ['anclbiffkkdjjfgpnmmndjoefejdekkf'];
 
     // Return first known ID to try (will be validated on use)
     if (KNOWN_IDS.length > 0) {
