@@ -152,7 +152,7 @@ const AuthPage = () => {
         <div className={styles.page}>
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <Logo size="lg" variant="dark" linkTo="/" />
+                    <Logo size="lg" variant="white" linkTo="/" />
                     <h1>{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
                     <p>{isLogin ? 'Sign in to access your dashboard' : 'Start protecting your family today'}</p>
                 </div>

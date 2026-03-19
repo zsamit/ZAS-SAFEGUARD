@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "zas-safeguard"
+  },
   "targets": {},
   "etags": {
     "zas-safeguard": {

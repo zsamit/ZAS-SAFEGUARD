@@ -10,7 +10,7 @@ import styles from './CheckoutPage.module.css';
 
 // Initialize Stripe
 // L-03: Stripe publishable key from env var (set VITE_STRIPE_PUBLISHABLE_KEY in .env)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51SROIVRwbGN3ywzEmYipPR4iUh1nM6QDVDzQlbaaO7oWSicFgUHR7Aaczgh1sIXizRzNgvs6IfDP2C1uu5v9yTaY00C2MzNjDV');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 // Plan details
 const PLANS = {
@@ -196,8 +196,22 @@ const CheckoutPage = () => {
     const [isSetupIntent, setIsSetupIntent] = useState(false);
 
     const searchParams = new URLSearchParams(location.search);
-    const plan = searchParams.get('plan') || 'monthly';
+    const initialPlan = searchParams.get('plan') === 'yearly' ? 'yearly' : 'monthly';
+    const [selectedPlan, setSelectedPlan] = useState(initialPlan);
+    const plan = selectedPlan;
     const planDetails = PLANS[plan] || PLANS.monthly;
+
+    // Re-initialize checkout when plan changes
+    const [checkoutKey, setCheckoutKey] = useState(0);
+
+    const handlePlanSwitch = (newPlan) => {
+        if (newPlan === selectedPlan) return;
+        setSelectedPlan(newPlan);
+        setClientSecret('');
+        setLoading(true);
+        setError('');
+        setCheckoutKey(k => k + 1);
+    };
 
     useEffect(() => {
         const initCheckout = async () => {
@@ -222,7 +236,7 @@ const CheckoutPage = () => {
         };
 
         initCheckout();
-    }, [plan, navigate]);
+    }, [plan, checkoutKey]);
 
     if (loading) {
         return (
@@ -264,6 +278,24 @@ const CheckoutPage = () => {
                     {/* Order Summary */}
                     <div className={styles.orderSummary}>
                         <h2>Order Summary</h2>
+
+                        {/* Billing period toggle */}
+                        <div className={styles.planToggle}>
+                            <button
+                                className={`${styles.toggleBtn} ${plan === 'monthly' ? styles.toggleActive : ''}`}
+                                onClick={() => handlePlanSwitch('monthly')}
+                            >
+                                Monthly
+                            </button>
+                            <button
+                                className={`${styles.toggleBtn} ${plan === 'yearly' ? styles.toggleActive : ''}`}
+                                onClick={() => handlePlanSwitch('yearly')}
+                            >
+                                Yearly
+                                <span className={styles.savePill}>Save 17%</span>
+                            </button>
+                        </div>
+
                         <div className={styles.planCard}>
                             <div className={styles.planHeader}>
                                 <h3>{planDetails.name}</h3>

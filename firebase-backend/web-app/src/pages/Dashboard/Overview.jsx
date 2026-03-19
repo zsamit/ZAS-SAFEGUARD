@@ -160,7 +160,7 @@ const Overview = () => {
 
     const { userProfile } = useAuth();
     const stats = useDashboardStats();
-    const { status, isProtected } = useProtectionStatus();
+    const { status, isProtected, extensionConnected } = useProtectionStatus();
     const { alerts: recentAlerts, loading: alertsLoading } = useAlerts(8);
 
     const { isActive: focusModeActive, toggleFocusMode, loading: focusLoading, endTime: focusEndTime, startFocusWithDuration } = useFocusMode();
@@ -328,7 +328,7 @@ const Overview = () => {
                         <SecurityScoreRing score={securityScore} />
                         <div className={styles.scoreFactors}>
                             <ScoreFactor
-                                ok={isProtected}
+                                ok={extensionConnected === true}
                                 label="Extension connected"
                             />
                             <ScoreFactor
@@ -400,11 +400,11 @@ const Overview = () => {
                     icon={<Ban />}
                     label="Ads Blocked"
                     value={stats.loading ? '—' : (
-                        extensionStats?.adsBlocked != null
-                            ? extensionStats.adsBlocked.toLocaleString()
+                        extensionStats?.blockedToday != null
+                            ? extensionStats.blockedToday.toLocaleString()
                             : stats.adsBlockedToday.toLocaleString()
                     )}
-                    subtext={extensionStats?.adsBlocked != null ? 'Live from extension' : 'Today'}
+                    subtext={extensionStats?.blockedToday != null ? 'Live from extension' : 'Today'}
                     iconColor="var(--zas-indigo)"
                     loading={stats.loading}
                 />

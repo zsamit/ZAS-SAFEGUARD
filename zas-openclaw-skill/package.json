@@ -1,0 +1,12 @@
+{
+  "name": "zas-safeguard",
+  "version": "1.0.0",
+  "description": "Control ZAS Safeguard browser security and parental controls from anywhere via Telegram or WhatsApp",
+  "main": "index.js",
+  "keywords": ["security", "parental-controls", "browser", "protection", "privacy", "zas"],
+  "author": "ZAS Global LLC",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}

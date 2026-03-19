@@ -64,11 +64,12 @@ export const useDashboardStats = () => {
             where('timestamp', '>=', todayStart)
         );
 
-        // UI-09: Query for ACTIVE devices only (not offline/disconnected)
+        // Query for active/online devices — extension heartbeat writes 'online',
+        // Cloud Function registration writes 'active'; accept both
         const devicesQuery = query(
             collection(db, 'devices'),
             where('userId', '==', user.uid),
-            where('status', '==', 'active')
+            where('status', 'in', ['active', 'online'])
         );
 
         // Query for unread alerts
@@ -382,12 +383,12 @@ export const useAdBlockerStats = () => {
  * UI-05: Check actual extension connection, not just category settings
  */
 export const useProtectionStatus = () => {
-    const { user, userProfile } = useAuth();
+    const { userProfile } = useAuth();
     const [extensionConnected, setExtensionConnected] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
-        const checkExtension = async () => {
+        const checkExtension = () => {
             try {
                 const extId = localStorage.getItem('zasExtensionId');
                 if (extId && window.chrome?.runtime?.sendMessage) {
@@ -403,9 +404,24 @@ export const useProtectionStatus = () => {
                 if (isMounted) setExtensionConnected(false);
             }
         };
+
         checkExtension();
-        const interval = setInterval(checkExtension, 30000);
-        return () => { isMounted = false; clearInterval(interval); };
+        const interval = setInterval(checkExtension, 15000);
+
+        // Re-check immediately when extension announces itself (content script fires on page load)
+        const onExtAnnouncement = (event) => {
+            if (event.source !== window) return;
+            if (event.data?.source === 'zas-extension' && event.data?.type === 'EXTENSION_ID_ANNOUNCEMENT') {
+                checkExtension();
+            }
+        };
+        window.addEventListener('message', onExtAnnouncement);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            window.removeEventListener('message', onExtAnnouncement);
+        };
     }, []);
 
     const categories = userProfile?.settings?.categories || {};

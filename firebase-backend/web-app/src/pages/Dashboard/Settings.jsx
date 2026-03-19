@@ -19,7 +19,10 @@ import {
     Trash2,
     Loader,
     LogOut,
-    Save
+    Save,
+    Bot,
+    Copy,
+    Check
 } from 'lucide-react';
 import styles from './Settings.module.css';
 
@@ -46,6 +49,42 @@ const Settings = () => {
     const [deleting, setDeleting] = useState(false);
     const [loadingPortal, setLoadingPortal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
+
+    // AI Agent token
+    const [agentToken, setAgentToken] = useState('');
+    const [generatingToken, setGeneratingToken] = useState(false);
+    const [tokenCopied, setTokenCopied] = useState(false);
+
+    const handleGenerateAgentToken = async () => {
+        setGeneratingToken(true);
+        setAgentToken('');
+        try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                showToast('You must be logged in to generate a token.', 'error');
+                return;
+            }
+            const idToken = await currentUser.getIdToken(true);
+            const bundle = {
+                idToken,
+                refreshToken: currentUser.refreshToken,
+                uid: currentUser.uid,
+                email: currentUser.email || '',
+            };
+            const token = btoa(JSON.stringify(bundle));
+            setAgentToken(token);
+        } catch (err) {
+            showToast('Failed to generate token: ' + err.message, 'error');
+        } finally {
+            setGeneratingToken(false);
+        }
+    };
+
+    const handleCopyToken = () => {
+        navigator.clipboard.writeText(agentToken);
+        setTokenCopied(true);
+        setTimeout(() => setTokenCopied(false), 2000);
+    };
 
     // UI-07: Toast notification state (replaces native alert())
     const [toast, setToast] = useState(null);
@@ -448,6 +487,57 @@ const Settings = () => {
                                     onChange={(e) => setQuietHours(q => ({ ...q, end: e.target.value }))}
                                 />
                             </div>
+                        </div>
+                    )}
+                </Card>
+            </section>
+
+            {/* AI Agent Access */}
+            <section className={styles.section}>
+                <h3>
+                    <Bot size={18} />
+                    AI Agent Access
+                </h3>
+                <Card className={styles.formCard}>
+                    <p style={{ marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)' }}>
+                        Connect your ZAS account to an AI agent (e.g. OpenClaw via Telegram or WhatsApp).
+                        Generate a token and paste it into your agent with <code>{'zas:connect {token}'}</code>.
+                        Tokens expire after 1 hour — generate a fresh one each time you reconnect.
+                    </p>
+                    <div className={styles.accountActions}>
+                        <Button onClick={handleGenerateAgentToken} disabled={generatingToken}>
+                            {generatingToken ? <Loader size={14} className={styles.spinner} /> : <Bot size={14} />}
+                            Generate Agent Token
+                        </Button>
+                    </div>
+                    {agentToken && (
+                        <div style={{ marginTop: 16 }}>
+                            <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 6 }}>
+                                Your agent token (valid for ~1 hour):
+                            </label>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                                <code style={{
+                                    flex: 1, padding: '10px 12px', borderRadius: 8,
+                                    background: 'var(--bg-secondary, #f4f4f5)',
+                                    fontSize: 12, wordBreak: 'break-all',
+                                    border: '1px solid var(--border, #e4e4e7)',
+                                    lineHeight: 1.5,
+                                }}>
+                                    {agentToken}
+                                </code>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={handleCopyToken}
+                                    style={{ flexShrink: 0, alignSelf: 'flex-start' }}
+                                >
+                                    {tokenCopied ? <Check size={14} /> : <Copy size={14} />}
+                                    {tokenCopied ? 'Copied!' : 'Copy'}
+                                </Button>
+                            </div>
+                            <p style={{ fontSize: 12, color: 'var(--text-muted, #a1a1aa)', marginTop: 8 }}>
+                                Paste this into your agent: <strong>zas:connect {agentToken.slice(0, 20)}…</strong>
+                            </p>
                         </div>
                     )}
                 </Card>

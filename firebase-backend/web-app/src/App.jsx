@@ -58,7 +58,7 @@ function App() {
       <Router>
         <Routes>
           {/* / is served by Firebase as landing.html — hard redirect out of React */}
-          <Route path="/" element={<HardRedirect to="/" />} />
+          <Route path="/" element={<HardRedirect to="/landing.html" />} />
 
           {/* Auth Routes */}
           <Route path="/login" element={<AuthPage />} />
@@ -87,7 +87,7 @@ function App() {
           </Route>
 
           {/* Catch all — hard redirect so Firebase serves landing.html */}
-          <Route path="*" element={<HardRedirect to="/" />} />
+          <Route path="*" element={<HardRedirect to="/landing.html" />} />
         </Routes>
       </Router>
     </AuthProvider>
