@@ -85,38 +85,71 @@ const Scanner = () => {
         setScanning(true);
         setResult(null);
 
-        // Simulate scanning (in production, call a real API like Google Safe Browsing)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Simulated result based on common patterns
         const domain = new URL(cleanUrl).hostname;
-        const isSuspicious = domain.includes('free') || domain.includes('win') || domain.includes('prize');
-        const isDangerous = domain.includes('adult') || domain.includes('xxx') || domain.includes('porn');
 
+        // Get auth token from extension
+        const extensionId = localStorage.getItem('zasExtensionId');
+        let token = null;
+
+        if (extensionId && window.chrome?.runtime?.sendMessage) {
+            token = await new Promise((resolve) => {
+                try {
+                    chrome.runtime.sendMessage(extensionId, { type: 'GET_TOKEN' }, (response) => {
+                        resolve(chrome.runtime.lastError ? null : (response?.token || null));
+                    });
+                } catch {
+                    resolve(null);
+                }
+            });
+        }
+
+        if (!token) {
+            setResult({
+                status: 'error',
+                domain,
+                url: cleanUrl,
+                threats: [],
+                message: 'Extension not connected. Make sure ZAS Safeguard is installed and you are signed in.'
+            });
+            setScanning(false);
+            return;
+        }
+
+        // Call real checkUrlReputation Cloud Function
         let scanResult;
-        if (isDangerous) {
+        try {
+            const response = await fetch(
+                'https://us-central1-zas-safeguard.cloudfunctions.net/checkUrlReputation',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ url: cleanUrl, userId: user?.uid })
+                }
+            );
+            const data = await response.json();
             scanResult = {
-                status: 'danger',
+                status: data.safe === false ? 'danger' : data.suspicious ? 'warning' : 'safe',
                 url: cleanUrl,
                 domain,
-                threats: ['Adult content detected', 'Blocked by ZAS Safeguard'],
-                message: 'This site is blocked by your protection settings.'
+                threats: data.threats || [],
+                message: data.message || (
+                    data.safe === false
+                        ? `Threat detected: ${data.category || 'malicious content'}`
+                        : data.suspicious
+                            ? 'This site shows suspicious patterns. Proceed with caution.'
+                            : 'No threats detected. This site appears safe.'
+                )
             };
-        } else if (isSuspicious) {
+        } catch (err) {
             scanResult = {
-                status: 'warning',
-                url: cleanUrl,
-                domain,
-                threats: ['Potentially deceptive content'],
-                message: 'This site may contain misleading content. Proceed with caution.'
-            };
-        } else {
-            scanResult = {
-                status: 'safe',
+                status: 'error',
                 url: cleanUrl,
                 domain,
                 threats: [],
-                message: 'No threats detected. This site appears to be safe.'
+                message: `Scan failed: ${err.message}`
             };
         }
 

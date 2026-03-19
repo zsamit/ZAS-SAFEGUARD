@@ -357,14 +357,15 @@ export const useAdBlockerStats = () => {
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const timestamp = data.timestamp?.toDate();
+                const c = data.count || 1;
 
                 if (timestamp) {
-                    month++;
+                    month += c;
                     if (timestamp >= weekStart.toDate()) {
-                        week++;
+                        week += c;
                     }
                     if (timestamp >= todayStart.toDate()) {
-                        today++;
+                        today += c;
                     }
                 }
             });

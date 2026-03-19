@@ -36,11 +36,11 @@
             }, function () {
                 // Notify background and redirect to trial/checkout page
                 chrome.runtime.sendMessage({ type: 'TOS_AGREED' });
-                window.location.href = 'https://zassafeguard.com/app/checkout?plan=monthly&source=extension';
+                window.location.href = 'https://zassafeguard.com/register?source=extension';
             });
         } else {
             // Not in extension context - redirect anyway
-            window.location.href = 'https://zassafeguard.com/app/checkout?plan=monthly&source=extension';
+            window.location.href = 'https://zassafeguard.com/register?source=extension';
         }
     });
 })();

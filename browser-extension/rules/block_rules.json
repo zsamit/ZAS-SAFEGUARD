@@ -1,702 +1,4507 @@
 [
-    {
-        "id": 1,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.pornhub.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
     },
-    {
-        "id": 2,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.xvideos.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 3,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.xnxx.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 4,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.xhamster.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 5,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.redtube.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 6,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.youporn.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 7,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.tube8.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 8,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.spankbang.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 9,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.porn.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 10,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.brazzers.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 11,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.bangbros.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 12,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.realitykings.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 13,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.pornmd.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 14,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.beeg.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 15,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.eporner.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 16,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.tnaflix.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 17,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.drtuber.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 18,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.hqporner.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 19,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.vporn.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 20,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.youjizz.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 21,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.porntube.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 22,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.livejasmin.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 23,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.chaturbate.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 24,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.bongacams.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 25,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.stripchat.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 26,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.cam4.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 27,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.camsoda.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 28,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.myfreecams.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 29,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.onlyfans.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 30,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.fansly.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 31,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.rule34.xxx/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 32,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.hentaihaven.xxx/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 33,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.hanime.tv/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 34,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.e-hentai.org/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 35,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.nhentai.net/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 36,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.porntrex.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 37,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.xnxx-cdn.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 38,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.pornpics.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 39,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.naughtyamerica.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 40,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.mofos.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 41,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.digital-playground.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 42,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.wicked.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 43,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.twistys.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 44,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.xart.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 45,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.sexart.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 46,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.vivid.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 47,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.avn.com/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 48,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.4chan.org/s/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 49,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.4chan.org/gif/*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
-    },
-    {
-        "id": 50,
-        "priority": 1,
-        "action": {
-            "type": "redirect",
-            "redirect": {
-                "extensionPath": "/blocked/blocked.html"
-            }
-        },
-        "condition": {
-            "urlFilter": "*://*.imgur.com/r/nsfw*",
-            "resourceTypes": ["main_frame", "sub_frame"]
-        }
+    "condition": {
+      "urlFilter": "*://*.pornhub.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
     }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xvideos.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xnxx.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xhamster.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.redtube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.youporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 7,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.tube8.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 8,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.spankbang.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 10,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.brazzers.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 11,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bangbros.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 12,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.realitykings.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 13,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornmd.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 14,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.beeg.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 15,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.eporner.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 16,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.tnaflix.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 17,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.drtuber.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 18,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hqporner.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 19,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.vporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 20,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.youjizz.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 21,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porntube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 22,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.livejasmin.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 23,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.chaturbate.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 24,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bongacams.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 25,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.stripchat.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 26,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.cam4.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 27,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.camsoda.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 28,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.myfreecams.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 29,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.onlyfans.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 30,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.fansly.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 31,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.rule34.xxx/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 32,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaihaven.xxx/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 33,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hanime.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 34,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.e-hentai.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 35,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nhentai.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 36,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porntrex.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 37,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xnxx-cdn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 38,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornpics.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 39,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.naughtyamerica.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 40,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.mofos.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 41,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.digital-playground.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 42,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.wicked.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 43,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.twistys.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 44,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xart.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 45,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexart.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 46,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.vivid.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 47,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.avn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 48,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.4chan.org/s/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 49,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.4chan.org/gif/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 50,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.imgur.com/r/nsfw*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 51,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.txxx.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 52,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hardsextube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 53,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.keezmovies.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 54,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sunporno.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 55,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.slutload.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 56,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.fuq.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 57,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hclips.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 58,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hdzog.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 59,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.upornia.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 60,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nonktube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 61,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.vidlox.me/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 62,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexu.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 63,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornoxo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 64,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.freeones.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 65,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.yeptube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 66,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.4tube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 67,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.wetplace.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 68,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornrabbit.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 69,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.alphaporno.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 70,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hdtube.porn/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 71,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.eroprofile.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 72,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.ashemaletube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 73,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.trannytube.sex/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 74,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.shemale.xxx/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 75,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.transexjapan.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 76,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.motherless.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 77,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bravotube.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 78,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porndig.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 79,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhat.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 80,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.vxxx.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 81,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bpornvideos.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 82,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xmoviesforyou.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 83,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.analdin.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 84,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornone.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 85,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.gotporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 86,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.iceporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 87,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.maturetube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 88,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.perfectgirls.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 89,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.jizzbunker.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 90,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.cliphunter.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 91,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.megatube.xxx/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 92,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porndoe.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 93,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.proporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 94,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.deviants.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 95,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.kinky.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 96,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porniq.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 97,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornolab.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 98,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.videosection.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 99,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.yobt.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 100,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bigfuck.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 101,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xmovies8.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 102,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.tubegalore.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 103,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornzog.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 104,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.flirt4free.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 105,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.streamate.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 106,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.imlive.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 107,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.manyvids.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 108,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.clips4sale.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 109,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nubiles.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 110,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.digitalplayground.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 111,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.teamskeet.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 112,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.babes.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 113,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.kink.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 114,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.met-art.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 115,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hegre-art.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 116,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.abby-winters.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 117,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.puremature.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 118,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.maturetubehere.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 119,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.40somethingmag.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 120,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.scoreland.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 121,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.biggercity.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 122,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.atkgalleria.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 123,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.girlfriendsfilms.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 124,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sweetheartvideo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 125,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.girlsway.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 126,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hotwife.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 127,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.faphouse.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 128,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornbimbo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 129,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornmaki.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 130,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornktube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 131,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexvid.xxx/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 132,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.lubetube.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 133,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexhay69.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 134,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.javmost.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 135,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.jav.guru/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 136,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.avgle.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 137,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.caribbeancom.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 138,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.1pondo.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 139,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.heyzo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 140,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.fc2.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 141,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.dmm.co.jp/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 142,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.javbus.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 143,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.javhd.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 144,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.javfull.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 145,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.jav321.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 146,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.missav.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 147,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.123av.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 148,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xempire.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 149,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.vivthomas.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 150,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nubilefilms.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 151,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.joymii.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 152,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.passion-hd.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 153,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.metart.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 154,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.femjoy.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 155,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.thelifeerotic.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 156,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.watch4beauty.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 157,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.amkingdom.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 158,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.ftv-girls.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 159,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nubile-films.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 160,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sweetsinner.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 161,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.elegantangel.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 162,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.fantasymassage.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 163,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.puretaboo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 164,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.newmfx.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 165,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.clubdom.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 166,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.whippedass.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 167,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.menonedge.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 168,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.handjobs.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 169,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.myxxxpass.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 170,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaihaven.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 171,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentai2read.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 172,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaistream.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 173,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.animehentai.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 174,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaifox.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 175,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.luscious.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 176,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaicity.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 177,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.truyen-hentai.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 178,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaibedta.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 179,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hentaiera.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 180,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sex.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 181,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.imagefap.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 182,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xnxx.es/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 183,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.fapality.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 184,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.reddit.com/r/gonewild/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 185,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.reddit.com/r/nsfw/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 186,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.mypornstarbook.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 187,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.babepedia.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 188,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.iafd.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 189,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.adultempire.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 190,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.adultvideouniverse.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 191,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.gamelink.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 192,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hotmovies.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 193,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.homepornking.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 194,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.empflix.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 195,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.tubecup.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 196,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xcafe.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 197,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornicom.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 198,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhd.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 199,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornjam.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 200,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornoxo.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 201,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xvideos2.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 202,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xvideos3.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 203,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xvideos4.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 204,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xhamster2.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 205,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xhamster3.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 206,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhub.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 207,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.redtube.com.br/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 208,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.youporn.de/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 209,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhubpremium.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 210,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.modelhub.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 211,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhd3x.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 212,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornmaki.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 213,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.4dsex.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 214,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sex18.pro/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 215,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornorama.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 216,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.videopornone.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 217,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.hdsex.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 218,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.yourlust.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 219,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.planetsuzy.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 220,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornhq.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 221,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.watchmygf.me/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 222,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.voyeursex.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 223,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.camwhores.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 224,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.voyeur-house.tv/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 225,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.reallifecam.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 226,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.camarads.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 227,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.voyeurclouds.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 228,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xxxbunker.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 229,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.yobt.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 230,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornwatchers.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 231,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.joysporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 232,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.lolliporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 233,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornoxo.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 234,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.xxxvideos.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 235,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornvibe.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 236,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornktube.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 237,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.streamporn.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 238,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.prncomix.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 239,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.milftoon.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 240,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.affect3d.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 241,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.toonporn69.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 242,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.rule34.paheal.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 243,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.gelbooru.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 244,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.danbooru.donmai.us/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 245,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.konachan.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 246,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.yande.re/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 247,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexgames.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 248,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.nutaku.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 249,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.f95zone.to/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 250,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.myhentaicomics.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 251,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.multporn.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 252,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porngames.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 253,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.adultgames.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 254,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.sexemulator.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 255,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.3dsexvilla.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 256,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.bonkgames.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 257,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.myporn.club/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 258,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.drporn.net/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 259,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornxp.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 260,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornoxxx.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 261,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornkhub.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 262,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.porn00.org/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 263,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornvideo.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 264,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornsocket.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 265,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "*://*.pornwild.com/*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ]
+    }
+  }
 ]

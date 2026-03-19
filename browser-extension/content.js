@@ -81,76 +81,8 @@
         console.log('%c', element);
     };
 
-    // Method 3: Window size check (dev tools changes window size)
-    let windowWidth = window.outerWidth;
-    let windowHeight = window.outerHeight;
-
-    const checkWindowSize = () => {
-        const widthThreshold = window.outerWidth - window.innerWidth > 160;
-        const heightThreshold = window.outerHeight - window.innerHeight > 160;
-
-        if (widthThreshold || heightThreshold) {
-            if (!devToolsOpen) {
-                devToolsOpen = true;
-                reportDevToolsOpen();
-            }
-        }
-    };
-
-    function reportDevToolsOpen() {
-        try {
-            chrome.runtime.sendMessage({
-                type: 'DEV_TOOLS_OPENED',
-                url: window.location.href
-            }, () => {
-                if (chrome.runtime.lastError) { /* ignore */ }
-            });
-        } catch (e) { /* ignore */ }
-
-        // Show warning
-        showDevToolsWarning();
-    }
-
-    function showDevToolsWarning() {
-        const warning = document.createElement('div');
-        warning.id = 'zas-devtools-warning';
-        warning.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-        color: white;
-        padding: 16px;
-        z-index: 2147483647;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      ">
-        ⚠️ <strong>ZAS Safeguard:</strong> Developer tools detected. This action has been logged and reported.
-      </div>
-    `;
-
-        if (!document.getElementById('zas-devtools-warning')) {
-            document.body.appendChild(warning);
-
-            // Remove after 5 seconds
-            setTimeout(() => {
-                warning.remove();
-            }, 5000);
-        }
-    }
-
-    // Run detection periodically (be careful not to impact performance)
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            setInterval(checkWindowSize, 1000);
-        });
-    } else {
-        setInterval(checkWindowSize, 1000);
-    }
+    // Window size check removed — caused false positives on narrow windows,
+    // responsive design mode, and docked side panels (WARN 01)
 
     // ============================================
     // CONTENT SCANNING (BACKUP BLOCKING)
@@ -677,8 +609,21 @@ ${selectors.join(',\n')} {
         }, 500), { passive: true });
     }
 
-    // Initialize cosmetic filtering
-    initCosmeticFiltering();
+    // Initialize cosmetic filtering — Pro feature only
+    (async () => {
+        try {
+            const storage = await chrome.storage.local.get(['_verifiedSubscription']);
+            const verified = storage._verifiedSubscription;
+            const hasAdBlock = verified?.verified === true &&
+                verified?.active === true &&
+                verified?.capabilities?.security_intelligence === true;
+            if (hasAdBlock) {
+                initCosmeticFiltering();
+            }
+        } catch (e) {
+            // If check fails, do not run cosmetic filtering
+        }
+    })();
 
     // ============================================
     // EXTENSION CHECK

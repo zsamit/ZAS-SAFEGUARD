@@ -41,7 +41,7 @@ const CONFIG = {
 };
 
 // Current extension version
-const EXTENSION_VERSION = '1.0.0';
+const EXTENSION_VERSION = '1.2.0';
 
 // L-02: Token expiry constant (Firebase tokens expire after 1 hour)
 const TOKEN_MAX_AGE_MS = 55 * 60 * 1000; // 55 minutes — refresh before expiry
@@ -81,9 +81,14 @@ async function requestTokenRefreshFromWebApp() {
 
 // L-02: Set up periodic token refresh alarm (every 45 minutes)
 chrome.alarms.create('TOKEN_REFRESH', { periodInMinutes: 45 });
-chrome.alarms.onAlarm.addListener((alarm) => {
+// Single unified alarm listener — all alarm names handled here
+chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === 'TOKEN_REFRESH') {
         requestTokenRefreshFromWebApp();
+    } else if (alarm.name === 'syncBlocklist') {
+        await syncWithFirebase();
+    } else if (alarm.name === 'heartbeat') {
+        await sendHeartbeat();
     }
 });
 
@@ -638,13 +643,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
 });
 
 // Handle alarms
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name === 'syncBlocklist') {
-        await syncWithFirebase();
-    } else if (alarm.name === 'heartbeat') {
-        await sendHeartbeat();
-    }
-});
+// syncBlocklist and heartbeat are handled in the unified alarm listener above
 
 // ─────────────────────────────────────────────────────────────
 // UNIFIED INTERNAL MESSAGE HANDLER  (Issue 05)
@@ -690,33 +689,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // ── ASYNC handlers — keep channel open, return true ────────
 
-    if (message.type === 'CHILD_LOCK') {
-        chrome.storage.local.set({
-            childLocked: message.locked,
-            childLockTime: new Date().toISOString()
-        }).then(() => { applyChildLock(message.locked); sendResponse({ success: true }); });
-        return true;
-    }
-
-    if (message.type === 'STUDY_MODE_START') {
-        chrome.storage.local.set({
-            activeStudySession: message.session,
-            studyBlockCategories: message.session.blockCategories
-        }).then(async () => {
-            await updateBlockingWithCategories(message.session.blockCategories);
-            sendResponse({ success: true });
-        });
-        return true;
-    }
-
-    if (message.type === 'STUDY_MODE_STOP') {
-        chrome.storage.local.remove(['activeStudySession', 'studyBlockCategories']).then(() => {
-            updateBlockingRules(DEFAULT_BLOCKLIST);
-            sendResponse({ success: true });
-        });
-        return true;
-    }
-
     if (message.type === 'PAGE_UNLOAD') {
         sendGracefulOffline(message.hint || 'page_unload');
         sendResponse({ received: true }); return true;
@@ -731,6 +703,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'ADBLOCK_SET_SITE_MODE') { handleAdBlockSetSiteMode(message.domain, message.mode).then(() => sendResponse({ success: true })); return true; }
     if (message.type === 'ADBLOCK_GET_STATS') { handleAdBlockGetStats().then(stats => sendResponse({ stats })); return true; }
     if (message.type === 'ADBLOCK_GET_CONFIG') { handleAdBlockGetConfig().then(config => sendResponse({ config })); return true; }
+
+    if (message.type === 'GET_TOKEN') {
+        (async () => {
+            try {
+                const validToken = await getValidToken();
+                sendResponse({ token: validToken || null });
+            } catch (e) {
+                sendResponse({ token: null, error: e.message });
+            }
+        })();
+        return true;
+    }
 
     if (message.type === 'SCAN_URL') {
         scanUrlForThreats(message.url)
