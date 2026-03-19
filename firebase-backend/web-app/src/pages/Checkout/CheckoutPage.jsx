@@ -257,7 +257,7 @@ const CheckoutPage = () => {
                 <div className={styles.errorCard}>
                     <h2>Something went wrong</h2>
                     <p>{error}</p>
-                    <button onClick={() => navigate('/')} className={styles.backButton}>
+                    <button onClick={() => navigate('/app/dashboard')} className={styles.backButton}>
                         <ArrowLeft size={18} />
                         Back to Home
                     </button>
