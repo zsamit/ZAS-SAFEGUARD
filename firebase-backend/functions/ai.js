@@ -98,7 +98,26 @@ async function classifyContentLogic(data, uid) {
             };
         }
 
-        // Check 2: Verify AI Analysis is enabled in user settings
+        // Check 2: Rate limit — max 100 AI calls per user per day
+        const today = new Date().toISOString().split('T')[0];
+        const aiCapRef = db.doc(`daily_caps/${uid}_ai_${today}`);
+        const aiCapDoc = await aiCapRef.get();
+        const aiCallCount = aiCapDoc.exists ? (aiCapDoc.data().count || 0) : 0;
+
+        if (aiCallCount >= 100) {
+            return {
+                success: false,
+                error: 'rate_limit',
+                message: 'Daily AI analysis limit reached. Resets at midnight.'
+            };
+        }
+
+        await aiCapRef.set({
+            count: admin.firestore.FieldValue.increment(1),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Check 3: Verify AI Analysis is enabled in user settings
         const aiEnabled = userData.settings?.aiAnalysisEnabled !== false; // Default true for Pro users
         if (!aiEnabled) {
             return {
