@@ -115,7 +115,7 @@ const LandingPage = () => {
                     <Card className={styles.pricingCard}>
                         <h3>Pro Monthly</h3>
                         <div className={styles.price}>
-                            $4.99<span>/month</span>
+                            $9.99<span>/month</span>
                         </div>
                         <p className={styles.pricingDesc}>
                             Flexible protection for everyone.
@@ -141,7 +141,7 @@ const LandingPage = () => {
                     <Card className={styles.pricingCard}>
                         <h3>Pro Yearly</h3>
                         <div className={styles.price}>
-                            $49.99<span>/year</span>
+                            $99.99<span>/year</span>
                         </div>
                         <p className={styles.pricingDesc}>
                             Save 17% with annual billing.
