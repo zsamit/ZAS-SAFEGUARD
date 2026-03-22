@@ -25,8 +25,8 @@ const TrialExpiredModal = ({ isOpen, onClose, subscription }) => {
     };
 
     const plans = {
-        monthly: { price: '$4.99', period: '/month', savings: null },
-        yearly: { price: '$49.99', period: '/year', savings: 'Save 17%', monthly: '$4.17/mo' }
+        monthly: { price: '$9.99', period: '/month', savings: null },
+        yearly: { price: '$99.99', period: '/year', savings: 'Save 17%', monthly: '$8.33/mo' }
     };
 
     return (

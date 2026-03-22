@@ -16,7 +16,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 const PLANS = {
     monthly: {
         name: 'Pro Monthly',
-        price: '$4.99',
+        price: '$9.99',
         period: '/month',
         description: 'Everything you need to browse safely, block distractions, and protect your family — starting today. Adult content is blocked the moment you install. Ads and trackers are stripped from every page. The URL Scanner checks every link before it loads, catching phishing sites, malware, and scams that get past normal browsers. Focus Mode locks out social media and distractions for as long as you need. Internet Lock gives you or a parent total control with one tap. Manage every device from one dashboard and get instant alerts when something tries to get through. Cancel any time — no questions.',
         trial: 'Try everything free for 7 days. No credit card charge until your trial ends. Cancel before day 7 and you pay nothing.',
@@ -33,14 +33,14 @@ const PLANS = {
     },
     yearly: {
         name: 'Pro Yearly',
-        price: '$49.99',
+        price: '$99.99',
         period: '/year',
         savings: '2 months free',
-        description: 'Everything in Pro Monthly, billed once a year at just $4.17 per month. Two months completely free compared to paying monthly. One payment, twelve months of uninterrupted protection across every device in your home. No monthly reminders, no renewal anxiety — just protection running quietly in the background all year. The best option if you are serious about keeping your family safe online and want the lowest possible cost to do it.',
+        description: 'Everything in Pro Monthly, billed once a year at just $8.33 per month. Two months completely free compared to paying monthly. One payment, twelve months of uninterrupted protection across every device in your home. No monthly reminders, no renewal anxiety — just protection running quietly in the background all year. The best option if you are serious about keeping your family safe online and want the lowest possible cost to do it.',
         trial: 'Try everything free for 7 days. No credit card charge until your trial ends. Cancel before day 7 and you pay nothing.',
         features: [
             'Everything in Pro Monthly',
-            'Just $4.17/month — 2 months free',
+            'Just $8.33/month — 2 months free',
             'One payment, 12 months of protection',
             'No monthly reminders or renewal anxiety',
             'Adult content blocked on install',

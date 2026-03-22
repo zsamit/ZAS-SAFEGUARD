@@ -432,7 +432,7 @@ setInterval(enforceSubscriptionStatus, 5 * 60 * 1000);
 // React to verified subscription changes only (not legacy fields)
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes._verifiedSubscription) {
-        enforceSubscriptionStatus();
+        verifySubscriptionWithServer(true).then(() => enforceSubscriptionStatus());
     }
 });
 
@@ -461,7 +461,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     // Set up periodic sync
     chrome.alarms.create('syncBlocklist', { periodInMinutes: CONFIG.SYNC_INTERVAL_MINUTES });
-    chrome.alarms.create('heartbeat', { periodInMinutes: 1 });
+    chrome.alarms.create('heartbeat', { periodInMinutes: 5 });
 
     // Initialize Ad Blocker Engine
     await initAdBlockEngine();
