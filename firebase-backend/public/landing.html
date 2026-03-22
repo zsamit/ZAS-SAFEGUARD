@@ -318,7 +318,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent-primary);out
 <div class="glass price-card pro animate" data-stagger="2">
 <div class="popular-badge">Most Popular</div>
 <h3>Pro</h3>
-<div class="price-amount" id="proPrice">$4.99</div><div class="price-period" id="proPeriod">/month</div>
+<div class="price-amount" id="proPrice">$9.99</div><div class="price-period" id="proPeriod">/month</div>
 <div class="price-sub" id="proSub"> </div>
 <ul class="feature-list">
 <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg>Adult content blocking</li>
@@ -452,13 +452,13 @@ window.togglePricing = function(plan){
   if(plan === 'yearly'){
     pill.classList.add('yearly');
     badge.classList.add('show');
-    price.textContent = '$49.99';
+    price.textContent = '$99.99';
     period.textContent = '/year';
-    sub.textContent = '$4.17/mo billed yearly';
+    sub.textContent = '$8.33/mo billed yearly';
   } else {
     pill.classList.remove('yearly');
     badge.classList.remove('show');
-    price.textContent = '$4.99';
+    price.textContent = '$9.99';
     period.textContent = '/month';
     sub.innerHTML = '\u00a0';
   }

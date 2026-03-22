@@ -61,7 +61,7 @@
     <div class="glass price-card pro animate" data-stagger="2">
       <div class="popular-badge">Most Popular</div>
       <h3>Pro</h3>
-      <div class="price-amount" id="proPrice">$4.99</div>
+      <div class="price-amount" id="proPrice">$9.99</div>
       <div class="price-period" id="proPeriod">/month</div>
       <div class="price-sub" id="proSub">&nbsp;</div>
       <ul class="feature-list">
@@ -81,8 +81,8 @@
 function togglePricing(p){
   var pill=document.getElementById('togglePill'),badge=document.getElementById('saveBadge'),
       price=document.getElementById('proPrice'),period=document.getElementById('proPeriod'),sub=document.getElementById('proSub');
-  if(p==='yearly'){pill.classList.add('yearly');badge.classList.add('show');price.textContent='$49.99';period.textContent='/year';sub.textContent='$4.17/mo billed yearly';document.getElementById('yearly').checked=true;}
-  else{pill.classList.remove('yearly');badge.classList.remove('show');price.textContent='$4.99';period.textContent='/month';sub.innerHTML='\u00a0';document.getElementById('monthly').checked=true;}
+  if(p==='yearly'){pill.classList.add('yearly');badge.classList.add('show');price.textContent='$99.99';period.textContent='/year';sub.textContent='$8.33/mo billed yearly';document.getElementById('yearly').checked=true;}
+  else{pill.classList.remove('yearly');badge.classList.remove('show');price.textContent='$9.99';period.textContent='/month';sub.innerHTML='\u00a0';document.getElementById('monthly').checked=true;}
 }
 </script>
 
